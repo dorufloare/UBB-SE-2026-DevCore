@@ -1,9 +1,3 @@
-# req_serban — Schedule work (Doctor + Pharmacist)
-
-Practical task list for building schedule features that people can actually use during daily hospital workflows.
-
----
-
 ## Doctor Schedule
 
 ### 1) Build the Doctor Schedule screen
