@@ -1,66 +1,61 @@
-﻿using System.ComponentModel;
+﻿using System;
+using System.Collections.ObjectModel; 
+using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Windows.Input;
 using DevCoreHospital.Models;
+using DevCoreHospital.Data;
 
 namespace DevCoreHospital.ViewModels
 {
     public class MedicalEvaluationViewModel : INotifyPropertyChanged
     {
+        private readonly MedicalDataService _dataService = new MedicalDataService();
+
+        // Task 7: This is the source for your ListView
+        public ObservableCollection<MedicalEvaluation> PastEvaluations { get; set; } = new ObservableCollection<MedicalEvaluation>();
+
         private string _symptoms = string.Empty;
-        private string _medsList = string.Empty;
-        private string _doctorNotes = string.Empty;
+        public string Symptoms { get => _symptoms; set { _symptoms = value; OnPropertyChanged(); } }
 
-        public string Symptoms
+
+        public ICommand SaveDiagnosisCommand { get; }
+
+        public MedicalEvaluationViewModel()
         {
-            get => _symptoms;
-            set
+            SaveDiagnosisCommand = new RelayCommand(SaveDiagnosis);
+            LoadHistory();
+        }
+
+        private void LoadHistory()
+        {
+            // Task 7: Pull existing records for the current doctor
+            var history = _dataService.GetEvaluationsByDoctor("DOC001");
+            foreach (var item in history)
             {
-                _symptoms = value;
-                OnPropertyChanged();
+                PastEvaluations.Add(item);
             }
         }
 
-        public string MedsList
+        private void SaveDiagnosis()
         {
-            get => _medsList;
-            set
-            {
-                _medsList = value;
-                OnPropertyChanged();
-            }
-        }
-
-        public string DoctorNotes
-        {
-            get => _doctorNotes;
-            set
-            {
-                _doctorNotes = value;
-                OnPropertyChanged();
-            }
-        }
-
-        
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-        protected void OnPropertyChanged([CallerMemberName] string? name = null)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
-        }
-
-        public void GenerateRecord()
-        {
-            
             var newRecord = new MedicalEvaluation
             {
                 Symptoms = this.Symptoms,
-                MedsList = this.MedsList,
-                DoctorNotes = this.DoctorNotes
+                MedsList = "N/A", // Simplified for now
+                DoctorNotes = "N/A",
+                EvaluationDate = DateTime.Now,
+                Evaluator = new Doctor { Id = "DOC001", Name = "Dr. Vlad" }
             };
 
-            System.Diagnostics.Debug.WriteLine($"RECORD GENERATED:");
-            System.Diagnostics.Debug.WriteLine($"Symptoms: {Symptoms}");
-            System.Diagnostics.Debug.WriteLine($"Meds: {MedsList}");
+            _dataService.SaveEvaluation(newRecord);
+
+            // Task 7: Add to the observable collection so the UI updates INSTANTLY
+            PastEvaluations.Insert(0, newRecord); // Adds to the top of the list
         }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+        protected void OnPropertyChanged([CallerMemberName] string? name = null) =>
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
 }
