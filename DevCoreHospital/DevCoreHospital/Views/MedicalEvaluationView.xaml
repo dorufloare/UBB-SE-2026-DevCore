@@ -4,33 +4,49 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:local="using:DevCoreHospital.Views"
+    xmlns:models="using:DevCoreHospital.Models"
     mc:Ignorable="d">
 
-    <Grid Padding="30">
-        <StackPanel Spacing="20" MaxWidth="500" HorizontalAlignment="Left">
-            <TextBlock Text="Diagnosis Entry Form" FontSize="24" FontWeight="Bold"/>
-            
-            <TextBlock Text="{x:Bind ViewModel.Symptoms, Mode=OneWay}" Foreground="Red" /> 
-            
-            <TextBox Header="Symptoms" 
-                     Text="{x:Bind ViewModel.Symptoms, Mode=TwoWay}" 
-                     PlaceholderText="Describe symptoms..." 
-                     AcceptsReturn="True" MinHeight="80"/>
+    <Grid Padding="20">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="400"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
 
-            <TextBox Header="Medication List (Pharmacy)" 
-                     Text="{x:Bind ViewModel.MedsList, Mode=TwoWay}" 
-                     PlaceholderText="Enter meds..."/>
+        <StackPanel Spacing="15" Grid.Column="0" Margin="0,0,20,0">
+            <TextBlock Text="New Diagnosis" FontSize="20" FontWeight="Bold"/>
+            <TextBox Header="Symptoms" Text="{x:Bind ViewModel.Symptoms, Mode=TwoWay}" AcceptsReturn="True" MinHeight="80"/>
+            <Button Content="Generate &amp; Save" Command="{x:Bind ViewModel.SaveDiagnosisCommand}" HorizontalAlignment="Right" Style="{StaticResource AccentButtonStyle}"/>
+        </StackPanel>
 
-            <TextBox Header="Doctor Notes (Patient Team)" 
-                     Text="{x:Bind ViewModel.DoctorNotes, Mode=TwoWay}" 
-                     PlaceholderText="Notes..." 
-                     AcceptsReturn="True" MinHeight="100"/>
+        <StackPanel Grid.Column="1" Spacing="10">
+            <TextBlock Text="Past Evaluations" FontSize="20" FontWeight="Bold"/>
 
-            <Button Content="Generate Record" 
-                    Click="{x:Bind ViewModel.GenerateRecord}"
-                    HorizontalAlignment="Right" 
-                    Width="150" Height="40"/>
+            <ListView ItemsSource="{x:Bind ViewModel.PastEvaluations}" 
+                      Background="{ThemeResource LayerFillColorDefaultBrush}"
+                      CornerRadius="8" Padding="10">
+
+                <ListView.ItemTemplate>
+                    <DataTemplate x:DataType="models:MedicalEvaluation">
+                        <Grid Padding="10" BorderBrush="Gray" BorderThickness="0,0,0,1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0" Margin="0,0,20,0">
+                                <TextBlock Text="{x:Bind FormattedDate}" FontWeight="Bold"/>
+                                <TextBlock Text="{x:Bind FormattedTime}" Foreground="Gray" FontSize="12"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1">
+                                <TextBlock Text="{x:Bind Symptoms}" TextTrimming="CharacterEllipsis" MaxLines="1"/>
+                                <TextBlock Text="Patient ID: System Generated" FontSize="11" Foreground="DeepSkyBlue"/>
+                            </StackPanel>
+                        </Grid>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
         </StackPanel>
     </Grid>
 </UserControl>
