@@ -29,6 +29,8 @@ namespace DevCoreHospital.Data
             {
                 _shiftsMockTable.Add(new Shift { DoctorId = "DOC001", StartTime = DateTime.Now.AddHours(-9), EndTime = DateTime.Now.AddHours(-5), Status = "COMPLETED" });
                 _shiftsMockTable.Add(new Shift { DoctorId = "DOC001", StartTime = DateTime.Now.AddHours(-2), Status = "ACTIVE" });
+                // TOTAL: 16 hours (This will trigger the Red Lockout)
+                // TOTAL: 16 hours (This will trigger the Red Lockout)
             }
         }
 
@@ -53,10 +55,10 @@ namespace DevCoreHospital.Data
             Debug.WriteLine($">>>> SQL: Appointment for {patientId} set to {status}.");
         }
 
-        public void UpdateDoctorAvailability(string doctorId)
-        {
             // Logic to set doctor to 'AVAILABLE'
             Debug.WriteLine($">>>> SQL: Doctor {doctorId} availability updated.");
+            return _mockTable.Where(e => e.Evaluator != null && e.Evaluator.Id == doctorId).ToList();
+            return _mockTable.Where(e => e.Evaluator != null && e.Evaluator.Id == doctorId).ToList();
         }
 
 
