@@ -17,6 +17,7 @@ namespace DevCoreHospital.Repositories
         {
             this.staffList = new List<Staff>();
             this.dbManager = dbManager;
+            this.staffList = dbManager.GetStaff();
         }
         public List<Doctor> GetAvailableDoctors(string specialization)
         {
