@@ -10,12 +10,11 @@
                     IsBackButtonVisible="Collapsed"
                     PaneDisplayMode="Left"
                     SelectionChanged="AppNavigationView_SelectionChanged">
-
         <NavigationView.MenuItems>
-            <NavigationViewItem Content="Medical Evaluation" Tag="MedicalEvaluation" Icon="Document"/>
-            <NavigationViewItem Content="Doctor Schedule" Tag="DoctorSchedule" Icon="Calendar"/>
+            <NavigationViewItem Content="Medical Evaluation" Tag="MedicalEvaluation" Icon="Document" />
+            <NavigationViewItem Content="Doctor Schedule" Tag="DoctorSchedule" Icon="Calendar" />
         </NavigationView.MenuItems>
 
-        <Frame x:Name="ContentFrame"/>
+        <Frame x:Name="ContentFrame" />
     </NavigationView>
 </Window>
