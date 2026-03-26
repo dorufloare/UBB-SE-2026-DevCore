@@ -5,15 +5,16 @@ using System.Text;
 using System.Threading.Tasks;
 using DevCoreHospital.Models;
 using DevCoreHospital.Repositories;
+using Microsoft.IdentityModel.Tokens;
 
 namespace DevCoreHospital.Services
 {
-    public class ShiftService
+    public class StaffAndShiftService
     {
         private readonly StaffRepository _staffRepo;
         private readonly ShiftRepository _shiftRepo;
 
-        public ShiftService(StaffRepository staffRepo, ShiftRepository shiftRepo)
+        public StaffAndShiftService(StaffRepository staffRepo, ShiftRepository shiftRepo)
         {
             _staffRepo = staffRepo;
             _shiftRepo = shiftRepo;
@@ -62,9 +63,8 @@ namespace DevCoreHospital.Services
             return _shiftRepo.GetShifts().Where(shift => shift.StartTime >= monday && shift.StartTime < sunday).ToList();
         }
 
-        public List<IStaff> FindStaffReplacement(Shift shift)
+        public List<IStaff> FindStaffReplacements(Shift shift)
         {
-            //var shift = _shiftRepo.GetShifts().FirstOrDefault(shift => shift.Id == shiftId);
             if (shift != null)
             {
                 if (shift.AppointedStaff is Doctor doc)
@@ -116,9 +116,20 @@ namespace DevCoreHospital.Services
                 return availableStaff.Where(staff => staff is Doctor doctor && doctor.Specialization.Equals(location, StringComparison.OrdinalIgnoreCase)).ToList();
             }
         }
+
+        public bool ReassignShift(Shift shift, IStaff newStaff)
+        {
+            var staffReplacements = FindStaffReplacements(shift);
+            if (!staffReplacements.IsNullOrEmpty())
+            {
+                shift.AppointedStaff = staffReplacements.First();
+                this._staffRepo.SaveStaffChanges();
+                return true;
+            } else
+            {
+                return false;
+            }
+        }
     }
 }
-        /*
-        AssignStaffToShift(staffId, shiftId): This method assigns a doctor member to a shift. It checks if the doctor member is Available
-            and if there are no overlapping shifts before creating a new shift entry in the database.
-        */
+        

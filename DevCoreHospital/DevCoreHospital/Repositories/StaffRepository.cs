@@ -23,6 +23,13 @@ namespace DevCoreHospital.Repositories
         {
             _staffList = _dbManager.GetStaff();
         }
+
+        public void SaveStaffChanges()
+        {
+            // Here you would add code to save the staff list to the database
+            // For now, we will just assume it's saved
+        }
+
         public List<Doctor> GetAvailableDoctors()
         {
             var availableDoctors = _dbManager.GetStaff().OfType<Doctor>().Where(doctor => doctor.Available).ToList();
