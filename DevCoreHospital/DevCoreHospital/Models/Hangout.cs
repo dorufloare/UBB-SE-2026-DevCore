@@ -10,7 +10,7 @@ namespace DevCoreHospital.Models
         public string description { get; set; }
         public DateTime date { get; set; }
         public int maxParticipants { get; set; }
-        public List<Staff> participantList { get; }
+        public List<IStaff> participantList { get; }
 
         public Hangout(int hangoutID, string title, string description, DateTime date, int maxParticipants)
         {
@@ -19,7 +19,7 @@ namespace DevCoreHospital.Models
             this.description = description;
             this.date = date;
             this.maxParticipants = maxParticipants;
-            this.participantList = new List<Staff>(this.maxParticipants);
+            this.participantList = new List<IStaff>(this.maxParticipants);
         }
     }
 }

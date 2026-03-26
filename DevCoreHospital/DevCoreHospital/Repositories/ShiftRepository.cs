@@ -45,7 +45,7 @@ namespace DevCoreHospital.Repositories
         }
         public List<Shift> GetShiftsByStaffID(int staffId)
         {
-            var shifts = _shiftList.Where(shift => shift.AppointedStaff.staffID == staffId).ToList();
+            var shifts = _shiftList.Where(shift => shift.AppointedStaff.StaffID == staffId).ToList();
             return shifts;
         }
         public List<Shift> GetActiveShifts()

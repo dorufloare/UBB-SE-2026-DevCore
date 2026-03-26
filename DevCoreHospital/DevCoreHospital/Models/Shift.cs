@@ -9,14 +9,14 @@ namespace DevCoreHospital.Models
     public class Shift
     {
         public int Id { get; set; }
-        public Staff AppointedStaff { get; set; }
+        public IStaff AppointedStaff { get; set; }
         public string Location { get; set; } = string.Empty;
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; } 
         public ShiftStatus Status { get; set; } = ShiftStatus.SCHEDULED;
 
         public Shift() { }
-        public Shift(int id, Staff appointedStaff, string location, DateTime startTime, DateTime endTime, ShiftStatus status)
+        public Shift(int id, IStaff appointedStaff, string location, DateTime startTime, DateTime endTime, ShiftStatus status)
         {
             this.Id = id;
             this.AppointedStaff = appointedStaff;

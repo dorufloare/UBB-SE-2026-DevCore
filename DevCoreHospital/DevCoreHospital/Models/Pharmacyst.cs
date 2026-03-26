@@ -1,23 +1,23 @@
 ﻿namespace DevCoreHospital.Models
 {
-    public class Pharmacyst : Staff
+    public class Pharmacyst : IStaff
     {
-        public int staffID { get; set; }
-        public string firstName { get; set; }
-        public string lastName { get; set; }
-        public string contactInfo { get; set; }
-        public bool available { get; set; }
-        public string certification { get; set; }
+        public int StaffID { get; set; }
+        public string FirstName { get; set; }
+        public string LastName { get; set; }
+        public string ContactInfo { get; set; }
+        public bool Available { get; set; }
+        public string Certification { get; set; }
 
         public Pharmacyst() { }
         public Pharmacyst(int staffID, string firstName, string lastName, string contactInfo, bool available, string certification)
         {
-            this.staffID = staffID;
-            this.firstName = firstName;
-            this.lastName = lastName;
-            this.contactInfo = contactInfo;
-            this.available = available;
-            this.certification = certification;
+            this.StaffID = staffID;
+            this.FirstName = firstName;
+            this.LastName = lastName;
+            this.ContactInfo = contactInfo;
+            this.Available = available;
+            this.Certification = certification;
         }
     }
 }

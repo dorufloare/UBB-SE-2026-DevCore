@@ -1,28 +1,28 @@
 ﻿namespace DevCoreHospital.Models
 {
-    public class Doctor : Staff
+    public class Doctor : IStaff
     {
-        private int staffID { get; set; }
-        private string firstName { get; set; }
-        public string lastName { get; set; }
-        public string contactInfo { get; set; }
-        public bool available { get; set; }
-        public string specialization { get; set; }
-        public string licenseNumber { get; set; }
-        public DoctorStatus doctorStatus { get; set; }
+        public int StaffID { get; set; }
+        public string FirstName { get; set; }
+        public string LastName { get; set; }
+        public string ContactInfo { get; set; }
+        public bool Available { get; set; }
+        public string Specialization { get; set; }
+        public string LicenseNumber { get; set; }
+        public DoctorStatus DoctorStatus { get; set; }
 
         public Doctor() { }
         public Doctor(int staffID, string firstName, string lastName, string contactInfo, bool available,
             string specialization, string licenseNumber, DoctorStatus doctorStatus)
         {
-            this.staffID = staffID;
-            this.firstName = firstName;
-            this.lastName = lastName;
-            this.contactInfo = contactInfo;
-            this.available = available;
-            this.specialization = specialization;
-            this.licenseNumber = licenseNumber;
-            this.doctorStatus = doctorStatus;
+            this.StaffID = staffID;
+            this.FirstName = firstName;
+            this.LastName = lastName;
+            this.ContactInfo = contactInfo;
+            this.Available = available;
+            this.Specialization = specialization;
+            this.LicenseNumber = licenseNumber;
+            this.DoctorStatus = doctorStatus;
         }
     }
 }
