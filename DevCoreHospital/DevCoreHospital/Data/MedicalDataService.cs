@@ -30,6 +30,7 @@ namespace DevCoreHospital.Data
                 _shiftsMockTable.Add(new Shift { DoctorId = "DOC001", StartTime = DateTime.Now.AddHours(-2), Status = ShiftStatus.ACTIVE });
             }
         }
+     
 
         public void SaveEvaluation(MedicalEvaluation record)
         {
@@ -52,7 +53,7 @@ namespace DevCoreHospital.Data
             _adminNotifications.Add(new AdminNotification { DoctorId = doctorId, Message = "Fatigue Alert: 12h exceeded.", Timestamp = DateTime.Now });
         }
 
-        // --- TASK 30 METHODS ---
+        // task 30 METHODS
         public void UpdateAppointmentStatus(string patientId, string status)
         {
             Debug.WriteLine($">>>> SQL: Appointment for {patientId} set to {status}.");
