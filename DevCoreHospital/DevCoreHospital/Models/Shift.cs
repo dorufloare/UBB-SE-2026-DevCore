@@ -1,17 +1,14 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace DevCoreHospital.Models
 {
     public class Shift
     {
-        public string Id { get; set; } = string.Empty;
-        public string DoctorId { get; set; } = string.Empty;
+        public int Id { get; set; }                  // optional if DB has it
+        public string DoctorId { get; set; } = "";
         public DateTime StartTime { get; set; }
-        public DateTime? EndTime { get; set; } 
-        public string Status { get; set; } = "ACTIVE"; // 'ACTIVE' or 'COMPLETED'
+        public DateTime? EndTime { get; set; }       // keep nullable for ACTIVE shifts
+        public string Status { get; set; } = "";
+        public string Location { get; set; } = "";   // #21
     }
 }
