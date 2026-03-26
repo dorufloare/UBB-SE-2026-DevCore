@@ -1,17 +1,16 @@
-﻿using System;
+﻿using DevCoreHospital.Models;
+using System;
 using System.Collections.Generic;
-using System.Threading;
 using System.Threading.Tasks;
-using DevCoreHospital.Models;
 
-namespace DevCoreHospital.Services;
-
-public interface IDoctorAppointmentService
+namespace DevCoreHospital.Services
 {
-    Task<IReadOnlyList<Appointment>> GetUpcomingAppointmentsAsync(
-        int doctorId,
-        DateTime fromDate,
-        int skip = 0,
-        int take = 200,
-        CancellationToken cancellationToken = default);
+    public interface IDoctorAppointmentService
+    {
+        Task<IReadOnlyList<Appointment>> GetUpcomingAppointmentsAsync(int doctorUserId, DateTime fromDate, int skip, int take);
+        Task<IReadOnlyList<(int DoctorId, string DoctorName)>> GetAllDoctorsAsync();
+
+        // NEW:
+        Task<AppointmentDetails?> GetAppointmentDetailsAsync(int appointmentId);
+    }
 }
