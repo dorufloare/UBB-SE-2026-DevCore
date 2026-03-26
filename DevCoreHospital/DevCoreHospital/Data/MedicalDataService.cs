@@ -14,7 +14,6 @@ namespace DevCoreHospital.Data
 
         public MedicalDataService()
         {
-            // testing allergies (Task 27)
             if (_mockTable.Count == 0)
             {
                 _mockTable.Add(new MedicalEvaluation
@@ -29,17 +28,23 @@ namespace DevCoreHospital.Data
             {
                 _shiftsMockTable.Add(new Shift { DoctorId = "DOC001", StartTime = DateTime.Now.AddHours(-9), EndTime = DateTime.Now.AddHours(-5), Status = "COMPLETED" });
                 _shiftsMockTable.Add(new Shift { DoctorId = "DOC001", StartTime = DateTime.Now.AddHours(-2), Status = "ACTIVE" });
-                // TOTAL: 16 hours (This will trigger the Red Lockout)
-                // TOTAL: 16 hours (This will trigger the Red Lockout)
             }
         }
 
-        public void SaveEvaluation(MedicalEvaluation record) => _mockTable.Add(record);
+        public void SaveEvaluation(MedicalEvaluation record)
+        {
+            _mockTable.Add(record);
+        }
 
-        public List<MedicalEvaluation> GetEvaluationsByDoctor(string doctorId) =>
-            _mockTable.Where(e => e.Evaluator != null && e.Evaluator.Id == doctorId).ToList();
+        public List<MedicalEvaluation> GetEvaluationsByDoctor(string doctorId)
+        {
+            return _mockTable.Where(e => e.Evaluator != null && e.Evaluator.Id == doctorId).ToList();
+        }
 
-        public double GetDoctorFatigueHours(string doctorId) => CalculateMockFatigue(doctorId);
+        public double GetDoctorFatigueHours(string doctorId)
+        {
+            return CalculateMockFatigue(doctorId);
+        }
 
         public void CreateAdminFatigueAlert(string doctorId)
         {
@@ -47,20 +52,16 @@ namespace DevCoreHospital.Data
             _adminNotifications.Add(new AdminNotification { DoctorId = doctorId, Message = "Fatigue Alert: 12h exceeded.", Timestamp = DateTime.Now });
         }
 
-        // --- TASK 30: WORKFLOW MANAGEMENT METHODS ---
-
+        // --- TASK 30 METHODS ---
         public void UpdateAppointmentStatus(string patientId, string status)
         {
-            // Logic to move appointment to 'Finished'
             Debug.WriteLine($">>>> SQL: Appointment for {patientId} set to {status}.");
         }
 
-            // Logic to set doctor to 'AVAILABLE'
+        public void UpdateDoctorAvailability(string doctorId)
+        {
             Debug.WriteLine($">>>> SQL: Doctor {doctorId} availability updated.");
-            return _mockTable.Where(e => e.Evaluator != null && e.Evaluator.Id == doctorId).ToList();
-            return _mockTable.Where(e => e.Evaluator != null && e.Evaluator.Id == doctorId).ToList();
         }
-
 
         public List<MedicalEvaluation> GetPatientMedicalHistory(string patientId)
         {
