@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.Linq;
 using DevCoreHospital.Models;
 using DevCoreHospital.Services;
+using Microsoft.IdentityModel.Tokens;
 
 namespace DevCoreHospital.ViewModels.Admin
 {
@@ -28,10 +29,12 @@ namespace DevCoreHospital.ViewModels.Admin
         }
 
         // Cerința: Filtrare automată bazată pe locație/specializare
-        public void FilterStaffForShift(string location, string requiredSpecialization = "")
+        public void FilterStaffForShift(string location, string requiredSpecialization = "", string requiredCertification)
         {
             AvailableStaff.Clear();
-            var filtered = _shiftService.GetFilteredStaff(location, requiredSpecialization);
+            var filtered = _shiftService.GetFilteredStaff(location, requiredSpecialization, requiredCertification);
+            /// SA IMPLEMENTEZ FILTRARE SI PE LOCATIE, IN REPO SI SERVICE
+            
             foreach (var staff in filtered)
             {
                 AvailableStaff.Add(staff);
@@ -58,10 +61,10 @@ namespace DevCoreHospital.ViewModels.Admin
             LoadAllShifts();
         }
 
-        public void ReassignShift(int shiftID, int newStaffID)
+        public void ReassignShift(Shift shift, IStaff newStaff)
         {
             // Integrity Check se face în interiorul serviciului
-            bool success = _shiftService.ReassignShift(shiftID, newStaffID);
+            bool success = _shiftService.ReassignShift(shift, newStaff);  /// SA IMPLEMENTEZ METODA ASTA IN SERVICE
             if (success)
             {
                 LoadAllShifts();
@@ -74,13 +77,12 @@ namespace DevCoreHospital.ViewModels.Admin
             LoadAllShifts();
         }
 
-        // Metodă Bonus menționată în UML: Găsește automat un înlocuitor valid
         public void AutoFindReplacement(Shift shift)
         {
-            var replacement = _shiftService.FindReplacement(shift);
-            if (replacement != null)
+            var replacementsList = _shiftService.FindStaffReplacement(shift);
+            if (!replacementsList.IsNullOrEmpty())
             {
-                ReassignShift(shift.ShiftID, replacement.StaffID);
+                ReassignShift(shift, replacementsList.First());
             }
         }
 

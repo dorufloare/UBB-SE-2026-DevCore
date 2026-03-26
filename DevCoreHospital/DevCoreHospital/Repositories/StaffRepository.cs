@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using DevCoreHospital.Models;
 using DevCoreHospital.Data;
+using Microsoft.IdentityModel.Tokens;
 
 namespace DevCoreHospital.Repositories
 {
@@ -38,19 +39,29 @@ namespace DevCoreHospital.Repositories
             var availablePharmacists = GetAvailablePharmacists();
             var availableStaff = new List<IStaff>();
 
-            if (!string.IsNullOrEmpty(doctorSpecialization) && !string.IsNullOrEmpty(pharmacystCertification))
+            if (!string.IsNullOrEmpty(doctorSpecialization) && !string.IsNullOrEmpty(pharmacystCertification)) // in this case, we need doctors & pharmacysts
             {
                 var filteredDoctors = availableDoctors.Where(doctor => doctor.Specialization.Equals(doctorSpecialization, StringComparison.OrdinalIgnoreCase));
                 var filteredPharmacists = availablePharmacists.Where(ph => ph.Certification.Equals(pharmacystCertification, StringComparison.OrdinalIgnoreCase));
                 availableStaff.AddRange(filteredDoctors);
                 availableStaff.AddRange(filteredPharmacists);
-            } else
+            } else if (!doctorSpecialization.IsNullOrEmpty()) // in this case, we need only doctors
+            {
+                var filteredDoctors = availableDoctors.Where(doctor => doctor.Specialization.Equals(doctorSpecialization, StringComparison.OrdinalIgnoreCase));
+                availableStaff.AddRange(filteredDoctors);
+            } else if (!pharmacystCertification.IsNullOrEmpty()) // in this case, we need only pharmacysts
+            {
+                var filteredPharmacists = availablePharmacists.Where(ph => ph.Certification.Equals(pharmacystCertification, StringComparison.OrdinalIgnoreCase));
+                availableStaff.AddRange(filteredPharmacists);
+            }
+            else // in this case, retrieve all the available doctors & pharmacysts
             {
                 availableStaff.AddRange(availableDoctors);
                 availableStaff.AddRange(availablePharmacists);
             }
             return availableStaff;
         }
+
         public void RegisterStaff(IStaff newStaff)
         {
             // Here you would add code to save the new staff member to the database

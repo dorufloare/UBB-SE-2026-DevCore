@@ -62,9 +62,9 @@ namespace DevCoreHospital.Services
             return _shiftRepo.GetShifts().Where(shift => shift.StartTime >= monday && shift.StartTime < sunday).ToList();
         }
 
-        public List<IStaff> FindStaffReplacement(int shiftId)
+        public List<IStaff> FindStaffReplacement(Shift shift)
         {
-            var shift = _shiftRepo.GetShifts().FirstOrDefault(shift => shift.Id == shiftId);
+            //var shift = _shiftRepo.GetShifts().FirstOrDefault(shift => shift.Id == shiftId);
             if (shift != null)
             {
                 if (shift.AppointedStaff is Doctor doc)
@@ -95,6 +95,26 @@ namespace DevCoreHospital.Services
             }
             return true; // If there are no previous shifts, the staff member had enough rest and we can assign the new shift
 
+        }
+
+        public List<IStaff> GetFilteredStaff(string location, string requiredSpecialization, string requiredCertification)
+        {
+            var availableStaff = this._staffRepo.GetAvailableStaff(requiredSpecialization, requiredCertification);
+
+            /*  WARNING! Here, I assume this: * if the location contains "Pharmacy", then I need only pharmacysts
+             
+                           * otherwise, I assume the location of the shift is the same as the doctor's specialization
+                            (e.g., Cardiology, Pediatry etc.), because a doctor is SPECIALIZED for a LOCATION
+                
+             */
+
+            if (location.Contains("Pharmacy", StringComparison.OrdinalIgnoreCase))
+            {
+                return availableStaff.Where(staff => staff is Pharmacyst).ToList();
+            } else
+            {
+                return availableStaff.Where(staff => staff is Doctor doctor && doctor.Specialization.Equals(location, StringComparison.OrdinalIgnoreCase)).ToList();
+            }
         }
     }
 }
