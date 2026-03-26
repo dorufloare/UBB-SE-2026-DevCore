@@ -6,35 +6,49 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-	<ScrollViewer>
-		<Grid Padding="24" RowSpacing="16">
-			<Grid.RowDefinitions>
-				<RowDefinition Height="Auto"/>
-				<RowDefinition Height="Auto"/>
-				<RowDefinition Height="Auto"/>
-			</Grid.RowDefinitions>
+    <Page.Resources>
+        <SolidColorBrush x:Key="BgBrush" Color="#FF0B120D"/>
+        <SolidColorBrush x:Key="CardBrush" Color="#FF0F1711"/>
+        <SolidColorBrush x:Key="TextBrush" Color="#FFFFFFFF"/>
+        <SolidColorBrush x:Key="MutedBrush" Color="#FFB7C2BA"/>
+        <SolidColorBrush x:Key="AccentBrush" Color="#FF166534"/>
+    </Page.Resources>
 
-			<TextBlock Text="Appointment Details"
+    <ScrollViewer Background="{StaticResource BgBrush}">
+        <Grid Padding="24" RowSpacing="16">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock Text="Appointment Details"
+                       Foreground="{StaticResource TextBrush}"
                        FontSize="40"
                        FontWeight="SemiBold"/>
 
-			<Border Grid.Row="1"
-                    Background="#F3F4F6"
+            <Border Grid.Row="1"
+                    Background="{StaticResource CardBrush}"
+                    BorderBrush="{StaticResource AccentBrush}"
+                    BorderThickness="1"
                     CornerRadius="16"
                     Padding="16">
-				<StackPanel Spacing="10">
-					<TextBlock Text="{Binding TypeLine}" FontSize="20" FontWeight="SemiBold"/>
-					<TextBlock Text="{Binding LocationLine}" FontSize="18"/>
-					<TextBlock Text="{Binding StatusLine}" FontSize="18"/>
-					<TextBlock Text="{Binding TimeLine}" FontSize="18"/>
-				</StackPanel>
-			</Border>
+                <StackPanel Spacing="10">
+                    <TextBlock Text="{Binding TypeLine}" Foreground="{StaticResource TextBrush}" FontSize="20" FontWeight="SemiBold"/>
+                    <TextBlock Text="{Binding LocationLine}" Foreground="{StaticResource MutedBrush}" FontSize="18"/>
+                    <TextBlock Text="{Binding StatusLine}" Foreground="{StaticResource MutedBrush}" FontSize="18"/>
+                    <TextBlock Text="{Binding TimeLine}" Foreground="{StaticResource MutedBrush}" FontSize="18"/>
+                </StackPanel>
+            </Border>
 
-			<Button Grid.Row="2"
+            <Button Grid.Row="2"
                     Content="Back"
                     Width="120"
                     HorizontalAlignment="Left"
-                    Click="Back_Click"/>
-		</Grid>
-	</ScrollViewer>
+                    Click="Back_Click"
+                    Background="{StaticResource AccentBrush}"
+                    Foreground="White"
+                    BorderBrush="{StaticResource AccentBrush}"/>
+        </Grid>
+    </ScrollViewer>
 </Page>

@@ -22,7 +22,6 @@ namespace DevCoreHospital.Views.Doctor
                 _dialogService);
 
             DataContext = _vm;
-
             Loaded += DoctorSchedulePage_Loaded;
         }
 
@@ -35,7 +34,9 @@ namespace DevCoreHospital.Views.Doctor
         private void DetailsButton_Click(object sender, RoutedEventArgs e)
         {
             if ((sender as FrameworkElement)?.DataContext is AppointmentItemViewModel item)
-                _vm.OpenDetails(item);
+            {
+                Frame?.Navigate(typeof(AppointmentDetailsPage), item);
+            }
         }
     }
 }

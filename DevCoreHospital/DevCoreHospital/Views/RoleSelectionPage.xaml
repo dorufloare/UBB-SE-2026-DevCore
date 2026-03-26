@@ -6,34 +6,39 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
-        <StackPanel HorizontalAlignment="Center"
-                    VerticalAlignment="Center"
-                    Spacing="20"
-                    Width="520">
-            <TextBlock Text="DevCore Hospital"
-                       FontSize="48"
-                       FontWeight="SemiBold"
-                       HorizontalAlignment="Center"/>
-            <TextBlock Text="Choose your role"
-                       FontSize="20"
-                       Opacity="0.85"
-                       HorizontalAlignment="Center"/>
+	<Page.Resources>
+		<SolidColorBrush x:Key="BgBrush" Color="#FF000000"/>
+		<SolidColorBrush x:Key="CardBrush" Color="#FF0F1711"/>
+		<SolidColorBrush x:Key="TextBrush" Color="#FFFFFFFF"/>
+		<SolidColorBrush x:Key="MutedBrush" Color="#FFB7C2BA"/>
+		<SolidColorBrush x:Key="AccentBrush" Color="#FF166534"/>
+	</Page.Resources>
 
-            <Button Content="Admin"
-                    Height="64"
-                    FontSize="22"
-                    Click="Admin_Click"/>
+	<Grid Background="{StaticResource BgBrush}">
+		<Border HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Width="520"
+                Padding="24"
+                CornerRadius="14"
+                Background="{StaticResource CardBrush}"
+                BorderBrush="{StaticResource AccentBrush}"
+                BorderThickness="1">
+			<StackPanel Spacing="20">
+				<TextBlock Text="DevCore Hospital"
+                           Foreground="{StaticResource TextBrush}"
+                           FontSize="48"
+                           FontWeight="SemiBold"
+                           HorizontalAlignment="Center"/>
 
-            <Button Content="Doctor"
-                    Height="64"
-                    FontSize="22"
-                    Click="Doctor_Click"/>
+				<TextBlock Text="Choose your role"
+                           Foreground="{StaticResource MutedBrush}"
+                           FontSize="20"
+                           HorizontalAlignment="Center"/>
 
-            <Button Content="Pharmacist"
-                    Height="64"
-                    FontSize="22"
-                    Click="Pharmacist_Click"/>
-        </StackPanel>
-    </Grid>
+				<Button Content="Admin" Height="64" FontSize="22" Click="Admin_Click" Background="{StaticResource AccentBrush}" Foreground="White" BorderBrush="{StaticResource AccentBrush}"/>
+				<Button Content="Doctor" Height="64" FontSize="22" Click="Doctor_Click" Background="{StaticResource AccentBrush}" Foreground="White" BorderBrush="{StaticResource AccentBrush}"/>
+				<Button Content="Pharmacist" Height="64" FontSize="22" Click="Pharmacist_Click" Background="{StaticResource AccentBrush}" Foreground="White" BorderBrush="{StaticResource AccentBrush}"/>
+			</StackPanel>
+		</Border>
+	</Grid>
 </Page>

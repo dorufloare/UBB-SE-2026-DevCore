@@ -21,6 +21,9 @@
     <None Remove="Views\SalaryPlaceholderPage.xaml" />
     <None Remove="Views\ShiftSwapPlaceholderPage.xaml" />
   </ItemGroup>
+  <ItemGroup>
+    <Page Remove="Views\DoctorSchedulePage.xaml" />
+  </ItemGroup>
 
   <ItemGroup>
     <Content Include="Assets\SplashScreen.scale-200.png" />
@@ -45,6 +48,12 @@
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.5.240311000" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.1" />
     <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Views\Doctor\DoctorSchedulePage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </None>
   </ItemGroup>
 
   <ItemGroup>

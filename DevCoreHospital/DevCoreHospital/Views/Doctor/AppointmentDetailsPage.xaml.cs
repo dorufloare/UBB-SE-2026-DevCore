@@ -14,7 +14,7 @@ namespace DevCoreHospital.Views.Doctor
 
         public AppointmentDetailsPage()
         {
-            this.InitializeComponent();
+            InitializeComponent();
             DataContext = this;
         }
 
@@ -25,11 +25,9 @@ namespace DevCoreHospital.Views.Doctor
             if (e.Parameter is AppointmentItemViewModel item)
             {
                 TypeLine = $"Type: {item.Type}";
-                LocationLine = $"Location: {item.Location}";
+                LocationLine = $"Location: {item.LocationSafe}";
                 StatusLine = $"Status: {item.Status}";
-
-                // removed TimeRangeText because your VM doesn't have it
-                TimeLine = "Time: (not available)";
+                TimeLine = $"Time: {item.Date:yyyy-MM-dd} {item.TimeRangeText}";
             }
 
             DataContext = null;

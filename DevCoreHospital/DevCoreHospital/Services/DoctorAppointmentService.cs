@@ -26,33 +26,36 @@ namespace DevCoreHospital.Services
             if (conn.State != ConnectionState.Open)
                 await conn.OpenAsync();
 
-            var doctorsTable = await ResolveDoctorsTableAsync(conn);           // doctor / doctors / dbo.*
-            var appointmentsTable = await ResolveAppointmentsTableAsync(conn); // appointment / appointments / dbo.*
+            var doctorsTable = await ResolveDoctorsTableAsync(conn);
+            var appointmentsTable = await ResolveAppointmentsTableAsync(conn);
+
+            var from = fromDate.Date;
+            var to = from.AddDays(8); // enough for weekly window
 
             var sql = $@"
 SELECT
     a.id AS Id,
-    '' AS PatientName,
     a.doctor_id AS DoctorId,
     d.full_name AS DoctorName,
     CAST(a.[date] AS datetime2) AS [Date],
     a.start_time AS StartTime,
     a.end_time AS EndTime,
-    a.status AS [Status],
-    a.type AS [Type],
-    a.location AS [Location],
-    '' AS Notes
+    ISNULL(a.status, '') AS [Status],
+    ISNULL(a.type, '') AS [Type],
+    ISNULL(a.location, '') AS [Location]
 FROM {appointmentsTable} a
 INNER JOIN {doctorsTable} d ON d.id = a.doctor_id
 WHERE a.doctor_id = @DoctorId
-  AND a.[date] >= @FromDate
+  AND CAST(a.[date] AS date) >= @FromDate
+  AND CAST(a.[date] AS date) < @ToDate
 ORDER BY a.[date], a.start_time
 OFFSET @Skip ROWS FETCH NEXT @Take ROWS ONLY;";
 
             using DbCommand cmd = conn.CreateCommand();
             cmd.CommandText = sql;
             AddParameter(cmd, "@DoctorId", doctorUserId);
-            AddParameter(cmd, "@FromDate", fromDate.Date);
+            AddParameter(cmd, "@FromDate", from);
+            AddParameter(cmd, "@ToDate", to);
             AddParameter(cmd, "@Skip", skip);
             AddParameter(cmd, "@Take", take);
 
@@ -62,7 +65,7 @@ OFFSET @Skip ROWS FETCH NEXT @Take ROWS ONLY;";
                 items.Add(new Appointment
                 {
                     Id = GetInt(reader, "Id"),
-                    PatientName = GetNullableString(reader, "PatientName"),
+                    PatientName = string.Empty,
                     DoctorId = GetInt(reader, "DoctorId"),
                     DoctorName = GetString(reader, "DoctorName"),
                     Date = GetDateTime(reader, "Date"),
@@ -71,7 +74,7 @@ OFFSET @Skip ROWS FETCH NEXT @Take ROWS ONLY;";
                     Status = GetNullableString(reader, "Status"),
                     Type = GetNullableString(reader, "Type"),
                     Location = GetNullableString(reader, "Location"),
-                    Notes = GetNullableString(reader, "Notes")
+                    Notes = string.Empty
                 });
             }
 
@@ -149,62 +152,37 @@ WHERE a.id = @Id;";
 
         private static async Task<string> ResolveDoctorsTableAsync(DbConnection conn)
         {
-            // strict candidates first (fast)
-            var candidates = new[]
-            {
-                "[doctor]",
-                "[doctors]",
-                "[dbo].[doctor]",
-                "[dbo].[doctors]"
-            };
-
+            var candidates = new[] { "[doctor]", "[doctors]", "[dbo].[doctor]", "[dbo].[doctors]" };
             foreach (var t in candidates)
-            {
                 if (await TableExistsWithColumns(conn, t, "id", "full_name"))
                     return t;
-            }
 
-            // metadata fallback
             const string sql = @"
-SELECT TOP 1
-    QUOTENAME(c.TABLE_SCHEMA) + '.' + QUOTENAME(c.TABLE_NAME)
+SELECT TOP 1 QUOTENAME(c.TABLE_SCHEMA) + '.' + QUOTENAME(c.TABLE_NAME)
 FROM INFORMATION_SCHEMA.COLUMNS c
 GROUP BY c.TABLE_SCHEMA, c.TABLE_NAME
 HAVING
     SUM(CASE WHEN c.COLUMN_NAME = 'id' THEN 1 ELSE 0 END) > 0
-    AND SUM(CASE WHEN c.COLUMN_NAME = 'full_name' THEN 1 ELSE 0 END) > 0
-    AND SUM(CASE WHEN c.COLUMN_NAME = 'specialty' THEN 1 ELSE 0 END) > 0;";
+    AND SUM(CASE WHEN c.COLUMN_NAME = 'full_name' THEN 1 ELSE 0 END) > 0;";
 
             using var cmd = conn.CreateCommand();
             cmd.CommandText = sql;
             var obj = await cmd.ExecuteScalarAsync();
             var table = obj?.ToString();
 
-            if (!string.IsNullOrWhiteSpace(table))
-                return table!;
-
+            if (!string.IsNullOrWhiteSpace(table)) return table!;
             throw new InvalidOperationException("Could not find doctors table.");
         }
 
         private static async Task<string> ResolveAppointmentsTableAsync(DbConnection conn)
         {
-            var candidates = new[]
-            {
-                "[appointment]",
-                "[appointments]",
-                "[dbo].[appointment]",
-                "[dbo].[appointments]"
-            };
-
+            var candidates = new[] { "[appointment]", "[appointments]", "[dbo].[appointment]", "[dbo].[appointments]" };
             foreach (var t in candidates)
-            {
                 if (await TableExistsWithColumns(conn, t, "id", "doctor_id", "date", "start_time", "end_time"))
                     return t;
-            }
 
             const string sql = @"
-SELECT TOP 1
-    QUOTENAME(c.TABLE_SCHEMA) + '.' + QUOTENAME(c.TABLE_NAME)
+SELECT TOP 1 QUOTENAME(c.TABLE_SCHEMA) + '.' + QUOTENAME(c.TABLE_NAME)
 FROM INFORMATION_SCHEMA.COLUMNS c
 GROUP BY c.TABLE_SCHEMA, c.TABLE_NAME
 HAVING
@@ -219,9 +197,7 @@ HAVING
             var obj = await cmd.ExecuteScalarAsync();
             var table = obj?.ToString();
 
-            if (!string.IsNullOrWhiteSpace(table))
-                return table!;
-
+            if (!string.IsNullOrWhiteSpace(table)) return table!;
             throw new InvalidOperationException("Could not find appointments table.");
         }
 
