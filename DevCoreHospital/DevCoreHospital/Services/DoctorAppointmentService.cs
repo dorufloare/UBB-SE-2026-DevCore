@@ -18,37 +18,34 @@ namespace DevCoreHospital.Services
             _sqlFactory = sqlFactory;
         }
 
+        // ====================================================================
+        // METODELE VECHI
+        // ====================================================================
+
         public async Task<IReadOnlyList<Appointment>> GetUpcomingAppointmentsAsync(int doctorUserId, DateTime fromDate, int skip, int take)
         {
             var items = new List<Appointment>();
 
             using DbConnection conn = _sqlFactory.Create();
-            if (conn.State != ConnectionState.Open)
-                await conn.OpenAsync();
+            if (conn.State != ConnectionState.Open) await conn.OpenAsync();
 
             var doctorsTable = await ResolveDoctorsTableAsync(conn);
             var appointmentsTable = await ResolveAppointmentsTableAsync(conn);
 
             var from = fromDate.Date;
-            var to = from.AddDays(8); // enough for weekly window
+            var to = from.AddDays(8);
 
             var sql = $@"
-SELECT
-    a.Id AS Id,
-    a.DoctoId AS DoctorId,
-    d.full_name AS DoctorName,
-    CAST(a.[date] AS datetime2) AS [Date],
-    a.start_time AS StartTime,
-    a.end_time AS EndTime,
-    ISNULL(a.status, '') AS [Status],
-    ISNULL(a.type, '') AS [Type],
-    ISNULL(a.location, '') AS [Location]
+SELECT 
+    a.Id, a.DoctorId, d.FirstName + ' ' + d.LastName AS DoctorName, a.PatientName,
+    CAST(a.[Date] AS datetime2) AS [Date], a.StartTime, a.EndTime, 
+    ISNULL(a.Status, '') AS [Status], ISNULL(a.Type, '') AS [Type], ISNULL(a.Location, '') AS [Location]
 FROM {appointmentsTable} a
-INNER JOIN {doctorsTable} d ON d.id = a.doctor_id
-WHERE a.doctor_id = @DoctorId
-  AND CAST(a.[date] AS date) >= @FromDate
-  AND CAST(a.[date] AS date) < @ToDate
-ORDER BY a.[date], a.start_time
+INNER JOIN {doctorsTable} d ON d.id = a.DoctorId
+WHERE a.DoctorId = @DoctorId
+  AND CAST(a.[Date] AS date) >= @FromDate
+  AND CAST(a.[Date] AS date) < @ToDate
+ORDER BY a.[Date], a.StartTime
 OFFSET @Skip ROWS FETCH NEXT @Take ROWS ONLY;";
 
             using DbCommand cmd = conn.CreateCommand();
@@ -62,22 +59,8 @@ OFFSET @Skip ROWS FETCH NEXT @Take ROWS ONLY;";
             using var reader = await cmd.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
-                items.Add(new Appointment
-                {
-                    Id = GetInt(reader, "Id"),
-                    PatientName = string.Empty,
-                    DoctorId = GetInt(reader, "DoctorId"),
-                    DoctorName = GetString(reader, "DoctorName"),
-                    Date = GetDateTime(reader, "Date"),
-                    StartTime = GetTimeSpan(reader, "StartTime"),
-                    EndTime = GetTimeSpan(reader, "EndTime"),
-                    Status = GetNullableString(reader, "Status"),
-                    Type = GetNullableString(reader, "Type"),
-                    Location = GetNullableString(reader, "Location"),
-                    Notes = string.Empty
-                });
+                items.Add(MapReaderToAppointment(reader));
             }
-
             return items;
         }
 
@@ -86,17 +69,11 @@ OFFSET @Skip ROWS FETCH NEXT @Take ROWS ONLY;";
             var result = new List<(int DoctorId, string DoctorName)>();
 
             using DbConnection conn = _sqlFactory.Create();
-            if (conn.State != ConnectionState.Open)
-                await conn.OpenAsync();
+            if (conn.State != ConnectionState.Open) await conn.OpenAsync();
 
             var doctorsTable = await ResolveDoctorsTableAsync(conn);
 
-            var sql = $@"
-SELECT
-    d.StaffID AS DoctorId,
-    d.FirstName AS DoctorName
-FROM {doctorsTable} d
-ORDER BY d.FirstName;";
+            var sql = $"SELECT id AS DoctorId, FirstName + ' ' + LastName AS DoctorName FROM {doctorsTable} ORDER BY FirstName;";
 
             using DbCommand cmd = conn.CreateCommand();
             cmd.CommandText = sql;
@@ -111,94 +88,165 @@ ORDER BY d.FirstName;";
         public async Task<AppointmentDetails?> GetAppointmentDetailsAsync(int appointmentId)
         {
             using DbConnection conn = _sqlFactory.Create();
-            if (conn.State != ConnectionState.Open)
-                await conn.OpenAsync();
+            if (conn.State != ConnectionState.Open) await conn.OpenAsync();
 
             var appointmentsTable = await ResolveAppointmentsTableAsync(conn);
-
-            var sql = $@"
-SELECT
-    a.id,
-    a.doctor_id,
-    CAST(a.[date] AS datetime2) AS [date],
-    a.start_time,
-    a.end_time,
-    a.status,
-    a.type,
-    a.location
-FROM {appointmentsTable} a
-WHERE a.id = @Id;";
+            var sql = $"SELECT * FROM {appointmentsTable} WHERE Id = @Id;";
 
             using DbCommand cmd = conn.CreateCommand();
             cmd.CommandText = sql;
             AddParameter(cmd, "@Id", appointmentId);
 
             using var reader = await cmd.ExecuteReaderAsync();
-            if (!await reader.ReadAsync())
-                return null;
+            if (!await reader.ReadAsync()) return null;
 
             return new AppointmentDetails
             {
-                Id = GetInt(reader, "id"),
-                DoctorId = GetInt(reader, "doctor_id"),
-                Date = GetDateTime(reader, "date"),
-                StartTime = GetTimeSpan(reader, "start_time"),
-                EndTime = GetTimeSpan(reader, "end_time"),
-                Status = GetNullableString(reader, "status"),
-                Type = GetNullableString(reader, "type"),
-                Location = GetNullableString(reader, "location")
+                Id = GetInt(reader, "Id"),
+                DoctorId = GetInt(reader, "DoctorId"),
+                Date = GetDateTime(reader, "Date"),
+                StartTime = GetTimeSpan(reader, "StartTime"),
+                EndTime = GetTimeSpan(reader, "EndTime"),
+                Status = GetNullableString(reader, "Status"),
+                Type = GetNullableString(reader, "Type"),
+                Location = GetNullableString(reader, "Location")
+            };
+        }
+
+        // ====================================================================
+        // METODELE TALE NOI PENTRU ADMIN (Implementează regulile de business)
+        // ====================================================================
+
+        public async Task<IReadOnlyList<Appointment>> GetAppointmentsForAdminAsync(int doctorId)
+        {
+            var items = new List<Appointment>();
+            using DbConnection conn = _sqlFactory.Create();
+            if (conn.State != ConnectionState.Open) await conn.OpenAsync();
+
+            var appointmentsTable = await ResolveAppointmentsTableAsync(conn);
+            var sql = $"SELECT * FROM {appointmentsTable} WHERE DoctorId = @DoctorId ORDER BY [Date], StartTime;";
+
+            using DbCommand cmd = conn.CreateCommand();
+            cmd.CommandText = sql;
+            AddParameter(cmd, "@DoctorId", doctorId);
+
+            using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                items.Add(new Appointment
+                {
+                    Id = GetInt(reader, "Id"),
+                    DoctorId = GetInt(reader, "DoctorId"),
+                    PatientName = GetString(reader, "PatientName"),
+                    Date = GetDateTime(reader, "Date"),
+                    StartTime = GetTimeSpan(reader, "StartTime"),
+                    EndTime = GetTimeSpan(reader, "EndTime"),
+                    Status = GetNullableString(reader, "Status")
+                });
+            }
+            return items;
+        }
+
+        public async Task BookAppointmentAsync(Appointment appointment)
+        {
+            using DbConnection conn = _sqlFactory.Create();
+            if (conn.State != ConnectionState.Open) await conn.OpenAsync();
+
+            var table = await ResolveAppointmentsTableAsync(conn);
+            var sql = $@"
+                INSERT INTO {table} (PatientName, DoctorId, Date, StartTime, EndTime, Status) 
+                VALUES (@PatientName, @DoctorId, @Date, @StartTime, @EndTime, 'Scheduled')";
+
+            using DbCommand cmd = conn.CreateCommand();
+            cmd.CommandText = sql;
+            AddParameter(cmd, "@PatientName", appointment.PatientName);
+            AddParameter(cmd, "@DoctorId", appointment.DoctorId);
+            AddParameter(cmd, "@Date", appointment.Date.Date);
+            AddParameter(cmd, "@StartTime", appointment.StartTime);
+            AddParameter(cmd, "@EndTime", appointment.EndTime);
+
+            await cmd.ExecuteNonQueryAsync();
+        }
+
+        public async Task FinishAppointmentAsync(Appointment appointment)
+        {
+            using DbConnection conn = _sqlFactory.Create();
+            if (conn.State != ConnectionState.Open) await conn.OpenAsync();
+
+            var apptTable = await ResolveAppointmentsTableAsync(conn);
+            var docTable = await ResolveDoctorsTableAsync(conn);
+
+            // 1. Setăm statusul la Finished
+            using DbCommand cmdUpdateAppt = conn.CreateCommand();
+            cmdUpdateAppt.CommandText = $"UPDATE {apptTable} SET Status = 'Finished' WHERE Id = @Id";
+            AddParameter(cmdUpdateAppt, "@Id", appointment.Id);
+            await cmdUpdateAppt.ExecuteNonQueryAsync();
+
+            // 2. REGULA DE BUSINESS: Verificăm dacă doctorul mai are alte programări "Scheduled"
+            using DbCommand cmdCheck = conn.CreateCommand();
+            cmdCheck.CommandText = $"SELECT COUNT(*) FROM {apptTable} WHERE DoctorId = @DocId AND Status = 'Scheduled'";
+            AddParameter(cmdCheck, "@DocId", appointment.DoctorId);
+            int activeAppointments = Convert.ToInt32(await cmdCheck.ExecuteScalarAsync());
+
+            // 3. Dacă nu mai are, îl punem AVAILABLE
+            if (activeAppointments == 0)
+            {
+                using DbCommand cmdUpdateDoc = conn.CreateCommand();
+                cmdUpdateDoc.CommandText = $"UPDATE {docTable} SET DoctorStatus = 'AVAILABLE' WHERE id = @DocId";
+                AddParameter(cmdUpdateDoc, "@DocId", appointment.DoctorId);
+                await cmdUpdateDoc.ExecuteNonQueryAsync();
+            }
+        }
+
+        public async Task CancelAppointmentAsync(Appointment appointment)
+        {
+            using DbConnection conn = _sqlFactory.Create();
+            if (conn.State != ConnectionState.Open) await conn.OpenAsync();
+
+            var table = await ResolveAppointmentsTableAsync(conn);
+            var sql = $"UPDATE {table} SET Status = 'Canceled' WHERE Id = @Id";
+
+            using DbCommand cmd = conn.CreateCommand();
+            cmd.CommandText = sql;
+            AddParameter(cmd, "@Id", appointment.Id);
+            await cmd.ExecuteNonQueryAsync();
+        }
+
+        // ====================================================================
+        // METODE DE AJUTOR (PRIVATE)
+        // ====================================================================
+
+        private Appointment MapReaderToAppointment(DbDataReader reader)
+        {
+            return new Appointment
+            {
+                Id = GetInt(reader, "Id"),
+                DoctorId = GetInt(reader, "DoctorId"),
+                DoctorName = GetNullableString(reader, "DoctorName"),
+                PatientName = GetNullableString(reader, "PatientName"),
+                Date = GetDateTime(reader, "Date"),
+                StartTime = GetTimeSpan(reader, "StartTime"),
+                EndTime = GetTimeSpan(reader, "EndTime"),
+                Status = GetNullableString(reader, "Status"),
+                Type = GetNullableString(reader, "Type"),
+                Location = GetNullableString(reader, "Location")
             };
         }
 
         private static async Task<string> ResolveDoctorsTableAsync(DbConnection conn)
         {
-            var candidates = new[] { "[doctor]", "[doctors]", "[dbo].[doctor]", "[dbo].[doctors]" };
+            var candidates = new[] { "[Doctors]", "[dbo].[Doctors]", "[doctor]" };
             foreach (var t in candidates)
-                if (await TableExistsWithColumns(conn, t, "StaffID", "FirstName"))
-                    return t;
-
-            const string sql = @"
-SELECT TOP 1 QUOTENAME(c.TABLE_SCHEMA) + '.' + QUOTENAME(c.TABLE_NAME)
-FROM INFORMATION_SCHEMA.COLUMNS c
-GROUP BY c.TABLE_SCHEMA, c.TABLE_NAME
-HAVING
-    SUM(CASE WHEN c.COLUMN_NAME = 'StaffID' THEN 1 ELSE 0 END) > 0
-    AND SUM(CASE WHEN c.COLUMN_NAME = 'FirstName' THEN 1 ELSE 0 END) > 0;";
-
-            using var cmd = conn.CreateCommand();
-            cmd.CommandText = sql;
-            var obj = await cmd.ExecuteScalarAsync();
-            var table = obj?.ToString();
-
-            if (!string.IsNullOrWhiteSpace(table)) return table!;
-            throw new InvalidOperationException("Could not find doctors table.");
+                if (await TableExistsWithColumns(conn, t, "FirstName")) return t;
+            return "Doctors"; // Fallback
         }
 
         private static async Task<string> ResolveAppointmentsTableAsync(DbConnection conn)
         {
-            var candidates = new[] { "[appointment]", "[appointments]", "[dbo].[appointment]", "[dbo].[appointments]" };
+            var candidates = new[] { "[Appointments]", "[dbo].[Appointments]", "[appointment]" };
             foreach (var t in candidates)
-                if (await TableExistsWithColumns(conn, t, "id", "doctor_id", "date", "start_time", "end_time"))
-                    return t;
-
-            const string sql = @"
-SELECT TOP 1 QUOTENAME(c.TABLE_SCHEMA) + '.' + QUOTENAME(c.TABLE_NAME)
-FROM INFORMATION_SCHEMA.COLUMNS c
-GROUP BY c.TABLE_SCHEMA, c.TABLE_NAME
-HAVING
-    SUM(CASE WHEN c.COLUMN_NAME = 'id' THEN 1 ELSE 0 END) > 0
-    AND SUM(CASE WHEN c.COLUMN_NAME = 'doctor_id' THEN 1 ELSE 0 END) > 0
-    AND SUM(CASE WHEN c.COLUMN_NAME = 'date' THEN 1 ELSE 0 END) > 0
-    AND SUM(CASE WHEN c.COLUMN_NAME = 'start_time' THEN 1 ELSE 0 END) > 0
-    AND SUM(CASE WHEN c.COLUMN_NAME = 'end_time' THEN 1 ELSE 0 END) > 0;";
-
-            using var cmd = conn.CreateCommand();
-            cmd.CommandText = sql;
-            var obj = await cmd.ExecuteScalarAsync();
-            var table = obj?.ToString();
-
-            if (!string.IsNullOrWhiteSpace(table)) return table!;
-            throw new InvalidOperationException("Could not find appointments table.");
+                if (await TableExistsWithColumns(conn, t, "DoctorId", "PatientName")) return t;
+            return "Appointments"; // Fallback
         }
 
         private static async Task<bool> TableExistsWithColumns(DbConnection conn, string tableExpression, params string[] requiredColumns)
@@ -216,56 +264,39 @@ HAVING
                         cols.Add(c.ColumnName!);
 
                 foreach (var req in requiredColumns)
-                    if (!cols.Contains(req))
-                        return false;
+                    if (!cols.Contains(req)) return false;
 
                 return true;
             }
-            catch (SqlException ex) when (ex.Message.Contains("Invalid object name"))
-            {
-                return false;
-            }
+            catch { return false; }
         }
 
         private static void AddParameter(DbCommand cmd, string name, object value)
         {
             var p = cmd.CreateParameter();
             p.ParameterName = name;
-            p.Value = value;
+            p.Value = value ?? DBNull.Value;
             cmd.Parameters.Add(p);
         }
 
         private static int GetInt(DbDataReader r, string col) => r.GetInt32(r.GetOrdinal(col));
         private static string GetString(DbDataReader r, string col) => r.GetString(r.GetOrdinal(col));
-
         private static string GetNullableString(DbDataReader r, string col)
         {
-            var i = r.GetOrdinal(col);
-            return r.IsDBNull(i) ? string.Empty : Convert.ToString(r.GetValue(i)) ?? string.Empty;
+            try { var i = r.GetOrdinal(col); return r.IsDBNull(i) ? string.Empty : Convert.ToString(r.GetValue(i)) ?? string.Empty; }
+            catch { return string.Empty; } // Fallback dacă lipsește coloana în vechile query-uri
         }
-
         private static DateTime GetDateTime(DbDataReader r, string col)
         {
-            var i = r.GetOrdinal(col);
-            var v = r.GetValue(i);
-            return v switch
-            {
-                DateTime dt => dt,
-                DateOnly d => d.ToDateTime(TimeOnly.MinValue),
-                _ => Convert.ToDateTime(v)
-            };
+            var i = r.GetOrdinal(col); var v = r.GetValue(i);
+            return v is DateTime dt ? dt : Convert.ToDateTime(v);
         }
-
         private static TimeSpan GetTimeSpan(DbDataReader r, string col)
         {
-            var i = r.GetOrdinal(col);
-            var val = r.GetValue(i);
-            return val switch
-            {
-                TimeSpan ts => ts,
-                DateTime dt => dt.TimeOfDay,
-                _ => TimeSpan.Parse(val?.ToString() ?? "00:00:00")
-            };
+            var i = r.GetOrdinal(col); var val = r.GetValue(i);
+            if (val is TimeSpan ts) return ts;
+            if (val is DateTime dt) return dt.TimeOfDay;
+            return TimeSpan.Parse(val?.ToString() ?? "00:00:00");
         }
     }
 }
