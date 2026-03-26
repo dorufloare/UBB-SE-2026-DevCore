@@ -1,5 +1,6 @@
-using DevCoreHospital.ViewModels;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using DevCoreHospital.ViewModels;
 
 namespace DevCoreHospital.Views
 {
@@ -9,8 +10,10 @@ namespace DevCoreHospital.Views
 
         public MedicalEvaluationView()
         {
-            InitializeComponent();
-            DataContext = ViewModel;
+            this.InitializeComponent();
+
+            // Setting DataContext allows standard {Binding} to work alongside {x:Bind}
+            this.DataContext = ViewModel;
         }
     }
 }

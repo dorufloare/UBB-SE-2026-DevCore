@@ -1,46 +1,64 @@
 using DevCoreHospital.Views;
-using DevCoreHospital.Views.Doctor;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using System;
 
 namespace DevCoreHospital
 {
     public sealed partial class MainWindow : Window
     {
-        private bool _initialized;
-
         public MainWindow()
         {
-            InitializeComponent();
-            Activated += MainWindow_Activated;
+            this.InitializeComponent();
+            RootFrame.Navigated += RootFrame_Navigated;
+            NavigateTo(typeof(RoleSelectionPage));
         }
 
-        private void MainWindow_Activated(object sender, WindowActivatedEventArgs args)
+        private void NavView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
         {
-            if (_initialized) return;
-            _initialized = true;
+            if (args.SelectedItem is not NavigationViewItem item)
+                return;
 
-            if (AppNavigationView.Content is Frame frame)
+            switch (item.Tag?.ToString())
             {
-                frame.Navigate(typeof(StartupPage));
+                case "role-selection":
+                    NavigateTo(typeof(RoleSelectionPage));
+                    break;
+                case "dashboard":
+                    NavigateTo(typeof(RoleDashboardPage));
+                    break;
+            }
+        }
+
+        private void RootFrame_Navigated(object sender, Microsoft.UI.Xaml.Navigation.NavigationEventArgs e)
+        {
+            if (e.SourcePageType == typeof(RoleSelectionPage))
+            {
+                NavView.SelectedItem = FindItemByTag("role-selection");
+            }
+            else if (e.SourcePageType == typeof(RoleDashboardPage))
+            {
+                NavView.SelectedItem = FindItemByTag("dashboard");
             }
         }
 
-        private void AppNavigationView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
+        private void NavigateTo(Type pageType)
         {
-            if (sender.Content is not Frame frame) return;
-            if (args.SelectedItemContainer is not NavigationViewItem item) return;
-            if (item.Tag is not string tag) return;
+            if (RootFrame.CurrentSourcePageType == pageType)
+                return;
 
-            switch (tag)
+            RootFrame.Navigate(pageType);
+        }
+
+        private NavigationViewItem? FindItemByTag(string tag)
+        {
+            foreach (var mi in NavView.MenuItems)
             {
-                case "MedicalEvaluation":
-                    frame.Navigate(typeof(MedicalEvaluationView));
-                    break;
-                case "DoctorSchedule":
-                    frame.Navigate(typeof(DoctorSchedulePage)); // or DoctorSchedulePage if that is your actual page
-                    break;
+                if (mi is NavigationViewItem nvi && string.Equals(nvi.Tag?.ToString(), tag, StringComparison.Ordinal))
+                    return nvi;
             }
+
+            return null;
         }
     }
 }

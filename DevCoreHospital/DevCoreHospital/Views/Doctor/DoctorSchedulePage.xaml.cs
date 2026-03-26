@@ -1,54 +1,62 @@
-﻿using DevCoreHospital.Data;
+using DevCoreHospital.Data;
 using DevCoreHospital.Services;
 using DevCoreHospital.ViewModels.Doctor;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Navigation;
 using System;
-using System.Linq;
-using DevCoreHospital.Services;
 
-
-namespace DevCoreHospital.Views.Doctor;
-
-public sealed partial class DoctorSchedulePage : Page
+namespace DevCoreHospital.Views.Doctor
 {
-    public DoctorScheduleViewModel ViewModel { get; }
-
-    public DoctorSchedulePage()
+    public sealed partial class DoctorSchedulePage : Page
     {
-        this.InitializeComponent();
+        private readonly DoctorScheduleViewModel _vm;
+        private readonly IDialogService _dialogService;
+        private bool _initialized;
 
-        var connectionString = "Server=localhost;Database=DevCoreHospital;Trusted_Connection=True;TrustServerCertificate=True;";
-        var sqlFactory = new SqlConnectionFactory(connectionString);
-        IDoctorAppointmentService appointmentService = new Services.DoctorAppointmentService(sqlFactory);
-        ICurrentUserService currentUser = new MockCurrentUserService();
-
-        ViewModel = new DoctorScheduleViewModel(currentUser, appointmentService);
-        ViewModel.OpenAppointmentDetailsRequested = OpenAppointmentDetails;
-        DataContext = ViewModel;
-
-        _ = ViewModel.InitializeAsync();
-    }
-
-    private void DetailsButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is Button b && b.Tag is int id)
+        public DoctorSchedulePage()
         {
-            var selected = ViewModel.Appointments.FirstOrDefault(x => x.Id == id);
-            ViewModel.OpenDetails(selected);
+            InitializeComponent();
+
+            _dialogService = new DialogService();
+            _vm = new DoctorScheduleViewModel(
+                new CurrentUserService(),
+                new DoctorAppointmentService(new SqlConnectionFactory()),
+                _dialogService);
+
+            DataContext = _vm;
         }
-    }
 
-    private async void OpenAppointmentDetails(int appointmentId)
-    {
-        var dialog = new ContentDialog
+        protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
-            XamlRoot = this.XamlRoot,
-            Title = $"Appointment #{appointmentId}",
-            Content = "Open your details panel/modal here.",
-            CloseButtonText = "Close"
-        };
+            base.OnNavigatedTo(e);
 
-        await dialog.ShowAsync(); // WinUI IAsyncOperation works in async method
+            _dialogService.SetXamlRoot(this.XamlRoot);
+
+            if (_initialized) return;
+            _initialized = true;
+
+            await _vm.InitializeAsync();
+        }
+
+        private void DateCalendar_SelectedDatesChanged(CalendarView sender, CalendarViewSelectedDatesChangedEventArgs args)
+        {
+            if (sender.SelectedDates == null || sender.SelectedDates.Count == 0)
+                return;
+
+            var picked = sender.SelectedDates[0].Date;
+            var minSqlDate = new DateTime(1753, 1, 1);
+
+            if (picked < minSqlDate)
+                return;
+
+            _vm.SelectedDate = picked;
+        }
+
+        private void DetailsButton_Click(object sender, RoutedEventArgs e)
+        {
+            if ((sender as FrameworkElement)?.DataContext is AppointmentItemViewModel item)
+                Frame?.Navigate(typeof(AppointmentDetailsPage), item);
+        }
     }
 }

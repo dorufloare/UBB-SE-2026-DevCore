@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using DevCoreHospital.Models;
 using System.Linq;
 using System;

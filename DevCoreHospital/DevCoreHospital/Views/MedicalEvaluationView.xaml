@@ -4,63 +4,142 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    mc:Ignorable="d">
+    xmlns:models="using:DevCoreHospital.Models"
+    mc:Ignorable="d"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
 
-    <Grid Padding="20" RowSpacing="12">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+    <Grid Padding="20">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="450"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
 
-        <TextBlock Text="Medical Evaluation"
-                   FontSize="28"
-                   FontWeight="SemiBold" />
+        <Grid Grid.Column="0" Margin="0,0,30,0">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel Spacing="15" Padding="0,0,15,20">
+                    <TextBlock Text="1. MEDICAL EVALUATIONS" FontSize="24" FontWeight="Bold" Margin="0,0,0,10"/>
 
-        <TextBlock Grid.Row="1"
-                   Text="Evaluate patient symptoms, diagnosis, treatment and notes."
-                   Foreground="#6B7280" />
+                    <TextBox Header="Patient ID" Text="7759376" IsReadOnly="True" Background="Transparent"/>
 
-        <ScrollViewer Grid.Row="2">
-            <StackPanel Spacing="10">
+                    <TextBox Header="Symptoms" 
+                             Text="{x:Bind ViewModel.Symptoms, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                             IsEnabled="{x:Bind ViewModel.IsFormEnabled, Mode=OneWay}"
+                             PlaceholderText="Enter symptoms..." 
+                             AcceptsReturn="True" MinHeight="100"
+                             MaxLength="500"/>
 
-                <TextBlock Text="Evaluator" />
-                <TextBox Text="{Binding Evaluator, Mode=TwoWay}" PlaceholderText="Doctor name" />
+                    <TextBox Header="Meds List" 
+                             Text="{x:Bind ViewModel.MedsList, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             PlaceholderText="Enter medications..." AcceptsReturn="True" MinHeight="60"
+                             IsEnabled="{x:Bind ViewModel.IsFormEnabled, Mode=OneWay}"
+                             MaxLength="200"
+                             ToolTipService.ToolTip="Include name, dosage, and quantity (e.g., Paracetamol 500mg, 20 tabs)."/>
 
-                <TextBlock Text="Symptoms" />
-                <TextBox Text="{Binding Symptoms, Mode=TwoWay}"
-                         AcceptsReturn="True"
-                         TextWrapping="Wrap"
-                         MinHeight="80"
-                         PlaceholderText="Describe symptoms..." />
+                    <StackPanel Visibility="{x:Bind ViewModel.IsConflictVisible, Mode=OneWay}" Spacing="10">
+                        <InfoBar Severity="Error"
+                                 Title="Risk Conflict Detected"
+                                 Message="{x:Bind ViewModel.ConflictWarning, Mode=OneWay}"
+                                 IsOpen="True" IsClosable="False" />
 
-                <TextBlock Text="Diagnosis Result" />
-                <TextBox Text="{Binding DiagnosisResult, Mode=TwoWay}"
-                         AcceptsReturn="True"
-                         TextWrapping="Wrap"
-                         MinHeight="80"
-                         PlaceholderText="Diagnosis..." />
+                        <InfoBar Severity="Warning" 
+                                 Title="History Alert" 
+                                 Message="Historical adverse reactions found. Clinical justification required." 
+                                 IsOpen="True" IsClosable="False" />
 
-                <TextBlock Text="Meds List" />
-                <TextBox Text="{Binding MedsList, Mode=TwoWay}"
-                         AcceptsReturn="True"
-                         TextWrapping="Wrap"
-                         MinHeight="80"
-                         PlaceholderText="Medication list..." />
+                        <CheckBox Content="I assume clinical risk for this prescription" 
+                                  IsChecked="{x:Bind ViewModel.IsRiskAssumed, Mode=TwoWay}"
+                                  IsEnabled="{x:Bind ViewModel.IsFormEnabled, Mode=OneWay}"
+                                  FontWeight="Bold" Foreground="Yellow"/>
+                    </StackPanel>
 
-                <TextBlock Text="Doctor Notes" />
-                <TextBox Text="{Binding DoctorNotes, Mode=TwoWay}"
-                         AcceptsReturn="True"
-                         TextWrapping="Wrap"
-                         MinHeight="100"
-                         PlaceholderText="Additional notes..." />
-            </StackPanel>
-        </ScrollViewer>
+                    <TextBox Header="Doctor Notes" 
+                             Text="{x:Bind ViewModel.DoctorNotes, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             PlaceholderText="Write justification here..." 
+                             AcceptsReturn="True" MinHeight="100"
+                             IsEnabled="{x:Bind ViewModel.IsFormEnabled, Mode=OneWay}"
+                             Background="{x:Bind ViewModel.NotesBackground, Mode=OneWay}"
+                             MaxLength="1000"
+                             ToolTipService.ToolTip="Notes for possible issues, clinical observations, or follow-up requirements."/>
 
-        <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
-            <Button Content="Clear" Command="{Binding ClearCommand}" />
-            <Button Content="Save Evaluation" Command="{Binding SaveCommand}" />
+                    <TextBlock Text="{x:Bind ViewModel.ValidationError, Mode=OneWay}" 
+                               Foreground="OrangeRed" 
+                               FontSize="13" 
+                               FontWeight="SemiBold"
+                               HorizontalAlignment="Center"
+                               TextWrapping="WrapWholeWords"
+                               Margin="0,5"/>
+
+                    <Button Content="Generate Diagnosis" 
+                            Command="{x:Bind ViewModel.SaveDiagnosisCommand}" 
+                            HorizontalAlignment="Stretch" Height="45"
+                            Style="{StaticResource AccentButtonStyle}"/>
+                </StackPanel>
+            </ScrollViewer>
+
+            <Grid Visibility="{x:Bind ViewModel.LockoutVisibility, Mode=OneWay}" 
+                  Background="#CC000000" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Canvas.ZIndex="10">
+                <Border Background="#A80303" VerticalAlignment="Center" Padding="20,40" CornerRadius="8" Margin="10">
+                    <StackPanel Spacing="5" HorizontalAlignment="Center">
+                        <TextBlock Text="CLINICAL LOCKOUT." FontSize="32" FontWeight="Black" Foreground="White" HorizontalAlignment="Center"/>
+                        <TextBlock Text="Maximum duty hours (12h) exceeded." FontSize="20" Foreground="White" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Grid>
+
+        <StackPanel Grid.Column="1" Spacing="10">
+            <TextBlock Text="Medical Records" FontSize="22" FontWeight="Bold"/>
+
+            <TextBox PlaceholderText="Search by Patient ID..."
+                     Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                     Header="Filter History"
+                     Margin="0,0,0,10"/>
+
+            <Grid VerticalAlignment="Stretch">
+                <ProgressRing IsActive="{x:Bind ViewModel.IsLoading, Mode=OneWay}"
+                              Width="60" Height="60"
+                              HorizontalAlignment="Center" 
+                              VerticalAlignment="Center"
+                              Canvas.ZIndex="2"/>
+
+                <StackPanel Visibility="{x:Bind ViewModel.IsEmptyStateVisible, Mode=OneWay}"
+                            VerticalAlignment="Center" 
+                            HorizontalAlignment="Center" 
+                            Spacing="12"
+                            Margin="0,100,0,0">
+                    <FontIcon Glyph="&#xE8A5;" FontSize="56" Foreground="Gray" Opacity="0.4"/>
+                    <TextBlock Text="No matches found." 
+                               FontSize="16" 
+                               Foreground="Gray" 
+                               FontStyle="Italic"
+                               HorizontalAlignment="Center"/>
+                </StackPanel>
+
+                <ListView ItemsSource="{x:Bind ViewModel.PastEvaluations, Mode=OneWay}" 
+                          Background="{ThemeResource LayerFillColorDefaultBrush}" 
+                          CornerRadius="8" 
+                          Padding="10" 
+                          MinHeight="400">
+                    <ListView.ItemTemplate>
+                        <DataTemplate x:DataType="models:MedicalEvaluation">
+                            <Grid Padding="10" BorderBrush="Gray" BorderThickness="0,0,0,1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" Margin="0,0,20,0">
+                                    <TextBlock Text="{x:Bind FormattedDate}" FontWeight="Bold"/>
+                                    <TextBlock Text="{x:Bind FormattedTime}" Foreground="Gray" FontSize="12"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="{x:Bind Symptoms}" TextTrimming="CharacterEllipsis" MaxLines="1"/>
+                                    <TextBlock Text="Status: Completed" FontSize="11" Foreground="Green"/>
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+            </Grid>
         </StackPanel>
     </Grid>
 </Page>

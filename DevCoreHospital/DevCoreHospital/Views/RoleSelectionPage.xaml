@@ -1,0 +1,81 @@
+﻿<Page
+    x:Class="DevCoreHospital.Views.RoleSelectionPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <SolidColorBrush x:Key="BgBrush" Color="#FF000000"/>
+        <SolidColorBrush x:Key="CardBrush" Color="#FF0F1711"/>
+        <SolidColorBrush x:Key="TextBrush" Color="#FFFFFFFF"/>
+        <SolidColorBrush x:Key="MutedBrush" Color="#FFB7C2BA"/>
+        <SolidColorBrush x:Key="AccentBrush" Color="#FF166534"/>
+    </Page.Resources>
+
+    <Grid Background="{StaticResource BgBrush}">
+        <Border HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Width="760"
+                Padding="28"
+                CornerRadius="16"
+                Background="{StaticResource CardBrush}"
+                BorderBrush="{StaticResource AccentBrush}"
+                BorderThickness="1">
+            <StackPanel Spacing="22">
+                <TextBlock Text="DevCore Hospital"
+                           Foreground="{StaticResource TextBrush}"
+                           FontSize="48"
+                           FontWeight="SemiBold"
+                           HorizontalAlignment="Center"/>
+
+                <TextBlock Text="Choose your role"
+                           Foreground="{StaticResource MutedBrush}"
+                           FontSize="28"
+                           HorizontalAlignment="Center"/>
+
+                <!-- Buttons aligned on one row -->
+                <Grid HorizontalAlignment="Center" Margin="0,12,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="20"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="20"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Button Grid.Column="0"
+                            Content="Admin"
+                            Height="64"
+                            MinWidth="180"
+                            FontSize="22"
+                            Click="Admin_Click"
+                            Background="{StaticResource AccentBrush}"
+                            Foreground="White"
+                            BorderBrush="{StaticResource AccentBrush}"/>
+
+                    <Button Grid.Column="2"
+                            Content="Doctor"
+                            Height="64"
+                            MinWidth="180"
+                            FontSize="22"
+                            Click="Doctor_Click"
+                            Background="{StaticResource AccentBrush}"
+                            Foreground="White"
+                            BorderBrush="{StaticResource AccentBrush}"/>
+
+                    <Button Grid.Column="4"
+                            Content="Pharmacist"
+                            Height="64"
+                            MinWidth="180"
+                            FontSize="22"
+                            Click="Pharmacist_Click"
+                            Background="{StaticResource AccentBrush}"
+                            Foreground="White"
+                            BorderBrush="{StaticResource AccentBrush}"/>
+                </Grid>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Page>
