@@ -34,8 +34,8 @@ namespace DevCoreHospital.Services
 
             var sql = $@"
 SELECT
-    a.id AS Id,
-    a.doctor_id AS DoctorId,
+    a.Id AS Id,
+    a.DoctoId AS DoctorId,
     d.full_name AS DoctorName,
     CAST(a.[date] AS datetime2) AS [Date],
     a.start_time AS StartTime,
@@ -93,10 +93,10 @@ OFFSET @Skip ROWS FETCH NEXT @Take ROWS ONLY;";
 
             var sql = $@"
 SELECT
-    d.id AS DoctorId,
-    d.full_name AS DoctorName
+    d.StaffID AS DoctorId,
+    d.FirstName AS DoctorName
 FROM {doctorsTable} d
-ORDER BY d.full_name;";
+ORDER BY d.FirstName;";
 
             using DbCommand cmd = conn.CreateCommand();
             cmd.CommandText = sql;
