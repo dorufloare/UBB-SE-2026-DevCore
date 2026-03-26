@@ -52,7 +52,7 @@ namespace DevCoreHospital.Data
             _adminNotifications.Add(new AdminNotification { DoctorId = doctorId, Message = "Fatigue Alert: 12h exceeded.", Timestamp = DateTime.Now });
         }
 
-        // --- TASK 30 METHODS ---
+        // task 30 METHODS
         public void UpdateAppointmentStatus(string patientId, string status)
         {
             Debug.WriteLine($">>>> SQL: Appointment for {patientId} set to {status}.");
