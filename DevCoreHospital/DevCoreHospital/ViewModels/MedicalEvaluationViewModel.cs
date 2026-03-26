@@ -57,6 +57,7 @@ namespace DevCoreHospital.ViewModels
                 if (SetProperty(ref _isConflictVisible, value))
                 {
                     OnPropertyChanged(nameof(NotesBackground));
+                    // Force the checkbox to uncheck whenever a new conflict is found
                     IsRiskAssumed = false;
                     RefreshButtonState();
                 }
@@ -152,20 +153,19 @@ namespace DevCoreHospital.ViewModels
                 MedsList = this.MedsList,
                 Notes = this.DoctorNotes,
                 EvaluationDate = DateTime.Now,
-                Evaluator = new Doctor { Id = CurrentDoctorId, Name = "Dr. Vlad" }
+                // CS0118 FIX: Explicitly reference the Models.Doctor class
+                Evaluator = new DevCoreHospital.Models.Doctor { Id = CurrentDoctorId, Name = "Dr. Vlad" }
             };
 
             // 1. Persist the Medical Data
             _dataService.SaveEvaluation(newRecord);
             PastEvaluations.Insert(0, newRecord);
 
-
-            // 2. Set the appointent to 'Finished'
+            // 2. Set the appointment to 'Finished' (Task 30)
             _dataService.UpdateAppointmentStatus(CurrentPatientId, "Finished");
 
-            // 3. Set the Doctor to 'AVAILABLE'
+            // 3. Set the Doctor to 'AVAILABLE' (Task 30)
             _dataService.UpdateDoctorAvailability(CurrentDoctorId);
-
 
             ResetForm();
             CheckDoctorFatigue();

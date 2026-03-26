@@ -4,15 +4,15 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    mc:Ignorable="d">
+    xmlns:models="using:DevCoreHospital.Models"
+    mc:Ignorable="d"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
 
-    <Grid Padding="20" RowSpacing="12">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+    <Grid Padding="20">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="450"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
 
         <Grid Grid.Column="0" Margin="0,0,30,0">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
@@ -90,7 +90,7 @@
                             </StackPanel>
                             <StackPanel Grid.Column="1">
                                 <TextBlock Text="{x:Bind Symptoms}" TextTrimming="CharacterEllipsis" MaxLines="1"/>
-                                <TextBlock Text="Status: Completed" FontSize="11" Foreground="DeepSkyBlue"/>
+                                <TextBlock Text="Status: Completed" FontSize="11" Foreground="Green"/>
                             </StackPanel>
                         </Grid>
                     </DataTemplate>
