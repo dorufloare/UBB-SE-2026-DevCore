@@ -23,4 +23,14 @@ namespace DevCoreHospital.Data
             staffList.Add(new Pharmacyst(5, "Mary", "Christmas", "0700-000 004", true, "ASHP"));
             return staffList;
         }
+
+        public List<Shift> GetShifts()
+        {
+            // return some dummy data for now, we will implement the actual database connection later
+            List<Shift> shiftList = new List<Shift>();
+            shiftList.Add(new Shift("1", "1", "Cardiology", DateTime.Now, DateTime.Now.AddHours(8), ShiftStatus.ACTIVE));
+            shiftList.Add(new Shift("2", "2", "Neurology", DateTime.Now, DateTime.Now.AddHours(8), ShiftStatus.SCHEDULED));
+            shiftList.Add(new Shift("3", "3", "Pediatrics", DateTime.Now, DateTime.Now.AddHours(8), ShiftStatus.COMPLETED));
+            return shiftList;
+        }
 }
