@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using DevCoreHospital.Models;
 using System.Linq;
 using System;
@@ -31,6 +31,29 @@ namespace DevCoreHospital.Data
         public List<MedicalEvaluation> GetEvaluationsByDoctor(string doctorId)
         {
             return _mockTable.Where(e => e.Evaluator != null && e.Evaluator.StaffID.ToString() == doctorId).ToList();
+        }
+
+        public List<MedicalEvaluation> GetPatientMedicalHistory(string patientId)
+        {
+            return _mockTable
+                .Where(e => string.Equals(e.PatientId, patientId, StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(e => e.EvaluationDate)
+                .ToList();
+        }
+
+        public void UpdateAppointmentStatus(string patientId, string status)
+        {
+            // Mock service placeholder: no backing appointment table in this in-memory implementation.
+        }
+
+        public void UpdateDoctorAvailability(string doctorId)
+        {
+            // Mock service placeholder: no doctor availability persistence in this in-memory implementation.
+        }
+
+        public void CreateAdminFatigueAlert(string doctorId)
+        {
+            // Mock service placeholder: would emit an admin notification in real DB-backed implementation.
         }
 
         public double GetDoctorFatigueHours(string doctorId)

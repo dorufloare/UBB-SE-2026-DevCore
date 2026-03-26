@@ -8,7 +8,7 @@ using DevCoreHospital.Models;
 
 namespace DevCoreHospital.Repositories
 {
-    public class ShiftRepository
+    public class ShiftRepository : IShiftRepository
     {
         private List<Shift> _shiftList;
         private DatabaseManager _dbManager;
@@ -68,6 +68,18 @@ namespace DevCoreHospital.Repositories
                 }
             }
             return totalHours;
+        }
+
+        public IReadOnlyList<Shift> GetShiftsForStaffInRange(int staffId, DateTime rangeStart, DateTime rangeEnd)
+        {
+            return _dbManager
+                .GetShifts()
+                .Where(shift =>
+                    shift.AppointedStaff.StaffID == staffId &&
+                    shift.StartTime < rangeEnd &&
+                    shift.EndTime > rangeStart)
+                .OrderBy(shift => shift.StartTime)
+                .ToList();
         }
 
         public void UpdateShiftStatus(int shiftId, ShiftStatus status)

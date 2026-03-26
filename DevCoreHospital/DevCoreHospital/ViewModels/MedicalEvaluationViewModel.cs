@@ -6,18 +6,17 @@ using System.Linq;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI;
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
 using DevCoreHospital.Models;
 using DevCoreHospital.Data;
 using System.Threading.Tasks;
+using DevCoreHospital.ViewModels.Base;
 
 namespace DevCoreHospital.ViewModels
 {
     public partial class MedicalEvaluationViewModel : ObservableObject
     {
         private readonly MedicalDataService _dataService = new();
-        private const string CurrentDoctorId = "DOC001";
+        private const string CurrentDoctorId = "1";
         private const string CurrentPatientId = "7759376";
 
         // Master list to hold all records for filtering
@@ -57,7 +56,8 @@ namespace DevCoreHospital.ViewModels
             }
 
             // Ensure empty state appears if search finds nothing
-            OnPropertyChanged(nameof(IsEmptyStateVisible));
+            RaisePropertyChanged(nameof(IsEmptyStateVisible));
+            RaisePropertyChanged(nameof(EmptyStateVisibility));
         }
 
         private string _symptoms = string.Empty;
@@ -110,12 +110,15 @@ namespace DevCoreHospital.ViewModels
             {
                 if (SetProperty(ref _isConflictVisible, value))
                 {
-                    OnPropertyChanged(nameof(NotesBackground));
+                    RaisePropertyChanged(nameof(NotesBackground));
+                    RaisePropertyChanged(nameof(ConflictVisibility));
                     IsRiskAssumed = false;
                     RefreshButtonState();
                 }
             }
         }
+
+        public Visibility ConflictVisibility => IsConflictVisible ? Visibility.Visible : Visibility.Collapsed;
 
         private bool _isRiskAssumed;
         public bool IsRiskAssumed
@@ -136,8 +139,8 @@ namespace DevCoreHospital.ViewModels
             {
                 if (SetProperty(ref _isFatigued, value))
                 {
-                    OnPropertyChanged(nameof(IsFormEnabled));
-                    OnPropertyChanged(nameof(LockoutVisibility));
+                    RaisePropertyChanged(nameof(IsFormEnabled));
+                    RaisePropertyChanged(nameof(LockoutVisibility));
                     RefreshButtonState();
                 }
             }
@@ -154,15 +157,20 @@ namespace DevCoreHospital.ViewModels
             {
                 if (SetProperty(ref _isLoading, value))
                 {
-                    OnPropertyChanged(nameof(IsEmptyStateVisible));
+                    RaisePropertyChanged(nameof(IsEmptyStateVisible));
+                    RaisePropertyChanged(nameof(EmptyStateVisibility));
                 }
             }
         }
 
         public bool IsEmptyStateVisible => !IsLoading && PastEvaluations.Count == 0;
+        public Visibility EmptyStateVisibility => IsEmptyStateVisible ? Visibility.Visible : Visibility.Collapsed;
+
+        public RelayCommand SaveDiagnosisCommand { get; }
 
         public MedicalEvaluationViewModel()
         {
+            SaveDiagnosisCommand = new RelayCommand(SaveDiagnosis, CanSaveDiagnosis);
             PopulateHistory();
             CheckDoctorFatigue();
         }
@@ -222,7 +230,6 @@ namespace DevCoreHospital.ViewModels
             return true;
         }
 
-        [RelayCommand(CanExecute = nameof(CanSaveDiagnosis))]
         private void SaveDiagnosis()
         {
             string finalSymptoms = this.Symptoms;
@@ -238,7 +245,15 @@ namespace DevCoreHospital.ViewModels
                 MedsList = this.MedsList,
                 Notes = this.DoctorNotes,
                 EvaluationDate = DateTime.Now,
-                Evaluator = new DevCoreHospital.Models.Doctor { Id = CurrentDoctorId, Name = "Dr. Vlad" }
+                Evaluator = new DevCoreHospital.Models.Doctor
+                {
+                    StaffID = int.Parse(CurrentDoctorId),
+                    FirstName = "Vlad",
+                    LastName = "Doctor",
+                    Available = true,
+                    Specialization = "General",
+                    LicenseNumber = "N/A"
+                }
             };
 
             _dataService.SaveEvaluation(newRecord);
@@ -262,20 +277,20 @@ namespace DevCoreHospital.ViewModels
             _isRiskAssumed = false;
             _isConflictVisible = false;
 
-            OnPropertyChanged(nameof(Symptoms));
-            OnPropertyChanged(nameof(MedsList));
-            OnPropertyChanged(nameof(DoctorNotes));
-            OnPropertyChanged(nameof(IsRiskAssumed));
-            OnPropertyChanged(nameof(IsConflictVisible));
-            OnPropertyChanged(nameof(NotesBackground));
+            RaisePropertyChanged(nameof(Symptoms));
+            RaisePropertyChanged(nameof(MedsList));
+            RaisePropertyChanged(nameof(DoctorNotes));
+            RaisePropertyChanged(nameof(IsRiskAssumed));
+            RaisePropertyChanged(nameof(IsConflictVisible));
+            RaisePropertyChanged(nameof(NotesBackground));
 
             RefreshButtonState();
         }
 
         private void RefreshButtonState()
         {
-            SaveDiagnosisCommand.NotifyCanExecuteChanged();
-            OnPropertyChanged(nameof(ValidationError));
+            SaveDiagnosisCommand.RaiseCanExecuteChanged();
+            RaisePropertyChanged(nameof(ValidationError));
         }
 
         public async void PopulateHistory()

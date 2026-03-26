@@ -1,4 +1,5 @@
 using DevCoreHospital.Data;
+using DevCoreHospital.Configuration;
 using DevCoreHospital.Repositories;
 using DevCoreHospital.Services;
 using DevCoreHospital.ViewModels.Pharmacy;
@@ -16,7 +17,7 @@ public sealed partial class PharmacySchedulePage : Page
 
         ICurrentUserService currentUser = new CurrentUserService();
         var sqlFactory = new SqlConnectionFactory();
-        var dbManager = new DatabaseManager(sqlFactory);
+        var dbManager = new DatabaseManager(AppSettings.ConnectionString);
         var shiftRepo = new ShiftRepository(dbManager);
         var scheduleService = new PharmacyScheduleService(shiftRepo);
         var handoverService = new PharmacyHandoverService(sqlFactory);

@@ -6,5 +6,5 @@ public interface IStaffRepository
 {
     Doctor? GetDoctorBySpecialization(string spec);
 
-    Staff? FindByStaffCode(string staffCode);
+    IStaff? FindByStaffCode(string staffCode);
 }

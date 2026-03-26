@@ -7,7 +7,7 @@ public sealed class PharmacyShiftItemViewModel
 {
     public PharmacyShiftItemViewModel(Shift shift)
     {
-        RotationAssignment = shift.RotationAssignment;
+        RotationAssignment = shift.Location;
         ShiftStartTime = shift.StartTime;
         ShiftEndTime = shift.EndTime;
         Status = shift.Status;

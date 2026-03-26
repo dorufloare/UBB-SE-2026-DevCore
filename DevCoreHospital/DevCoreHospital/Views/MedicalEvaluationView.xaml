@@ -35,7 +35,7 @@
                              MaxLength="200"
                              ToolTipService.ToolTip="Include name, dosage, and quantity (e.g., Paracetamol 500mg, 20 tabs)."/>
 
-                    <StackPanel Visibility="{x:Bind ViewModel.IsConflictVisible, Mode=OneWay}" Spacing="10">
+                    <StackPanel Visibility="{x:Bind ViewModel.ConflictVisibility, Mode=OneWay}" Spacing="10">
                         <InfoBar Severity="Error"
                                  Title="Risk Conflict Detected"
                                  Message="{x:Bind ViewModel.ConflictWarning, Mode=OneWay}"
@@ -102,7 +102,7 @@
                               VerticalAlignment="Center"
                               Canvas.ZIndex="2"/>
 
-                <StackPanel Visibility="{x:Bind ViewModel.IsEmptyStateVisible, Mode=OneWay}"
+                <StackPanel Visibility="{x:Bind ViewModel.EmptyStateVisibility, Mode=OneWay}"
                             VerticalAlignment="Center" 
                             HorizontalAlignment="Center" 
                             Spacing="12"
