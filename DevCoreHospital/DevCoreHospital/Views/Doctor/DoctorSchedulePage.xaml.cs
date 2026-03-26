@@ -1,4 +1,4 @@
-﻿using DevCoreHospital.Data;
+using DevCoreHospital.Data;
 using DevCoreHospital.Services;
 using DevCoreHospital.ViewModels.Doctor;
 using Microsoft.UI.Xaml;

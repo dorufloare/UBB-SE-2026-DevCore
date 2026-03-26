@@ -4,6 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:views="using:DevCoreHospital.Views"
     xmlns:doctorViews="using:DevCoreHospital.Views.Doctor"
+    xmlns:pharmacyViews="using:DevCoreHospital.Views.Pharmacy"
     Title="DevCore Hospital">
 
     <NavigationView x:Name="AppNavigationView"
@@ -13,6 +14,7 @@
         <NavigationView.MenuItems>
             <NavigationViewItem Content="Medical Evaluation" Tag="MedicalEvaluation" Icon="Document" />
             <NavigationViewItem Content="Doctor Schedule" Tag="DoctorSchedule" Icon="Calendar" />
+            <NavigationViewItem Content="Pharmacy Schedule" Tag="PharmacySchedule" Icon="Shop" />
         </NavigationView.MenuItems>
 
         <Frame x:Name="ContentFrame" />

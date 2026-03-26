@@ -1,5 +1,6 @@
 using DevCoreHospital.Views;
 using DevCoreHospital.Views.Doctor;
+using DevCoreHospital.Views.Pharmacy;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
@@ -39,6 +40,9 @@ namespace DevCoreHospital
                     break;
                 case "DoctorSchedule":
                     frame.Navigate(typeof(DoctorSchedulePage)); // or DoctorSchedulePage if that is your actual page
+                    break;
+                case "PharmacySchedule":
+                    frame.Navigate(typeof(PharmacySchedulePage));
                     break;
             }
         }

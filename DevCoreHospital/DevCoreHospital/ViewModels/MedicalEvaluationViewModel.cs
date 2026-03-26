@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
@@ -152,7 +152,7 @@ namespace DevCoreHospital.ViewModels
                 MedsList = this.MedsList,
                 Notes = this.DoctorNotes,
                 EvaluationDate = DateTime.Now,
-                Evaluator = new Doctor { Id = CurrentDoctorId, Name = "Dr. Vlad" }
+                Evaluator = new global::DevCoreHospital.Models.Doctor { Id = CurrentDoctorId, Name = "Dr. Vlad" }
             };
 
             // 1. Persist the Medical Data

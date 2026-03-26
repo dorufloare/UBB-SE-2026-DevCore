@@ -1,8 +1,11 @@
-﻿namespace DevCoreHospital.Models
+namespace DevCoreHospital.Models;
+
+public class Staff
 {
-    public interface Staff
-    {
-        // clasa asta e doar de forma... cred ca trebuie sa o implementeze altcineva
-        // am scris-o doar ca sa nu am erori de compilare
-    }
+    public int Id { get; set; }
+    public string StaffCode { get; set; } = string.Empty;
+    public string DisplayName { get; set; } = string.Empty;
+    public string Role { get; set; } = string.Empty;
+    public string? Specialization { get; set; }
+    public bool IsAvailable { get; set; } = true;
 }

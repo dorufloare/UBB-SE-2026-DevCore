@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using DevCoreHospital.Models;
 using System.Linq;
 using System;
@@ -55,12 +55,11 @@ namespace DevCoreHospital.Data
             Debug.WriteLine($">>>> SQL: Appointment for {patientId} set to {status}.");
         }
 
+        public void UpdateDoctorAvailability(string doctorId)
+        {
             // Logic to set doctor to 'AVAILABLE'
             Debug.WriteLine($">>>> SQL: Doctor {doctorId} availability updated.");
-            return _mockTable.Where(e => e.Evaluator != null && e.Evaluator.Id == doctorId).ToList();
-            return _mockTable.Where(e => e.Evaluator != null && e.Evaluator.Id == doctorId).ToList();
         }
-
 
         public List<MedicalEvaluation> GetPatientMedicalHistory(string patientId)
         {
