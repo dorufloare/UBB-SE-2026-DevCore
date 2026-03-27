@@ -1,4 +1,6 @@
-﻿using DevCoreHospital.Data;
+﻿using DevCoreHospital.Configuration;
+using DevCoreHospital.Data;
+using DevCoreHospital.Repositories;
 using DevCoreHospital.Services;
 using DevCoreHospital.ViewModels.Doctor;
 using Microsoft.UI.Xaml;
@@ -19,9 +21,12 @@ namespace DevCoreHospital.Views.Doctor
             InitializeComponent();
 
             _dialogService = new DialogService();
+            var connectionFactory = new SqlConnectionFactory(AppSettings.ConnectionString);
+            var appointmentRepository = new AppointmentRepository(connectionFactory);
+
             _vm = new DoctorScheduleViewModel(
                 new CurrentUserService(),
-                new DoctorAppointmentService(new SqlConnectionFactory()),
+                new DoctorAppointmentService(appointmentRepository),
                 _dialogService);
 
             DataContext = _vm;
