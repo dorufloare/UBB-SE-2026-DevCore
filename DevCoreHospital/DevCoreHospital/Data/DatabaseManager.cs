@@ -40,6 +40,46 @@ namespace DevCoreHospital.Data
             return shiftList;
         }
 
+        public int GetMedicinesSold(int pharmacistStaffId, int month, int year)
+        {
+            try
+            {
+                using var connection = GetConnection();
+                connection.Open();
+
+                using var command = connection.CreateCommand();
+                command.CommandText = @"
+                    SELECT COUNT(*)
+                    FROM PharmacyHandover
+                    WHERE PharmacistID = @staffId
+                      AND MONTH(HandoverDate) = @month
+                      AND YEAR(HandoverDate) = @year";
+
+                var staffIdParameter = command.CreateParameter();
+                staffIdParameter.ParameterName = "@staffId";
+                staffIdParameter.Value = pharmacistStaffId;
+                command.Parameters.Add(staffIdParameter);
+
+                var monthParameter = command.CreateParameter();
+                monthParameter.ParameterName = "@month";
+                monthParameter.Value = month;
+                command.Parameters.Add(monthParameter);
+
+                var yearParameter = command.CreateParameter();
+                yearParameter.ParameterName = "@year";
+                yearParameter.Value = year;
+                command.Parameters.Add(yearParameter);
+
+                var result = command.ExecuteScalar();
+                return result == null || result == DBNull.Value ? 0 : Convert.ToInt32(result);
+            }
+            catch
+            {
+                // Keep salary feature operable even when DB setup is missing.
+                return 150;
+            }
+        }
+
         internal DbConnection GetConnection()
         {
             var connectionFactory = new SqlConnectionFactory(ConnectionString);

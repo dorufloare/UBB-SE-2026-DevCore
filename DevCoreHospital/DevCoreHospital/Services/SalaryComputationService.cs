@@ -15,7 +15,7 @@ namespace DevCoreHospital.Services
             _dbManager = dbManager;
         }
 
-        public async Task<double> ComputeSalaryDoctorAsync(Models.Doctor doctor, List<Shift> monthlyShifts)
+        public Task<double> ComputeSalaryDoctorAsync(Doctor doctor, List<Shift> monthlyShifts)
         {
             double totalHours = 0;
 
@@ -27,10 +27,10 @@ namespace DevCoreHospital.Services
             }
 
             double doctorHourlyRate = 85.0;
-            return totalHours * doctorHourlyRate;
+            return Task.FromResult(totalHours * doctorHourlyRate);
         }
 
-        public async Task<double> ComputeSalaryPharmacistAsync(Models.Pharmacist pharmacist, List<Shift> monthlyShifts, int month, int year)
+        public Task<double> ComputeSalaryPharmacistAsync(Pharmacist pharmacist, List<Shift> monthlyShifts, int month, int year)
         {
             double totalHours = monthlyShifts.Sum(s => (s.EndTime - s.StartTime).TotalHours);
             double pharmacistHourlyRate = 45.0;
@@ -49,7 +49,7 @@ namespace DevCoreHospital.Services
 
             double bonusPerMedicine = 1.5;
 
-            return (totalHours * pharmacistHourlyRate) + (medicinesSold * bonusPerMedicine);
+            return Task.FromResult((totalHours * pharmacistHourlyRate) + (medicinesSold * bonusPerMedicine));
         }
     }
 }
