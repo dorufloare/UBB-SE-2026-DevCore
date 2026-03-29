@@ -28,7 +28,7 @@ namespace DevCoreHospital.Repositories
 
         public void SaveStaffChanges()
         {
-            
+            _dbManager.SaveStaff(_staffList);
         }
 
         public List<Doctor> GetAvailableDoctors()
@@ -107,6 +107,7 @@ namespace DevCoreHospital.Repositories
             {
                 staff.Available = isAvailable;
                 if (staff is Doctor doc) doc.DoctorStatus = status;
+                _dbManager.UpdateStaff(staff);
             }
         }
     }
