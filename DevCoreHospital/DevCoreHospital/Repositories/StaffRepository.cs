@@ -18,7 +18,9 @@ namespace DevCoreHospital.Repositories
         {
             this._staffList = new List<IStaff>();
             this._dbManager = dbManager;
+            LoadStaff();
         }
+
         public void LoadStaff()
         {
             _staffList = _dbManager.GetStaff();
@@ -34,11 +36,13 @@ namespace DevCoreHospital.Repositories
             var availableDoctors = _dbManager.GetStaff().OfType<Doctor>().Where(doctor => doctor.Available).ToList();
             return availableDoctors;
         }
+        
         private List<Pharmacyst> GetAvailablePharmacists()
         {
             var availablePharmacists = _dbManager.GetStaff().OfType<Pharmacyst>().Where(ph => ph.Available).ToList();
             return availablePharmacists;
         }
+        
         public List<IStaff> GetAvailableStaff(string doctorSpecialization, string pharmacystCertification)
         {
             var availableDoctors = GetAvailableDoctors();
@@ -73,6 +77,7 @@ namespace DevCoreHospital.Repositories
            
             _staffList.Add(newStaff);
         }
+        
         public void RemoveStaff(int staffId)
         {
             var staffToRemove = _staffList.FirstOrDefault(staff => staff.StaffID == staffId);
@@ -82,16 +87,19 @@ namespace DevCoreHospital.Repositories
                 _staffList.Remove(staffToRemove);
             }
         }
+        
         public List<Doctor> GetDoctorsBySpecialization(string specialization)
         {
             var doctors = _dbManager.GetStaff().OfType<Doctor>().Where(doctor => doctor.Specialization.Equals(specialization, StringComparison.OrdinalIgnoreCase)).ToList();
             return doctors;
         }
+        
         public List<Pharmacyst> GetPharmacystsByCertification(string certification)
         {
             var pharmacysts = _dbManager.GetStaff().OfType<Pharmacyst>().Where(ph => ph.Certification.Equals(certification, StringComparison.OrdinalIgnoreCase)).ToList();
             return pharmacysts;
         }
+        
         public void UpdateStaffAvailability(int staffId, bool isAvailable, DoctorStatus status = DoctorStatus.OFF_DUTY)
         {
             var staff = _staffList.FirstOrDefault(staff => staff.StaffID == staffId);

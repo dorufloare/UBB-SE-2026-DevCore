@@ -17,40 +17,45 @@ namespace DevCoreHospital.Repositories
         {
             this._shiftList = new List<Shift>();
             this._dbManager = dbManager;
+            LoadShifts();
         }
 
         public void LoadShifts()
         {
             this._shiftList = _dbManager.GetShifts();
         }
+
         public void AddShift(Shift newShift)
         {
-            
             _shiftList.Add(newShift);
         }
+        
         public void CancelShift(int shiftId)
         {
             var shiftToCancel = _shiftList.FirstOrDefault(shift => shift.Id == shiftId);
             if (shiftToCancel != null)
             {
-                
                 _shiftList.Remove(shiftToCancel);
             }
         }
+        
         public List<Shift> GetShifts()
         {
             return _shiftList;
         }
+        
         public List<Shift> GetShiftsByStaffID(int staffId)
         {
             var shifts = _shiftList.Where(shift => shift.AppointedStaff.StaffID == staffId).ToList();
             return shifts;
         }
+        
         public List<Shift> GetActiveShifts()
         {
             var activeShifts = _shiftList.Where(shift => shift.Status == ShiftStatus.ACTIVE).ToList();
             return activeShifts;
         }
+        
         public float GetWeeklyHours(int staffId)
         {
             var shifts = GetShiftsByStaffID(staffId);
