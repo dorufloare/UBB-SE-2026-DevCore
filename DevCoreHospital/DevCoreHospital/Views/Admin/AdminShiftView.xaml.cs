@@ -3,39 +3,48 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using DevCoreHospital.ViewModels.Admin;
 using DevCoreHospital.Models;
+// Asigură-te că ai aceste using-uri pentru DB:
+using DevCoreHospital.Configuration;
+using DevCoreHospital.Repositories;
+using DevCoreHospital.Services;
 
 namespace DevCoreHospital.Views.Admin
 {
     public sealed partial class AdminShiftView : Page
     {
-        // Proprietatea pentru Data Binding (x:Bind)
-        public AdminShiftViewModel ViewModel { get; }
+        public AdminShiftViewModel ViewModel { get; set; }
 
         public AdminShiftView()
         {
             this.InitializeComponent();
-            
-            // ATENȚIE: Aici trebuie să injectezi ViewModel-ul. 
-            // Dacă nu aveți un sistem de Dependency Injection configurat încă, 
-            // va trebui să îl instanțiezi manual (ex: ViewModel = new AdminShiftViewModel(new StaffAndShiftService(...));)
-            // ViewModel = App.GetService<AdminShiftViewModel>(); 
+
+            // INIȚIALIZARE CORECTĂ A BAZEI DE DATE
+            // Am scos comentariile tale și am pus codul real de conectare
+            var dbManager = new DevCoreHospital.Data.DatabaseManager(AppSettings.ConnectionString);
+
+            // Va trebui să ai un StaffRepository și un ShiftRepository construite în proiect
+            // (Comentează liniile astea dacă vă bazați pe Dependency Injection din App.xaml.cs)
+            var staffRepo = new StaffRepository(dbManager);
+            var shiftRepo = new ShiftRepository(dbManager);
+            var service = new StaffAndShiftService(staffRepo, shiftRepo);
+
+            ViewModel = new AdminShiftViewModel(service);
         }
 
-        // --- 1. Filtrare Personal la schimbarea locației ---
         private void LocationComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            // E bine să verificăm dacă ViewModel nu e null (în caz de probleme la instanțiere)
+            if (ViewModel == null) return;
+
             if (LocationComboBox.SelectedItem is string selectedLocation)
             {
-                // Apelează metoda din ViewModel. Lista și ComboBox-ul se vor updata automat.
                 ViewModel.FilterStaffForShift(selectedLocation);
-                StaffComboBox.SelectedIndex = -1; // Resetăm selecția veche
+                StaffComboBox.SelectedIndex = -1;
             }
         }
 
-        // --- 2. Creare Tură Nouă ---
         private void CreateShift_Click(object sender, RoutedEventArgs e)
         {
-            // Validare simplă UI
             if (StaffComboBox.SelectedItem is not IStaff selectedStaff ||
                 LocationComboBox.SelectedItem is not string location ||
                 !ShiftDatePicker.Date.HasValue ||
@@ -46,7 +55,6 @@ namespace DevCoreHospital.Views.Admin
                 return;
             }
 
-            // Construirea datelor calendaristice
             DateTime date = ShiftDatePicker.Date.Value.DateTime;
             DateTime start = date.Add(StartTimePicker.SelectedTime.Value);
             DateTime end = date.Add(EndTimePicker.SelectedTime.Value);
@@ -57,17 +65,13 @@ namespace DevCoreHospital.Views.Admin
                 return;
             }
 
-            // Trimiterea datelor către ViewModel
             ViewModel.CreateNewShift(selectedStaff, start, end, location);
-            
+
             ShowMessage("Tura a fost programată cu succes!", InfoBarSeverity.Success);
-            
-            // Resetare UI după salvare
+
             StaffComboBox.SelectedIndex = -1;
             LocationComboBox.SelectedIndex = -1;
         }
-
-        // --- 3. Management Ture (Din Lista din Dreapta) ---
 
         private void SetActive_Click(object sender, RoutedEventArgs e)
         {
@@ -89,7 +93,6 @@ namespace DevCoreHospital.Views.Admin
 
         private void AutoReassign_Click(object sender, RoutedEventArgs e)
         {
-            // Preluăm obiectul întreg "Shift" pentru a-l pasa metodei tale
             if (sender is Button btn && btn.Tag is Shift shiftToReassign)
             {
                 ViewModel.AutoFindReplacement(shiftToReassign);
@@ -97,7 +100,6 @@ namespace DevCoreHospital.Views.Admin
             }
         }
 
-        // --- Helper pentru Feedback UI ---
         private void ShowMessage(string message, InfoBarSeverity severity)
         {
             StatusInfoBar.Message = message;

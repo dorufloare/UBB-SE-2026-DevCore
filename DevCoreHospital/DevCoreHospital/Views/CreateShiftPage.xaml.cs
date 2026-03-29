@@ -15,7 +15,7 @@ namespace DevCoreHospital.Views
 
         private void LoadStaffData()
         {
-            // Exemplu de date. Aici poți apela metodele colegilor tăi
+            // Exemplu de date (Mockup) până legăm de baza de date
             var staff = new List<string> { "Dr. Andrei Ionescu", "Dr. Elena Radu", "Farm. Mihai Pop" };
             EmployeeComboBox.ItemsSource = staff;
         }
@@ -23,15 +23,15 @@ namespace DevCoreHospital.Views
         private void SaveShift_Click(object sender, RoutedEventArgs e)
         {
             // Validare de bază
-            if (EmployeeComboBox.SelectedItem == null || ShiftDatePicker.Date == null)
+            if (EmployeeComboBox.SelectedItem == null || ShiftDatePicker.Date == null ||
+                StartTimePicker.SelectedTime == null || EndTimePicker.SelectedTime == null)
             {
-                ShowMessage("Eroare: Te rugăm să selectezi angajatul și data.", InfoBarSeverity.Error);
+                ShowMessage("Eroare: Te rugăm să completezi toate câmpurile.", InfoBarSeverity.Error);
                 return;
             }
 
-            // Calculăm durata sau verificăm validitatea orelor
-            var start = StartTimePicker.SelectedTime;
-            var end = EndTimePicker.SelectedTime;
+            var start = StartTimePicker.SelectedTime.Value;
+            var end = EndTimePicker.SelectedTime.Value;
 
             if (end <= start)
             {
@@ -39,10 +39,13 @@ namespace DevCoreHospital.Views
                 return;
             }
 
-            // Aici vine codul pentru salvare în baza de date
-            // shiftService.Save(employee, date, start, end);
+            // TODO: Aici va veni codul care apelează ViewModel-ul pentru salvarea în baza de date
+            // ex: ViewModel.SaveShiftAsync(...);
 
             ShowMessage("Tura a fost salvată cu succes!", InfoBarSeverity.Success);
+
+            // Opțional: Resetăm formularul după succes
+            EmployeeComboBox.SelectedIndex = -1;
         }
 
         private void ShowMessage(string message, InfoBarSeverity severity)
