@@ -17,8 +17,8 @@ namespace DevCoreHospital.Repositories
 
         public async Task<IReadOnlyList<Appointment>> GetUpcomingAppointmentsAsync(int doctorUserId, DateTime fromDate, int skip, int take)
         {
-            var toDate = fromDate.Date.AddDays(8);
-            // Așteptăm rezultatul de la baza de date
+            // Wider window; exact day/week selection is already applied in DoctorScheduleViewModel.
+            var toDate = fromDate.Date.AddDays(31);
             return await _dbManager.GetUpcomingAppointmentsAsync(doctorUserId, fromDate.Date, toDate, skip, take);
         }
 
@@ -39,11 +39,9 @@ namespace DevCoreHospital.Repositories
 
         public async Task AddAppointmentAsync(Appointment appt)
         {
-            // Extragem ID-ul pacientului din text (ex: "PAT-500" devine 500)
             string rawPatientInput = appt.PatientName?.Replace("PAT-", "").Trim() ?? "0";
             int.TryParse(rawPatientInput, out int patientId);
 
-            // Combinăm data cu ora pentru a crea un DATETIME complet pentru SQL
             DateTime startTimeDb = appt.Date.Date.Add(appt.StartTime);
             DateTime endTimeDb = appt.Date.Date.Add(appt.EndTime);
 

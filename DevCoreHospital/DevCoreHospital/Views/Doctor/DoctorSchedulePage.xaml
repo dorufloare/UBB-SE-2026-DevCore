@@ -141,7 +141,7 @@
 
                                 <StackPanel Spacing="4">
                                     <TextBlock Text="{Binding DateText}" Foreground="{StaticResource MutedBrush}" FontSize="28"/>
-                                    <TextBlock Text="{Binding TimeText}" Foreground="{StaticResource TextBrush}" FontSize="24" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{Binding TimeRangeText}" Foreground="{StaticResource TextBrush}" FontSize="24" FontWeight="SemiBold"/>
                                     <TextBlock Text="{Binding Status}" Foreground="{StaticResource MutedBrush}" FontSize="20"/>
                                 </StackPanel>
 

@@ -63,7 +63,24 @@ namespace DevCoreHospital.Views.Doctor
         private void DetailsButton_Click(object sender, RoutedEventArgs e)
         {
             if ((sender as FrameworkElement)?.DataContext is AppointmentItemViewModel item)
-                Frame?.Navigate(typeof(AppointmentDetailsPage), item);
+            {
+                var appt = new DevCoreHospital.Models.Appointment
+                {
+                    Id = item.Id,
+                    PatientName = item.PatientName,
+                    DoctorId = item.DoctorId,
+                    DoctorName = item.DoctorName,
+                    Date = item.Date,
+                    StartTime = item.StartTime,
+                    EndTime = item.EndTime,
+                    Status = item.Status,
+                    Type = item.Type,
+                    Location = item.Location,
+                    Notes = item.Notes
+                };
+
+                Frame?.Navigate(typeof(AppointmentDetailsPage), appt);
+            }
         }
     }
 }
