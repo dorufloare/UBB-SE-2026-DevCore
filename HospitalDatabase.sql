@@ -1,13 +1,19 @@
-DROP TABLE IF EXISTS Evaluation_Symptoms;
-DROP TABLE IF EXISTS Evaluation_Medications;
-DROP TABLE IF EXISTS Hangout_Participants;
-DROP TABLE IF EXISTS [Shifts];
-DROP TABLE IF EXISTS Appointments;
-DROP TABLE IF EXISTS Medical_Evaluations;
-DROP TABLE IF EXISTS Hangouts;
-DROP TABLE IF EXISTS Staff;
+-- 1. THE RESET SWITCH: Safely drop and recreate the entire database
+USE master;
+GO
 
+-- Force close any background connections to the database so we can delete it
+ALTER DATABASE HospitalDatabase SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+DROP DATABASE HospitalDatabase;
+GO
 
+-- Create a fresh, empty database
+CREATE DATABASE HospitalDatabase;
+GO
+USE HospitalDatabase;
+GO
+
+-- 2. CREATE TABLES
 CREATE TABLE Staff (
     staff_id INT PRIMARY KEY IDENTITY(1,1),
     [role] VARCHAR(255),
@@ -33,7 +39,6 @@ CREATE TABLE Shifts (
     is_active BIT,
     CONSTRAINT FK_Shifts_Staff FOREIGN KEY (staff_id) REFERENCES Staff(staff_id)
 );
-
 
 CREATE TABLE Appointments (
     appointment_id INT PRIMARY KEY IDENTITY(1,1),
@@ -86,25 +91,38 @@ CREATE TABLE Hangout_Participants (
     CONSTRAINT FK_HangoutPart_Staff FOREIGN KEY (staff_id) REFERENCES Staff(staff_id)
 );
 
+IF OBJECT_ID('High_Risk_Medicines', 'U') IS NOT NULL DROP TABLE High_Risk_Medicines;
+CREATE TABLE High_Risk_Medicines (
+    medicine_id INT PRIMARY KEY IDENTITY(1,1),
+    medicine_name VARCHAR(100) NOT NULL,
+    warning_message VARCHAR(255) NOT NULL
+);
+GO
+
+-- 3. INSERT TEST DATA
+INSERT INTO High_Risk_Medicines (medicine_name, warning_message)
+VALUES 
+('Warfarin', 'Blood thinner conflict: High risk of internal bleeding.'),
+('Insulin', 'Glucose conflict: Requires immediate sugar level monitoring.'),
+('Penicillin', 'Allergy Warning: History of anaphylaxis in this department.');
+
 INSERT INTO Staff ([role], department, first_name, last_name, is_available, specialization, status, contact_info, license_number, years_of_experience)
 VALUES 
 ('Doctor', 'Cardiology', 'John', 'Smith', 1, 'Cardiologist', 'Available', 'info1', 'A1234', 20),
 ('Doctor', 'Emergency', 'Alice', 'Jones', 1, 'Surgeon', 'Available', 'info2', 'B4321', 15);
 
-    
 INSERT INTO Staff ([role], department, first_name, last_name, is_available, status, contact_info, certification, years_of_experience)
 VALUES 
 ('Pharmacist', 'Pharmacy', 'Robert', 'White', 0, 'Off_Duty', 'info3', 'BPS', 13);
 
-
-INSERT INTO Shifts (staff_id, location, start_time, end_time, status, is_active)
-VALUES (2, 'Ward A', '2026-04-01 08:00:00', '2026-04-01 16:00:00', 'Scheduled', 1);
-
-
+INSERT INTO Appointments (patient_id, doctor_id, start_time, [status])
+VALUES (7759376, 1, GETDATE(), 'Confirmed');
 
 INSERT INTO Appointments (patient_id, doctor_id, start_time, end_time, status)
 VALUES (500, 1, '2026-04-05 10:30:00', '2026-04-05 11:30:00', 'Confirmed');
 
+INSERT INTO Shifts (staff_id, location, start_time, end_time, status, is_active)
+VALUES (2, 'Ward A', '2026-04-01 08:00:00', '2026-04-01 16:00:00', 'Scheduled', 1);
 
 INSERT INTO Medical_Evaluations (doctor_id, patient_id, diagnosis, doctor_notes, source, assumed_risk)
 VALUES (1, 500, 'Mild Hypertension', 'Patient advised to reduce salt intake.', 'Physical Exam', 0);
@@ -112,8 +130,8 @@ VALUES (1, 500, 'Mild Hypertension', 'Patient advised to reduce salt intake.', '
 INSERT INTO Hangouts (title, description, date_time, max_staff)
 VALUES ('Friday Pizza', 'Weekly team bonding in the breakroom', '2026-04-03 17:00:00', 10);
 
-
 INSERT INTO Hangout_Participants (hangout_id, staff_id)
 VALUES (1, 1), (1, 2);
 
-select * from staff
+SELECT * FROM Staff;
+SELECT * FROM Shifts;
