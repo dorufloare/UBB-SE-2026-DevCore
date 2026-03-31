@@ -23,9 +23,11 @@ namespace DevCoreHospital.Views.Doctor
             _dialogService = new DialogService();
             var dbManager = new DatabaseManager(AppSettings.ConnectionString);
             var appointmentRepository = new AppointmentRepository(dbManager);
+            var shiftRepository = new ShiftRepository(dbManager);
             _vm = new DoctorScheduleViewModel(
                 new CurrentUserService(),
                 new DoctorAppointmentService(appointmentRepository),
+                shiftRepository,
                 _dialogService);
 
             DataContext = _vm;

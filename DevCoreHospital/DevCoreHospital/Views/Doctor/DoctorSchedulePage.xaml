@@ -138,7 +138,7 @@
                         VerticalAlignment="Center"
                         Spacing="8"
                         Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibilityConverter}}">
-                <TextBlock Text="No appointments for this day."
+                <TextBlock Text="No appointments or shifts for this period."
                            Foreground="{StaticResource TextBrush}"
                            FontSize="20"
                            HorizontalAlignment="Center"/>
@@ -147,57 +147,90 @@
                            HorizontalAlignment="Center"/>
             </StackPanel>
 
-            <ListView ItemsSource="{Binding Appointments}"
-                      SelectionMode="None"
-                      Background="Transparent"
-                      BorderThickness="0">
-                <ListView.ItemContainerStyle>
-                    <Style TargetType="ListViewItem">
-                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                        <Setter Property="Padding" Value="0"/>
-                        <Setter Property="Margin" Value="0,0,0,12"/>
-                        <Setter Property="Background" Value="Transparent"/>
-                    </Style>
-                </ListView.ItemContainerStyle>
+            <ScrollViewer VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Spacing="16">
+                    <TextBlock Text="Appointments"
+                               Foreground="{StaticResource TextBrush}"
+                               FontSize="20"
+                               FontWeight="SemiBold"/>
 
-                <ListView.ItemTemplate>
-                    <DataTemplate>
-                        <Border Background="{StaticResource CardBrush}"
-                                BorderBrush="{StaticResource AccentBrush}"
-                                BorderThickness="1"
-                                CornerRadius="14"
-                                Padding="12">
-                            <Grid ColumnSpacing="14">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
+                    <ItemsControl ItemsSource="{Binding Appointments}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="{StaticResource CardBrush}"
+                                        BorderBrush="{StaticResource AccentBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="14"
+                                        Padding="12"
+                                        Margin="0,0,0,12">
+                                    <Grid ColumnSpacing="14">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
 
-                                <StackPanel Spacing="4">
-                                    <TextBlock Text="{Binding DateText}"
-                                               Foreground="{StaticResource MutedBrush}"
-                                               FontSize="28"/>
-                                    <TextBlock Text="{Binding TimeRangeText}"
-                                               Foreground="{StaticResource TextBrush}"
-                                               FontSize="24"
-                                               FontWeight="SemiBold"/>
-                                    <TextBlock Text="{Binding Status}"
-                                               Foreground="{StaticResource MutedBrush}"
-                                               FontSize="20"/>
-                                </StackPanel>
+                                        <StackPanel Spacing="4">
+                                            <TextBlock Text="{Binding DateText}"
+                                                       Foreground="{StaticResource MutedBrush}"
+                                                       FontSize="28"/>
+                                            <TextBlock Text="{Binding TimeRangeText}"
+                                                       Foreground="{StaticResource TextBrush}"
+                                                       FontSize="24"
+                                                       FontWeight="SemiBold"/>
+                                            <TextBlock Text="{Binding Status}"
+                                                       Foreground="{StaticResource MutedBrush}"
+                                                       FontSize="20"/>
+                                        </StackPanel>
 
-                                <Button Grid.Column="1"
-                                        Content="Details"
-                                        Click="DetailsButton_Click"
-                                        VerticalAlignment="Center"
-                                        Background="{StaticResource AccentBrush}"
-                                        Foreground="White"
-                                        BorderBrush="{StaticResource AccentBrush}"/>
-                            </Grid>
-                        </Border>
-                    </DataTemplate>
-                </ListView.ItemTemplate>
-            </ListView>
+                                        <Button Grid.Column="1"
+                                                Content="Details"
+                                                Click="DetailsButton_Click"
+                                                VerticalAlignment="Center"
+                                                Background="{StaticResource AccentBrush}"
+                                                Foreground="White"
+                                                BorderBrush="{StaticResource AccentBrush}"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <TextBlock Text="Shifts"
+                               Foreground="{StaticResource TextBrush}"
+                               FontSize="20"
+                               FontWeight="SemiBold"/>
+
+                    <ItemsControl ItemsSource="{Binding Shifts}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="{StaticResource CardBrush}"
+                                        BorderBrush="{StaticResource AccentBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="14"
+                                        Padding="12"
+                                        Margin="0,0,0,12">
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="{Binding DateText}"
+                                                   Foreground="{StaticResource MutedBrush}"
+                                                   FontSize="28"/>
+                                        <TextBlock Text="{Binding TimeRangeText}"
+                                                   Foreground="{StaticResource TextBrush}"
+                                                   FontSize="24"
+                                                   FontWeight="SemiBold"/>
+                                        <TextBlock Text="{Binding LocationText}"
+                                                   Foreground="{StaticResource MutedBrush}"
+                                                   FontSize="20"/>
+                                        <TextBlock Text="{Binding Status}"
+                                                   Foreground="{StaticResource MutedBrush}"
+                                                   FontSize="18"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </ScrollViewer>
         </Grid>
     </Grid>
 </Page>
