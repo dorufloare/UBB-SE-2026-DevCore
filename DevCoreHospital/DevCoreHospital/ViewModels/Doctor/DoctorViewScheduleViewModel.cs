@@ -107,11 +107,11 @@ namespace DevCoreHospital.ViewModels.Doctor
         public bool IsEmpty => !IsLoading && string.IsNullOrWhiteSpace(ErrorMessage) && Appointments.Count == 0 && Shifts.Count == 0;
 
         public AsyncRelayCommand RefreshCommand { get; }
-        public RelayCommand TodayCommand { get; }
-        public RelayCommand NextDayCommand { get; }
-        public RelayCommand PreviousDayCommand { get; }
-        public RelayCommand DailyModeCommand { get; }
-        public RelayCommand WeeklyModeCommand { get; }
+        public OldRelayCommand TodayCommand { get; }
+        public OldRelayCommand NextDayCommand { get; }
+        public OldRelayCommand PreviousDayCommand { get; }
+        public OldRelayCommand DailyModeCommand { get; }
+        public OldRelayCommand WeeklyModeCommand { get; }
 
         public DoctorScheduleViewModel(
             ICurrentUserService currentUser,
@@ -135,8 +135,8 @@ namespace DevCoreHospital.ViewModels.Doctor
                 () => SelectedDate = IsWeekly ? SelectedDate.AddDays(-7) : SelectedDate.AddDays(-1),
                 () => IsDoctor);
 
-            DailyModeCommand = new RelayCommand(() => ViewMode = ScheduleViewMode.Daily, () => IsDoctor);
-            WeeklyModeCommand = new RelayCommand(() => ViewMode = ScheduleViewMode.Weekly, () => IsDoctor);
+            DailyModeCommand = new OldRelayCommand(() => ViewMode = ScheduleViewMode.Daily, () => IsDoctor);
+            WeeklyModeCommand = new OldRelayCommand(() => ViewMode = ScheduleViewMode.Weekly, () => IsDoctor);
         }
 
         public async Task InitializeAsync()
