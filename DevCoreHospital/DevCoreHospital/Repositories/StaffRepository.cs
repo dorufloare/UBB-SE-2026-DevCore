@@ -77,6 +77,38 @@ namespace DevCoreHospital.Repositories
             return availableStaff;
         }
 
+        public List<IStaff> GetStaffByQualification(string doctorSpecialization, string pharmacystCertification)
+        {
+            var doctors = _dbManager.GetStaff().OfType<Doctor>().ToList();
+            var pharmacists = _dbManager.GetStaff().OfType<Pharmacyst>().ToList();
+            var staff = new List<IStaff>();
+
+            if (!string.IsNullOrEmpty(doctorSpecialization) && !string.IsNullOrEmpty(pharmacystCertification))
+            {
+                var filteredDoctors = doctors.Where(doctor => doctor.Specialization.Equals(doctorSpecialization, StringComparison.OrdinalIgnoreCase));
+                var filteredPharmacists = pharmacists.Where(ph => ph.Certification.Equals(pharmacystCertification, StringComparison.OrdinalIgnoreCase));
+                staff.AddRange(filteredDoctors);
+                staff.AddRange(filteredPharmacists);
+            }
+            else if (!doctorSpecialization.IsNullOrEmpty())
+            {
+                var filteredDoctors = doctors.Where(doctor => doctor.Specialization.Equals(doctorSpecialization, StringComparison.OrdinalIgnoreCase));
+                staff.AddRange(filteredDoctors);
+            }
+            else if (!pharmacystCertification.IsNullOrEmpty())
+            {
+                var filteredPharmacists = pharmacists.Where(ph => ph.Certification.Equals(pharmacystCertification, StringComparison.OrdinalIgnoreCase));
+                staff.AddRange(filteredPharmacists);
+            }
+            else
+            {
+                staff.AddRange(doctors);
+                staff.AddRange(pharmacists);
+            }
+
+            return staff;
+        }
+
         public void RegisterStaff(IStaff newStaff)
         {
            

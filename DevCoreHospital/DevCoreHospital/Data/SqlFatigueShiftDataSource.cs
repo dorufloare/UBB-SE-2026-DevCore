@@ -35,16 +35,18 @@ namespace DevCoreHospital.Data
                     command.CommandText = @"
                         SELECT sh.shift_id,
                                sh.staff_id,
-                               st.first_name + ' ' + st.last_name AS staff_name,
+                               st.first_name,
+                               st.last_name,
                                st.role,
-                               COALESCE(NULLIF(st.specialization, ''), NULLIF(st.certification, ''), 'General') AS specialization,
+                               st.specialization,
+                               st.certification,
                                sh.start_time,
-                               sh.end_time
+                               sh.end_time,
+                               sh.status
                         FROM Shifts sh
                         INNER JOIN Staff st ON st.staff_id = sh.staff_id
                         WHERE sh.start_time < @WeekEnd
                           AND sh.end_time > @WeekStart
-                          AND UPPER(COALESCE(sh.status, '')) <> 'CANCELLED'
                         ORDER BY sh.start_time;";
 
                     AddParameter(command, "@WeekStart", start);
@@ -54,15 +56,23 @@ namespace DevCoreHospital.Data
                     {
                         while (reader.Read())
                         {
+                            var status = reader.IsDBNull(9) ? string.Empty : reader.GetString(9);
+                            if (IsCancelledStatus(status))
+                                continue;
+
                             shifts.Add(new RosterShift
                             {
                                 Id = reader.GetInt32(0),
                                 StaffId = reader.GetInt32(1),
-                                StaffName = reader.IsDBNull(2) ? string.Empty : reader.GetString(2),
-                                Role = reader.IsDBNull(3) ? string.Empty : reader.GetString(3),
-                                Specialization = reader.IsDBNull(4) ? string.Empty : reader.GetString(4),
-                                Start = reader.GetDateTime(5),
-                                End = reader.GetDateTime(6)
+                                StaffName = BuildFullName(
+                                    reader.IsDBNull(2) ? string.Empty : reader.GetString(2),
+                                    reader.IsDBNull(3) ? string.Empty : reader.GetString(3)),
+                                Role = reader.IsDBNull(4) ? string.Empty : reader.GetString(4),
+                                Specialization = ResolveSpecialization(
+                                    reader.IsDBNull(5) ? string.Empty : reader.GetString(5),
+                                    reader.IsDBNull(6) ? string.Empty : reader.GetString(6)),
+                                Start = reader.GetDateTime(7),
+                                End = reader.GetDateTime(8)
                             });
                         }
                     }
@@ -84,28 +94,39 @@ namespace DevCoreHospital.Data
                     command.CommandText = @"
                         SELECT sh.shift_id,
                                sh.staff_id,
-                               st.first_name + ' ' + st.last_name AS staff_name,
+                               st.first_name,
+                               st.last_name,
                                st.role,
-                               COALESCE(NULLIF(st.specialization, ''), NULLIF(st.certification, ''), 'General') AS specialization,
+                               st.specialization,
+                               st.certification,
                                sh.start_time,
-                               sh.end_time
+                               sh.end_time,
+                               sh.status
                         FROM Shifts sh
                         INNER JOIN Staff st ON st.staff_id = sh.staff_id
-                        WHERE UPPER(COALESCE(sh.status, '')) <> 'CANCELLED';";
+                        ORDER BY sh.start_time;";
 
                     using (SqlDataReader reader = command.ExecuteReader())
                     {
                         while (reader.Read())
                         {
+                            var status = reader.IsDBNull(9) ? string.Empty : reader.GetString(9);
+                            if (IsCancelledStatus(status))
+                                continue;
+
                             shifts.Add(new RosterShift
                             {
                                 Id = reader.GetInt32(0),
                                 StaffId = reader.GetInt32(1),
-                                StaffName = reader.IsDBNull(2) ? string.Empty : reader.GetString(2),
-                                Role = reader.IsDBNull(3) ? string.Empty : reader.GetString(3),
-                                Specialization = reader.IsDBNull(4) ? string.Empty : reader.GetString(4),
-                                Start = reader.GetDateTime(5),
-                                End = reader.GetDateTime(6)
+                                StaffName = BuildFullName(
+                                    reader.IsDBNull(2) ? string.Empty : reader.GetString(2),
+                                    reader.IsDBNull(3) ? string.Empty : reader.GetString(3)),
+                                Role = reader.IsDBNull(4) ? string.Empty : reader.GetString(4),
+                                Specialization = ResolveSpecialization(
+                                    reader.IsDBNull(5) ? string.Empty : reader.GetString(5),
+                                    reader.IsDBNull(6) ? string.Empty : reader.GetString(6)),
+                                Start = reader.GetDateTime(7),
+                                End = reader.GetDateTime(8)
                             });
                         }
                     }
@@ -126,39 +147,46 @@ namespace DevCoreHospital.Data
 
                 using (SqlCommand command = connection.CreateCommand())
                 {
-                    var whereClauses = new List<string>();
-                    if (staffSchema.HasIsActive)
-                        whereClauses.Add("ISNULL(is_active, 1) = 1");
-                    if (staffSchema.HasStatus)
-                        whereClauses.Add("UPPER(COALESCE([status], 'AVAILABLE')) <> 'INACTIVE'");
-
-                    var availabilityProjection = staffSchema.HasIsAvailable
-                        ? "CAST(ISNULL(is_available, 1) AS bit) AS is_available"
-                        : "CAST(1 AS bit) AS is_available";
-                    var whereSql = whereClauses.Count == 0
-                        ? string.Empty
-                        : $"WHERE {string.Join(" AND ", whereClauses)}";
+                    var isAvailableProjection = staffSchema.HasIsAvailable ? "is_available" : "NULL AS is_available";
+                    var isActiveProjection = staffSchema.HasIsActive ? "is_active" : "NULL AS is_active";
+                    var statusProjection = staffSchema.HasStatus ? "[status]" : "NULL AS [status]";
 
                     command.CommandText = $@"
                         SELECT staff_id,
-                               first_name + ' ' + last_name AS full_name,
+                               first_name,
+                               last_name,
                                role,
-                               COALESCE(NULLIF(specialization, ''), NULLIF(certification, ''), 'General') AS specialization,
-                               {availabilityProjection}
+                               specialization,
+                               certification,
+                               {isAvailableProjection},
+                               {isActiveProjection},
+                               {statusProjection}
                         FROM Staff
-                        {whereSql};";
+                        ORDER BY staff_id;";
 
                     using (SqlDataReader reader = command.ExecuteReader())
                     {
                         while (reader.Read())
                         {
+                            var status = reader.IsDBNull(8) ? string.Empty : reader.GetString(8);
+                            if (staffSchema.HasIsActive && !GetBooleanOrDefault(reader, 7, true))
+                                continue;
+                            if (staffSchema.HasStatus && IsInactiveStatus(status))
+                                continue;
+
                             profiles.Add(new StaffProfile
                             {
                                 StaffId = reader.GetInt32(0),
-                                FullName = reader.IsDBNull(1) ? string.Empty : reader.GetString(1),
-                                Role = reader.IsDBNull(2) ? string.Empty : reader.GetString(2),
-                                Specialization = reader.IsDBNull(3) ? string.Empty : reader.GetString(3),
-                                IsAvailable = !reader.IsDBNull(4) && reader.GetBoolean(4)
+                                FullName = BuildFullName(
+                                    reader.IsDBNull(1) ? string.Empty : reader.GetString(1),
+                                    reader.IsDBNull(2) ? string.Empty : reader.GetString(2)),
+                                Role = reader.IsDBNull(3) ? string.Empty : reader.GetString(3),
+                                Specialization = ResolveSpecialization(
+                                    reader.IsDBNull(4) ? string.Empty : reader.GetString(4),
+                                    reader.IsDBNull(5) ? string.Empty : reader.GetString(5)),
+                                IsAvailable = staffSchema.HasIsAvailable
+                                    ? GetBooleanOrDefault(reader, 6, true)
+                                    : true
                             });
                         }
                     }
@@ -175,27 +203,34 @@ namespace DevCoreHospital.Data
                 connection.Open();
                 using (SqlCommand command = connection.CreateCommand())
                 {
-                    command.CommandText = @"
-                        DECLARE @MonthStart DATETIME = DATETIMEFROMPARTS(@Year, @Month, 1, 0, 0, 0, 0);
-                        DECLARE @MonthEnd DATETIME = DATEADD(MONTH, 1, @MonthStart);
+                    var monthStart = new DateTime(year, month, 1);
+                    var monthEnd = monthStart.AddMonths(1);
 
-                        SELECT COALESCE(SUM(
-                                   DATEDIFF(MINUTE,
-                                       CASE WHEN start_time < @MonthStart THEN @MonthStart ELSE start_time END,
-                                       CASE WHEN end_time > @MonthEnd THEN @MonthEnd ELSE end_time END)
-                               ), 0)
+                    command.CommandText = @"
+                        SELECT start_time, end_time, status
                         FROM Shifts
-                        WHERE staff_id = @StaffId
-                          AND start_time < @MonthEnd
-                          AND end_time > @MonthStart
-                          AND UPPER(COALESCE(status, '')) <> 'CANCELLED';";
+                        WHERE staff_id = @StaffId;";
 
                     AddParameter(command, "@StaffId", staffId);
-                    AddParameter(command, "@Year", year);
-                    AddParameter(command, "@Month", month);
 
-                    var totalMinutes = Convert.ToInt32(command.ExecuteScalar());
-                    return totalMinutes / 60.0;
+                    var totalHours = 0.0;
+                    using (SqlDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            var status = reader.IsDBNull(2) ? string.Empty : reader.GetString(2);
+                            if (IsCancelledStatus(status))
+                                continue;
+
+                            totalHours += GetOverlapHours(
+                                reader.GetDateTime(0),
+                                reader.GetDateTime(1),
+                                monthStart,
+                                monthEnd);
+                        }
+                    }
+
+                    return totalHours;
                 }
             }
         }
@@ -240,38 +275,57 @@ namespace DevCoreHospital.Data
                         {
                             candidateCheck.Transaction = transaction;
 
-                            var candidateFilters = new List<string> { "staff_id = @NewStaffId" };
-                            if (staffSchema.HasIsActive)
-                                candidateFilters.Add("ISNULL(is_active, 1) = 1");
-                            if (staffSchema.HasIsAvailable)
-                                candidateFilters.Add("ISNULL(is_available, 1) = 1");
-                            if (staffSchema.HasStatus)
-                                candidateFilters.Add("UPPER(COALESCE([status], 'AVAILABLE')) <> 'INACTIVE'");
+                            var isAvailableProjection = staffSchema.HasIsAvailable ? "is_available" : "NULL AS is_available";
+                            var isActiveProjection = staffSchema.HasIsActive ? "is_active" : "NULL AS is_active";
+                            var statusProjection = staffSchema.HasStatus ? "[status]" : "NULL AS [status]";
 
                             candidateCheck.CommandText = $@"
-                                SELECT COUNT(*)
+                                SELECT {isAvailableProjection},
+                                       {isActiveProjection},
+                                       {statusProjection}
                                 FROM Staff
-                                WHERE {string.Join(" AND ", candidateFilters)};";
+                                WHERE staff_id = @NewStaffId;";
                             AddParameter(candidateCheck, "@NewStaffId", newStaffId);
 
-                            var candidateCount = Convert.ToInt32(candidateCheck.ExecuteScalar());
-                            if (candidateCount == 0)
+                            using (SqlDataReader reader = candidateCheck.ExecuteReader())
                             {
-                                transaction.Rollback();
-                                return false;
+                                if (!reader.Read())
+                                {
+                                    transaction.Rollback();
+                                    return false;
+                                }
+
+                                if (staffSchema.HasIsAvailable && !GetBooleanOrDefault(reader, 0, true))
+                                {
+                                    transaction.Rollback();
+                                    return false;
+                                }
+
+                                if (staffSchema.HasIsActive && !GetBooleanOrDefault(reader, 1, true))
+                                {
+                                    transaction.Rollback();
+                                    return false;
+                                }
+
+                                var candidateStatus = reader.IsDBNull(2) ? string.Empty : reader.GetString(2);
+                                if (staffSchema.HasStatus && IsInactiveStatus(candidateStatus))
+                                {
+                                    transaction.Rollback();
+                                    return false;
+                                }
                             }
                         }
 
                         var existingShifts = new List<(DateTime Start, DateTime End)>();
+                        var overlapShifts = new List<(DateTime Start, DateTime End)>();
                         using (SqlCommand candidateShiftsCommand = connection.CreateCommand())
                         {
                             candidateShiftsCommand.Transaction = transaction;
                             candidateShiftsCommand.CommandText = @"
-                                SELECT start_time, end_time
+                                SELECT start_time, end_time, status
                                 FROM Shifts
                                 WHERE staff_id = @NewStaffId
-                                  AND shift_id <> @ShiftId
-                                  AND UPPER(COALESCE(status, '')) <> 'CANCELLED';";
+                                  AND shift_id <> @ShiftId;";
                             AddParameter(candidateShiftsCommand, "@NewStaffId", newStaffId);
                             AddParameter(candidateShiftsCommand, "@ShiftId", shiftId);
 
@@ -279,34 +333,23 @@ namespace DevCoreHospital.Data
                             {
                                 while (reader.Read())
                                 {
-                                    existingShifts.Add((reader.GetDateTime(0), reader.GetDateTime(1)));
+                                    var existingStart = reader.GetDateTime(0);
+                                    var existingEnd = reader.GetDateTime(1);
+                                    var existingStatus = reader.IsDBNull(2) ? string.Empty : reader.GetString(2);
+
+                                    if (!IsCancelledStatus(existingStatus))
+                                        existingShifts.Add((existingStart, existingEnd));
+
+                                    if (IsBlockingStatusForOverlap(existingStatus))
+                                        overlapShifts.Add((existingStart, existingEnd));
                                 }
                             }
                         }
 
-                        using (SqlCommand overlapCheck = connection.CreateCommand())
+                        if (overlapShifts.Any(s => s.Start < shiftEnd.Value && s.End > shiftStart.Value))
                         {
-                            overlapCheck.Transaction = transaction;
-                            overlapCheck.CommandText = @"
-                                SELECT COUNT(*)
-                                FROM Shifts
-                                WHERE staff_id = @NewStaffId
-                                  AND shift_id <> @ShiftId
-                                  AND UPPER(COALESCE(status, '')) IN ('SCHEDULED', 'ACTIVE')
-                                  AND start_time < @ShiftEnd
-                                  AND end_time > @ShiftStart;";
-
-                            AddParameter(overlapCheck, "@NewStaffId", newStaffId);
-                            AddParameter(overlapCheck, "@ShiftId", shiftId);
-                            AddParameter(overlapCheck, "@ShiftStart", shiftStart.Value);
-                            AddParameter(overlapCheck, "@ShiftEnd", shiftEnd.Value);
-
-                            var overlapCount = Convert.ToInt32(overlapCheck.ExecuteScalar());
-                            if (overlapCount > 0)
-                            {
-                                transaction.Rollback();
-                                return false;
-                            }
+                            transaction.Rollback();
+                            return false;
                         }
 
                         if (!RespectsRestGap(shiftStart.Value, shiftEnd.Value, existingShifts))
@@ -375,6 +418,46 @@ namespace DevCoreHospital.Data
                 AddParameter(command, "@ColumnName", columnName);
                 return Convert.ToInt32(command.ExecuteScalar()) > 0;
             }
+        }
+
+        private static string BuildFullName(string firstName, string lastName)
+        {
+            return $"{firstName} {lastName}".Trim();
+        }
+
+        private static string ResolveSpecialization(string specialization, string certification)
+        {
+            if (!string.IsNullOrWhiteSpace(specialization))
+                return specialization;
+            if (!string.IsNullOrWhiteSpace(certification))
+                return certification;
+
+            return "General";
+        }
+
+        private static bool IsCancelledStatus(string status)
+        {
+            return string.Equals(status.Trim(), "CANCELLED", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsInactiveStatus(string status)
+        {
+            return string.Equals(status.Trim(), "INACTIVE", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsBlockingStatusForOverlap(string status)
+        {
+            if (string.IsNullOrWhiteSpace(status))
+                return true;
+
+            var normalized = status.Trim();
+            return normalized.Equals("SCHEDULED", StringComparison.OrdinalIgnoreCase)
+                   || normalized.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool GetBooleanOrDefault(SqlDataReader reader, int ordinal, bool defaultValue)
+        {
+            return reader.IsDBNull(ordinal) ? defaultValue : reader.GetBoolean(ordinal);
         }
 
         private static bool RespectsRestGap(DateTime proposedStart, DateTime proposedEnd, IReadOnlyList<(DateTime Start, DateTime End)> existingShifts)
