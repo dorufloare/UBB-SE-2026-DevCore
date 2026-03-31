@@ -95,6 +95,7 @@ public class PharmacyScheduleViewModel : ObservableObject
     public RelayCommand PreviousPeriodCommand { get; }
     public RelayCommand ShowDailyCommand { get; }
     public RelayCommand ShowWeeklyCommand { get; }
+    public AsyncRelayCommand CompleteHandoverCommand { get; }
 
     public PharmacyScheduleViewModel(
         ICurrentUserService currentUser,
@@ -106,15 +107,16 @@ public class PharmacyScheduleViewModel : ObservableObject
         _staffRepository = staffRepository;
 
         RefreshCommand = new AsyncRelayCommand(LoadAsync, () => IsPharmacist);
-        TodayCommand = new RelayCommand(() => AnchorDate = DateTime.Today, () => IsPharmacist);
-        NextPeriodCommand = new RelayCommand(
+        TodayCommand = new OldRelayCommand(() => AnchorDate = DateTime.Today, () => IsPharmacist);
+        NextPeriodCommand = new OldRelayCommand(
             () => AnchorDate = IsWeeklyView ? AnchorDate.AddDays(7) : AnchorDate.AddDays(1),
             () => IsPharmacist);
-        PreviousPeriodCommand = new RelayCommand(
+        PreviousPeriodCommand = new OldRelayCommand(
             () => AnchorDate = IsWeeklyView ? AnchorDate.AddDays(-7) : AnchorDate.AddDays(-1),
             () => IsPharmacist);
         ShowDailyCommand = new RelayCommand(() => IsWeeklyView = false, () => IsPharmacist);
         ShowWeeklyCommand = new RelayCommand(() => IsWeeklyView = true, () => IsPharmacist);
+        CompleteHandoverCommand = new AsyncRelayCommand(CompleteHandoverAsync, () => CanCompleteShift);
     }
 
     public async Task InitializeAsync()

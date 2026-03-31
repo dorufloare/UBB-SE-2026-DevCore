@@ -6,6 +6,11 @@ using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI;
+
+// Toolkit namespaces
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+
 using DevCoreHospital.Models;
 using DevCoreHospital.Repositories; // Points to your new Repository
 using DevCoreHospital.Configuration; // For AppSettings
@@ -19,9 +24,19 @@ namespace DevCoreHospital.ViewModels
         private readonly EvaluationsRepository _repository = new();
 
         private List<MedicalEvaluation> _allRecords = new List<MedicalEvaluation>();
-        private const int MaxSymptomsLength = 500;
-        private const int MaxMedsLength = 200;
-        private const int MaxNotesLength = 1000;
+
+        // 1. Using [ObservableProperty] - The toolkit creates the Public version (e.g. Symptoms) automatically.
+        [ObservableProperty] private string _patientId = string.Empty;
+        [ObservableProperty] private string _symptoms = string.Empty;
+        [ObservableProperty] private string _medsList = string.Empty;
+        [ObservableProperty] private string _doctorNotes = string.Empty;
+        [ObservableProperty] private string _validationError = string.Empty;
+        [ObservableProperty] private string _conflictWarning = string.Empty;
+        [ObservableProperty] private bool _isConflictVisible;
+        [ObservableProperty] private bool _isRiskAssumed;
+        [ObservableProperty] private bool _isFatigued;
+        [ObservableProperty] private bool _isLoading;
+        [ObservableProperty] private string _searchText = string.Empty;
 
         public ObservableCollection<MedicalEvaluation> PastEvaluations { get; } = new();
 
@@ -51,119 +66,35 @@ namespace DevCoreHospital.ViewModels
                     {
                         ResetForm();
                     }
-                    RaisePropertyChanged(nameof(IsEditing));
+                    OnPropertyChanged(nameof(IsEditing));
+                    SaveDiagnosisCommand.NotifyCanExecuteChanged();
+                    DeleteEvaluationCommand.NotifyCanExecuteChanged();
                 }
             }
         }
 
+        // 2. Computed Properties
         public bool IsEditing => SelectedEvaluation != null;
-
-        private string _searchText = string.Empty;
-        public string SearchText
-        {
-            get => _searchText;
-            set { if (SetProperty(ref _searchText, value)) ApplyFilter(); }
-        }
-
-        private void ApplyFilter()
-        {
-            PastEvaluations.Clear();
-            var filtered = string.IsNullOrWhiteSpace(SearchText)
-                ? _allRecords
-                : _allRecords.Where(r => r.PatientId.Contains(SearchText, StringComparison.OrdinalIgnoreCase));
-
-            foreach (var record in filtered) { PastEvaluations.Add(record); }
-            RaisePropertyChanged(nameof(IsEmptyStateVisible));
-            RaisePropertyChanged(nameof(EmptyStateVisibility));
-        }
-
-        private string _symptoms = string.Empty;
-        public string Symptoms
-        {
-            get => _symptoms;
-            set { if (SetProperty(ref _symptoms, value)) RefreshButtonState(); }
-        }
-
-        private string _medsList = string.Empty;
-        public string MedsList
-        {
-            get => _medsList;
-            set { if (SetProperty(ref _medsList, value)) { ValidateMedsConflict(value); RefreshButtonState(); } }
-        }
-
-        private string _doctorNotes = string.Empty;
-        public string DoctorNotes
-        {
-            get => _doctorNotes;
-            set { if (SetProperty(ref _doctorNotes, value)) RefreshButtonState(); }
-        }
-
-        private string _validationError = string.Empty;
-        public string ValidationError
-        {
-            get => _validationError;
-            set => SetProperty(ref _validationError, value);
-        }
-
-        private string _conflictWarning = string.Empty;
-        public string ConflictWarning
-        {
-            get => _conflictWarning;
-            set => SetProperty(ref _conflictWarning, value);
-        }
-
-        private bool _isConflictVisible;
-        public bool IsConflictVisible
-        {
-            get => _isConflictVisible;
-            set
-            {
-                if (SetProperty(ref _isConflictVisible, value))
-                {
-                    RaisePropertyChanged(nameof(NotesBackground));
-                    RaisePropertyChanged(nameof(ConflictVisibility));
-                    IsRiskAssumed = false;
-                    RefreshButtonState();
-                }
-            }
-        }
-
+        public bool IsFormEnabled => !IsFatigued;
+        public Visibility LockoutVisibility => IsFatigued ? Visibility.Visible : Visibility.Collapsed;
         public Visibility ConflictVisibility => IsConflictVisible ? Visibility.Visible : Visibility.Collapsed;
-
-        private bool _isRiskAssumed;
-        public bool IsRiskAssumed
-        {
-            get => _isRiskAssumed;
-            set { if (SetProperty(ref _isRiskAssumed, value)) RefreshButtonState(); }
-        }
+        public Visibility EmptyStateVisibility => (!IsLoading && PastEvaluations.Count == 0) ? Visibility.Visible : Visibility.Collapsed;
 
         public Brush NotesBackground => IsConflictVisible
             ? new SolidColorBrush(Windows.UI.Color.FromArgb(100, 255, 255, 0))
-            : new SolidColorBrush(Colors.Transparent);
+            : new SolidColorBrush(Microsoft.UI.Colors.Transparent);
 
-        private bool _isFatigued;
-        public bool IsFatigued
+        // 3. Use standard IRelayCommand from the Toolkit
+        public IRelayCommand SaveDiagnosisCommand { get; }
+        public IRelayCommand DeleteEvaluationCommand { get; }
+
+        public MedicalEvaluationViewModel()
         {
-            get => _isFatigued;
-            set
-            {
-                if (SetProperty(ref _isFatigued, value))
-                {
-                    RaisePropertyChanged(nameof(IsFormEnabled));
-                    RaisePropertyChanged(nameof(LockoutVisibility));
-                    RefreshButtonState();
-                }
-            }
-        }
+            // Use standard RelayCommand (ensure you deleted any local 'RelayCommand.cs' file)
+            SaveDiagnosisCommand = new RelayCommand(SaveDiagnosis, CanSaveDiagnosis);
+            DeleteEvaluationCommand = new RelayCommand(ExecuteDeletion, () => IsEditing);
 
-        public bool IsFormEnabled => !IsFatigued;
-        public Visibility LockoutVisibility => IsFatigued ? Visibility.Visible : Visibility.Collapsed;
-
-        private bool _isLoading;
-        public bool IsLoading
-        {
-            get => _isLoading;
-            set { if (SetProperty(ref _isLoading, value)) { RaisePropertyChanged(nameof(IsEmptyStateVisible)); RaisePropertyChanged(nameof(EmptyStateVisibility)); } }
+            InitializeSession();
         }
 
         public bool IsEmptyStateVisible => !IsLoading && PastEvaluations.Count == 0;
@@ -188,7 +119,7 @@ namespace DevCoreHospital.ViewModels
             CheckDoctorFatigue();
         }
 
-        private void ValidateMedsConflict(string currentMeds)
+        partial void OnSearchTextChanged(string value)
         {
             if (string.IsNullOrWhiteSpace(currentMeds)) { IsConflictVisible = false; return; }
 
@@ -279,7 +210,6 @@ namespace DevCoreHospital.ViewModels
         public async void PopulateHistory()
         {
             IsLoading = true;
-            _allRecords.Clear();
             PastEvaluations.Clear();
             await Task.Delay(800);
 
@@ -288,6 +218,7 @@ namespace DevCoreHospital.ViewModels
 
             ApplyFilter();
             IsLoading = false;
+            OnPropertyChanged(nameof(EmptyStateVisibility));
         }
 
         private void CheckDoctorFatigue()

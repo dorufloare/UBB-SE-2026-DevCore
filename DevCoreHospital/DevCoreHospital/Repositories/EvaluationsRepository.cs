@@ -151,7 +151,23 @@ namespace DevCoreHospital.Repositories
             return results;
         }
 
-        public void DeleteEvaluation(int evaluationId)
+        public string? GetHighRiskMedicineWarning(string medicineName)
+        {
+            string sql = "SELECT WarningMessage FROM HighRiskMedicines WHERE MedicineName = @Name";
+
+            using (SqlConnection conn = new SqlConnection(_connectionString))
+            {
+                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@Name", medicineName.Trim());
+                    conn.Open();
+                    var result = cmd.ExecuteScalar();
+                    return result?.ToString();
+                }
+            }
+        }
+
+        public void deleteEval(int evaluationId)
         {
             string sql = "DELETE FROM Medical_Evaluations WHERE evaluation_id = @Id";
 
