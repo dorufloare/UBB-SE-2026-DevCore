@@ -25,5 +25,11 @@ namespace DevCoreHospital.Models
             this.EndTime = endTime;
             this.Status = status;
         }
+
+
+        public string DisplayDayMonth => StartTime.ToString("dd MMM");
+        public string DisplayDayName => StartTime.ToString("dddd");
+        public string DisplayStartTime => StartTime.ToString("HH:mm");
+        public string DisplayEndTime => EndTime.ToString("HH:mm");
     }
 }

@@ -103,8 +103,15 @@
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
-            <TextBlock Grid.Row="0" Text="Shifts Management (Dashboard)" Foreground="{StaticResource TextBrush}" 
-                       FontSize="24" FontWeight="SemiBold" Margin="0,0,0,20"/>
+            <StackPanel Grid.Row="0" Orientation="Vertical" Spacing="20" Margin="0,0,0,20" VerticalAlignment="Center">
+                <TextBlock Text="Today's Shifts and Calendar" Foreground="{StaticResource TextBrush}" FontSize="24" FontWeight="SemiBold"/>
+
+                <Button Content="View Shifts Calendar" 
+                        Click="OpenSchedule_Click" 
+                        Background="#0277BD" 
+                        Foreground="White" 
+                        Padding="15,5"/>
+            </StackPanel>
 
             <ListView Grid.Row="1" ItemsSource="{x:Bind ViewModel.Shifts, Mode=OneWay}" SelectionMode="None">
                 <ListView.ItemTemplate>

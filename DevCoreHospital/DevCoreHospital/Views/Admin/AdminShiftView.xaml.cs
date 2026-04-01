@@ -75,7 +75,7 @@ namespace DevCoreHospital.Views.Admin
 
             ViewModel.CreateNewShift(selectedStaff, start, end, location);
 
-            //ShowMessage("The shift was scheduled successfuly!", InfoBarSeverity.Success);
+            ShowMessage("The shift was scheduled successfuly!", InfoBarSeverity.Success);
 
             StaffComboBox.SelectedIndex = -1;
             LocationComboBox.SelectedIndex = -1;
@@ -106,6 +106,11 @@ namespace DevCoreHospital.Views.Admin
                 ViewModel.AutoFindReplacement(shiftToReassign);
                 ShowMessage("The automatic searching of a replacement has been triggered.", InfoBarSeverity.Success);
             }
+        }
+
+        private void OpenSchedule_Click(object sender, RoutedEventArgs e)
+        {
+            this.Frame.Navigate(typeof(AdminSchedulePage));
         }
 
         private void ShowMessage(string message, InfoBarSeverity severity)

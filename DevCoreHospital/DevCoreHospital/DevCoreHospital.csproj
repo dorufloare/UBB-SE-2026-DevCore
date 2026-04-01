@@ -12,6 +12,7 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <None Remove="Views\Admin\AdminSchedulePage.xaml" />
     <None Remove="Views\Admin\AdminShiftView.xaml" />
     <None Remove="Views\IncomingSwapRequestsPage.xaml" />
     <None Remove="Views\MySchedulePage.xaml" />
@@ -35,6 +36,12 @@
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.5.240311000" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.1" />
     <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Page Update="Views\Admin\AdminSchedulePage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
 
   <ItemGroup>
