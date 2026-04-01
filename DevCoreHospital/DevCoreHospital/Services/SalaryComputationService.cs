@@ -81,7 +81,7 @@ namespace DevCoreHospital.Services
 
                 double shiftSalary = shiftHours * pharmacistHourlyRate;
 
-                // Weekend logic
+                // Weekend logic (+15% Sat, +25% Sun)
                 if (shift.StartTime.DayOfWeek == System.DayOfWeek.Saturday)
                     shiftSalary *= 1.15;
                 else if (shift.StartTime.DayOfWeek == System.DayOfWeek.Sunday)
@@ -113,6 +113,9 @@ namespace DevCoreHospital.Services
             if (medicineBonusPercent > 0.30) medicineBonusPercent = 0.30;
 
             finalSalary += (initialSalary * medicineBonusPercent);
+
+            // Years of experience bonus (+2% per year)
+            finalSalary += (initialSalary * (pharmacist.YearsOfExperience * 0.02));
 
             // Hangout bonus (+5% if they attended at least one hangout this month)
             try

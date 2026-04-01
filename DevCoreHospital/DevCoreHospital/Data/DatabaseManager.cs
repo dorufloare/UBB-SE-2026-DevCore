@@ -45,18 +45,23 @@ namespace DevCoreHospital.Data
                     string special = reader.IsDBNull(7) ? "" : reader.GetString(7);
                     string statusStr = reader.IsDBNull(8) ? "Available" : reader.GetString(8);
                     string cert = reader.IsDBNull(9) ? "" : reader.GetString(9);
-                    int yearsExp = reader.IsDBNull(10) ? 0 : reader.GetInt32(10); // <-- Fetch Experience
+                    int yearsExp = reader.IsDBNull(10) ? 0 : reader.GetInt32(10); 
 
                     Enum.TryParse<DoctorStatus>(statusStr, true, out DoctorStatus docStatus);
 
                     if (role == "Doctor")
                     {
                         var doc = new Doctor(id, firstName, lastName, contactInfo, isAvailable, special, license, docStatus,yearsExp);
-                        doc.YearsOfExperience = yearsExp; // <-- Assign Experience
+                        doc.YearsOfExperience = yearsExp;
                         staffList.Add(doc);
                     }
                     else if (role == "Pharmacist")
-                        staffList.Add(new Pharmacyst(id, firstName, lastName, contactInfo, isAvailable, cert));
+                    {
+                       
+                        var pharm = new Pharmacyst(id, firstName, lastName, contactInfo, isAvailable, cert,yearsExp);
+                        
+                        staffList.Add(pharm);
+                    }
                 }
             }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Eroare GetStaff: {ex.Message}"); }
