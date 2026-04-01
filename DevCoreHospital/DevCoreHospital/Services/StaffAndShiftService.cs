@@ -68,29 +68,20 @@ namespace DevCoreHospital.Services
 
         // ========================= VIEW MODEL METHODS =========================
 
-        public List<IStaff> GetFilteredStaff(string location, string requiredSpecialization, string requiredCertification)
+        public List<IStaff> GetFilteredStaff(string location, string requiredSpecializationOrCertification)
         {
             var allStaff = _staffRepo.LoadAllStaff();
             var filteredStaff = new List<IStaff>();
 
-            // If specialization is provided, find matching doctors
-            if (!string.IsNullOrEmpty(requiredSpecialization))
+            if (location.Equals("Pharmacy", StringComparison.OrdinalIgnoreCase))
             {
-                filteredStaff.AddRange(allStaff.OfType<Doctor>()
-                    .Where(d => d.Specialization.Contains(requiredSpecialization, StringComparison.OrdinalIgnoreCase)));
+                // If location is Pharmacy, we only care about Pharmacysts
+                filteredStaff.AddRange(allStaff.OfType<Pharmacyst>().Where(p => p.Certification.Contains(requiredSpecializationOrCertification, StringComparison.OrdinalIgnoreCase)));
             }
-
-            // If certification is provided, find matching pharmacists
-            if (!string.IsNullOrEmpty(requiredCertification))
+            else
             {
-                filteredStaff.AddRange(allStaff.OfType<Pharmacyst>()
-                    .Where(p => p.Certification.Contains(requiredCertification, StringComparison.OrdinalIgnoreCase)));
-            }
-
-            // If no specific criteria were provided, return all staff
-            if (string.IsNullOrEmpty(requiredSpecialization) && string.IsNullOrEmpty(requiredCertification))
-            {
-                return allStaff;
+                // For other locations, we care about Doctors
+                filteredStaff.AddRange(allStaff.OfType<Doctor>().Where(d => d.Specialization.Contains(requiredSpecializationOrCertification, StringComparison.OrdinalIgnoreCase)));
             }
 
             return filteredStaff;
@@ -308,5 +299,30 @@ namespace DevCoreHospital.Services
             message = "Swap rejected.";
             return true;
         }
+
+
+        // ======= Specialization and Certification Filtering for Location =======
+        public List<string> GetSpecializationsAndCertificationsForLocation(string location)
+        {
+            List<string> result = new List<string>();
+            var allStaff = _staffRepo.LoadAllStaff();
+
+            if (location.Equals("Pharmacy", StringComparison.OrdinalIgnoreCase))
+            {
+                result.AddRange(allStaff.OfType<Pharmacyst>()
+                    .Where(p => !string.IsNullOrEmpty(p.Certification))
+                    .Select(p => p.Certification));
+            }
+            else
+            {
+                result.AddRange(allStaff.OfType<Doctor>()
+                    .Where(d => !string.IsNullOrEmpty(d.Specialization))
+                    .Select(d => d.Specialization));
+            }
+
+            result = result.Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(s => s).ToList();
+            return result;
+        }
+
     }
 }
