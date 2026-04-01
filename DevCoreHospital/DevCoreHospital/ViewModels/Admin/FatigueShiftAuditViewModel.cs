@@ -50,12 +50,12 @@ namespace DevCoreHospital.ViewModels
 
         public string PublishStatus => CanPublish ? "Publish status: READY" : "Publish status: BLOCKED";
 
-        public OldRelayCommand RunAutoAuditCommand { get; }
+        public RelayCommand RunAutoAuditCommand { get; }
 
         public FatigueShiftAuditViewModel(IFatigueAuditService auditService)
         {
             _auditService = auditService;
-            RunAutoAuditCommand = new OldRelayCommand(RunAutoAudit);
+            RunAutoAuditCommand = new RelayCommand(RunAutoAudit);
 
             RunAutoAudit();
         }

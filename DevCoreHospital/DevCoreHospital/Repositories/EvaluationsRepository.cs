@@ -4,13 +4,15 @@ using System.Linq;
 using System.Data;
 using Microsoft.Data.SqlClient;
 using DevCoreHospital.Models;
-using DevCoreHospital.Configuration;
+using DevCoreHospital.Configuration; 
 
 namespace DevCoreHospital.Repositories
 {
     public class EvaluationsRepository
     {
+       
         private readonly string _connectionString = AppSettings.ConnectionString;
+
         private static List<Shift> _shiftsMockTable = new List<Shift>();
 
         public EvaluationsRepository()
@@ -46,6 +48,7 @@ namespace DevCoreHospital.Repositories
             using (SqlConnection conn = new SqlConnection(_connectionString))
             {
                 conn.Open();
+
                 string[] sqlVariants =
                 {
                     "SELECT warning_message FROM High_Risk_Medicines WHERE medicine_name = @Name",
@@ -59,10 +62,17 @@ namespace DevCoreHospital.Repositories
                         using var cmd = new SqlCommand(sql, conn);
                         cmd.Parameters.AddWithValue("@Name", medicineName.Trim());
                         var result = cmd.ExecuteScalar();
-                        if (result != null && result != DBNull.Value) return result.ToString();
+                        if (result != null && result != DBNull.Value)
+                        {
+                            return result.ToString();
+                        }
                     }
-                    catch (SqlException) { /* Try next variant */ }
+                    catch (SqlException)
+                    {
+                        // Try the next known schema variant.
+                    }
                 }
+
                 return null;
             }
         }
@@ -70,12 +80,14 @@ namespace DevCoreHospital.Repositories
         public void UpdateEvaluationNotes(int evaluationId, string newNotes)
         {
             string sql = "UPDATE Medical_Evaluations SET doctor_notes = @Notes WHERE evaluation_id = @Id";
+
             using (SqlConnection conn = new SqlConnection(_connectionString))
             {
                 using (SqlCommand cmd = new SqlCommand(sql, conn))
                 {
                     cmd.Parameters.AddWithValue("@Notes", newNotes ?? string.Empty);
                     cmd.Parameters.AddWithValue("@Id", evaluationId);
+
                     conn.Open();
                     cmd.ExecuteNonQuery();
                 }
@@ -101,6 +113,7 @@ namespace DevCoreHospital.Repositories
                     cmd.Parameters.AddWithValue("@Notes", BuildDoctorNotes(record));
                     cmd.Parameters.AddWithValue("@Source", "PATIENT");
                     cmd.Parameters.AddWithValue("@Risk", assumedRisk);
+
                     conn.Open();
                     cmd.ExecuteNonQuery();
                 }
@@ -115,7 +128,10 @@ namespace DevCoreHospital.Repositories
                            WHERE doctor_id = @DocId
                            ORDER BY evaluation_id DESC";
 
-            if (!int.TryParse(doctorId, out var parsedDoctorId)) return results;
+            if (!int.TryParse(doctorId, out var parsedDoctorId))
+            {
+                return results;
+            }
 
             using (SqlConnection conn = new SqlConnection(_connectionString))
             {
@@ -125,48 +141,20 @@ namespace DevCoreHospital.Repositories
                     conn.Open();
                     using (SqlDataReader reader = cmd.ExecuteReader())
                     {
-                        while (reader.Read()) results.Add(MapReaderToEvaluation(reader));
+                        while (reader.Read())
+                        {
+                            results.Add(MapReaderToEvaluation(reader));
+                        }
                     }
                 }
             }
             return results;
         }
 
-        public string? GetHighRiskMedicineWarning(string medicineName)
-        {
-            string sql = "SELECT WarningMessage FROM HighRiskMedicines WHERE MedicineName = @Name";
-
-            using (SqlConnection conn = new SqlConnection(_connectionString))
-            {
-                using (SqlCommand cmd = new SqlCommand(sql, conn))
-                {
-                    cmd.Parameters.AddWithValue("@Name", medicineName.Trim());
-                    conn.Open();
-                    var result = cmd.ExecuteScalar();
-                    return result?.ToString();
-                }
-            }
-        }
-
-        public void deleteEval(int evaluationId)
-        {
-            string sql = "SELECT WarningMessage FROM HighRiskMedicines WHERE MedicineName = @Name";
-
-            using (SqlConnection conn = new SqlConnection(_connectionString))
-            {
-                using (SqlCommand cmd = new SqlCommand(sql, conn))
-                {
-                    cmd.Parameters.AddWithValue("@Name", medicineName.Trim());
-                    conn.Open();
-                    var result = cmd.ExecuteScalar();
-                    return result?.ToString();
-                }
-            }
-        }
-
-        public void deleteEval(int evaluationId)
+        public void DeleteEvaluation(int evaluationId)
         {
             string sql = "DELETE FROM Medical_Evaluations WHERE evaluation_id = @Id";
+
             using (SqlConnection conn = new SqlConnection(_connectionString))
             {
                 using (SqlCommand cmd = new SqlCommand(sql, conn))
@@ -180,13 +168,16 @@ namespace DevCoreHospital.Repositories
 
         private MedicalEvaluation MapReaderToEvaluation(SqlDataReader reader)
         {
+            string diagnosis = Convert.ToString(reader["diagnosis"]) ?? string.Empty;
+            string notes = Convert.ToString(reader["doctor_notes"]) ?? string.Empty;
+
             return new MedicalEvaluation
             {
                 EvaluationID = Convert.ToInt32(reader["evaluation_id"]),
                 PatientId = Convert.ToString(reader["patient_id"]) ?? "0",
-                Symptoms = Convert.ToString(reader["diagnosis"]) ?? string.Empty,
+                Symptoms = diagnosis,
                 MedsList = string.Empty,
-                Notes = Convert.ToString(reader["doctor_notes"]) ?? string.Empty,
+                Notes = notes,
                 EvaluationDate = DateTime.Now
             };
         }
@@ -196,8 +187,14 @@ namespace DevCoreHospital.Repositories
             string notes = record.Notes ?? string.Empty;
             if (!string.IsNullOrWhiteSpace(record.MedsList))
             {
-                notes += (string.IsNullOrWhiteSpace(notes) ? "" : Environment.NewLine) + $"Meds: {record.MedsList}";
+                if (!string.IsNullOrWhiteSpace(notes))
+                {
+                    notes += Environment.NewLine;
+                }
+
+                notes += $"Meds: {record.MedsList}";
             }
+
             return notes;
         }
 
@@ -207,10 +204,10 @@ namespace DevCoreHospital.Repositories
         {
             var now = DateTime.Now;
             var dayAgo = now.AddHours(-24);
-            var active = _shiftsMockTable.FirstOrDefault(s => s.AppointedStaff?.StaffID.ToString() == doctorId && s.Status == ShiftStatus.ACTIVE);
+            var active = _shiftsMockTable.FirstOrDefault(s => s.AppointedStaff != null && s.AppointedStaff.StaffID.ToString() == doctorId && s.Status == ShiftStatus.ACTIVE);
             double activeHours = active != null ? (now - active.StartTime).TotalHours : 0;
             double completedHours = _shiftsMockTable
-                .Where(s => s.AppointedStaff?.StaffID.ToString() == doctorId && s.Status == ShiftStatus.COMPLETED && s.EndTime >= dayAgo)
+                .Where(s => s.AppointedStaff != null && s.AppointedStaff.StaffID.ToString() == doctorId && s.Status == ShiftStatus.COMPLETED && s.EndTime >= dayAgo)
                 .Sum(s => (s.EndTime - s.StartTime).TotalHours);
             return activeHours + completedHours;
         }

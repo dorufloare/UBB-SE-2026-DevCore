@@ -26,22 +26,9 @@ values
 ('Doctor', 'Cardiology', 'Sarah', 'Jenkins', 'sarah.jenkins@local', 1, 'Cardiologist', 'Available', 'Cardio-002', 5),
 ('Doctor', 'Cardiology', 'David', 'Bradley', 'david.bradley@local', 1, 'Cardiologist', 'Available', 'Cardio-003', 12),
 ('Doctor', 'Emergency', 'Emma', 'Thompson', 'emma.thompson@local', 1, 'Surgeon', 'Available', 'Surg-001', 9),
-('Doctor', 'Emergency', 'James', 'Wilson', 'james.wilson@local', 0, 'Surgeon', 'In_Examination', 'Surg-002', 11),
-('Doctor', 'Neurology', 'Ben', 'Carson', 'ben.carson@local', 1, 'Neurologist', 'Available', 'Neuro-001', 8),
-('Doctor', 'Pediatry', 'Philip', 'Maher', 'philip.maher@local', 1, 'Pediatrist', 'Available', 'Pedi-001', 20),
-('Doctor', 'Oncology', 'Matthew', 'Kirk', 'matthew.kirk@local', 1, 'Oncologist', 'Available', 'Onco-001', 12);
+('Doctor', 'Emergency', 'James', 'Wilson', 'james.wilson@local', 0, 'Surgeon', 'In_Examination', 'Surg-002', 11);
 
-insert into Staff ([role], department, first_name, last_name, is_available, status, contact_info, certification, years_of_experience)
-values
-('Pharmacist', 'Pharmacy', 'Sarah', 'Cucumber', 1, 'Available', 'sarah.cucumber@local', 'BCACP', 13),
-('Pharmacist', 'Pharmacy', 'Mary', 'Sunny', 1, 'Available', 'mary.sunny@local', 'BPS', 14),
-('Pharmacist', 'Pharmacy', 'Peter', 'Washer', 1, 'Available', 'peter.washer@local', 'BCACP', 3),
-('Pharmacist', 'Pharmacy', 'Charles', 'Brown', 1, 'Available', 'charles.brown@local', 'BCCP', 20),
-('Pharmacist', 'Pharmacy', 'Andrew', 'Wesley', 1, 'Available', 'andrew.wesley', 'BCCP', 7);
-
-select* from Staff
-
--- Cautam ID-urile folosind noile nume normale pentru a le lega de ture
+-- Căutăm ID-urile folosind noile nume normale pentru a le lega de ture
 declare @Req3OverloadId int = (select top 1 staff_id from dbo.Staff where first_name = 'Michael' and last_name = 'Scott' order by staff_id desc);
 declare @Req3LowId int = (select top 1 staff_id from dbo.Staff where first_name = 'Sarah' and last_name = 'Jenkins' order by staff_id desc);
 declare @Req3HighId int = (select top 1 staff_id from dbo.Staff where first_name = 'David' and last_name = 'Bradley' order by staff_id desc);
@@ -62,23 +49,6 @@ values
 (@Req3HighId, 'Ward B', '2026-03-26 08:00:00', '2026-03-26 16:00:00', 'Completed', 0),
 (@Req4AvailableId, 'Ward A', '2026-03-30 06:00:00', '2026-03-30 18:00:00', 'Active', 1),
 (@Req4BusyId, 'Ward A', '2026-03-30 07:00:00', '2026-03-30 15:00:00', 'Active', 1);
-
-insert into dbo.Shifts (staff_id, [location], start_time, end_time, [status], is_active)
-values
-(6, 'Cardiology', '2026-04-29 08:00:00', '2026-04-29 20:00:00', 'Scheduled', 0),
-(6, 'Cardiology', '2026-04-30 06:00:00', '2026-04-30 18:00:00', 'Scheduled', 0),
-(8, 'Emergency', '2026-05-01 08:00:00', '2026-05-01 20:00:00', 'Scheduled', 0),
-(7, 'Emergency', '2026-05-02 08:00:00', '2026-05-02 20:00:00', 'Scheduled', 0),
-(11, 'Oncology', '2026-05-03 08:00:00', '2026-05-03 20:00:00', 'Scheduled', 0),
-(9, 'Neurology', '2026-05-04 08:00:00', '2026-05-04 14:00:00', 'Scheduled', 0),
-(12, 'Pharmacy', '2026-04-30 08:00:00', '2026-04-30 20:00:00', 'Scheduled', 0),
-(12, 'Pharmacy', '2026-04-30 06:00:00', '2026-04-30 18:00:00', 'Scheduled', 0),
-(13, 'Pharmacy', '2026-05-01 08:00:00', '2026-05-01 20:00:00', 'Scheduled', 0),
-(16, 'Pharmacy', '2026-05-02 08:00:00', '2026-05-02 20:00:00', 'Scheduled', 0),
-(14, 'Pharmacy', '2026-05-03 08:00:00', '2026-05-03 20:00:00', 'Scheduled', 0),
-(15, 'Pharmacy', '2026-05-04 08:00:00', '2026-05-04 14:00:00', 'Scheduled', 0);
-
-
 
 insert into dbo.ER_Requests (specialization, [location], created_at, [status], assigned_doctor_id, assigned_doctor_name)
 values

@@ -34,7 +34,7 @@ namespace DevCoreHospital.ViewModels.Doctor
         private string _successMessage = string.Empty;
         public string SuccessMessage { get => _successMessage; set => SetProperty(ref _successMessage, value); }
 
-        public OldRelayCommand CreateCommand { get; }
+        public RelayCommand CreateCommand { get; }
 
         // Shared static repo instance across page navigations to persist memory
         private static HangoutRepository _globalRepo = new HangoutRepository();
@@ -44,7 +44,7 @@ namespace DevCoreHospital.ViewModels.Doctor
             _hangoutService = new HangoutService(_globalRepo);
             _currentUserService = new CurrentUserService();
 
-            CreateCommand = new OldRelayCommand(CreateHangout, CanCreateHangout);
+            CreateCommand = new RelayCommand(CreateHangout, CanCreateHangout);
             LoadHangouts();
         }
 
