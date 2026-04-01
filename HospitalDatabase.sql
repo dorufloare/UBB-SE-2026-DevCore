@@ -10,6 +10,7 @@ GO
 -- Create a fresh, empty database
 CREATE DATABASE HospitalDatabase;
 GO
+
 USE HospitalDatabase;
 GO
 
@@ -100,38 +101,74 @@ CREATE TABLE High_Risk_Medicines (
 GO
 
 -- 3. INSERT TEST DATA
+
+-- Insert High Risk Medicines
 INSERT INTO High_Risk_Medicines (medicine_name, warning_message)
 VALUES 
 ('Warfarin', 'Blood thinner conflict: High risk of internal bleeding.'),
 ('Insulin', 'Glucose conflict: Requires immediate sugar level monitoring.'),
 ('Penicillin', 'Allergy Warning: History of anaphylaxis in this department.');
 
+-- Insert Doctors (IDs 1 to 5)
 INSERT INTO Staff ([role], department, first_name, last_name, is_available, specialization, status, contact_info, license_number, years_of_experience)
 VALUES 
 ('Doctor', 'Cardiology', 'John', 'Smith', 1, 'Cardiologist', 'Available', 'info1', 'A1234', 20),
-('Doctor', 'Emergency', 'Alice', 'Jones', 1, 'Surgeon', 'Available', 'info2', 'B4321', 15);
+('Doctor', 'Emergency', 'Alice', 'Jones', 1, 'Surgeon', 'Available', 'info2', 'B4321', 15),
+('Doctor', 'Diagnostic Medicine', 'Gregory', 'House', 1, 'Diagnostician', 'Available', 'info4', 'C9876', 25),
+('Doctor', 'Oncology', 'James', 'Wilson', 1, 'Oncologist', 'Available', 'info5', 'D5555', 20),
+('Doctor', 'Endocrinology', 'Lisa', 'Cuddy', 0, 'Endocrinologist', 'Off_Duty', 'info6', 'E7777', 18);
 
+-- Insert Pharmacists (IDs 6 to 8)
 INSERT INTO Staff ([role], department, first_name, last_name, is_available, status, contact_info, certification, years_of_experience)
 VALUES 
-('Pharmacist', 'Pharmacy', 'Robert', 'White', 0, 'Off_Duty', 'info3', 'BPS', 13);
+('Pharmacist', 'Pharmacy', 'Robert', 'White', 0, 'Off_Duty', 'info3', 'BPS', 13),
+('Pharmacist', 'Pharmacy', 'Jane', 'Doe', 1, 'Available', 'info7', 'PharmD', 8),
+('Pharmacist', 'Pharmacy', 'Mark', 'Spencer', 1, 'Available', 'info8', 'BCPS', 5);
 
+-- Insert Appointments
 INSERT INTO Appointments (patient_id, doctor_id, start_time, [status])
 VALUES (7759376, 1, GETDATE(), 'Confirmed');
-
 INSERT INTO Appointments (patient_id, doctor_id, start_time, end_time, status)
 VALUES (500, 1, '2026-04-05 10:30:00', '2026-04-05 11:30:00', 'Confirmed');
+INSERT INTO Appointments (patient_id, doctor_id, start_time, end_time, status)
+VALUES (501, 3, '2026-04-06 09:00:00', '2026-04-06 10:00:00', 'Scheduled');
 
+-- Insert Shifts (Mix of completed and scheduled for both Doctors and Pharmacists)
 INSERT INTO Shifts (staff_id, location, start_time, end_time, status, is_active)
-VALUES (2, 'Ward A', '2026-04-01 08:00:00', '2026-04-01 16:00:00', 'Scheduled', 1);
+VALUES 
+-- Doctor Shifts
+(1, 'Cardiology Wing', '2026-04-01 08:00:00', '2026-04-01 16:00:00', 'Completed', 1),
+(2, 'Ward A', '2026-04-01 08:00:00', '2026-04-01 16:00:00', 'Completed', 1),
+(2, 'ER', '2026-04-02 14:00:00', '2026-04-02 22:00:00', 'Scheduled', 1),
+(3, 'Clinic', '2026-04-02 09:00:00', '2026-04-02 17:00:00', 'Scheduled', 1),
+(3, 'ICU', '2026-04-03 08:00:00', '2026-04-03 20:00:00', 'Scheduled', 1),
+(4, 'Oncology Wing', '2026-04-01 09:00:00', '2026-04-01 17:00:00', 'Completed', 1),
 
+-- Pharmacist Shifts
+(6, 'Main Pharmacy', '2026-04-01 08:00:00', '2026-04-01 16:00:00', 'Completed', 1),
+(7, 'ER Pharmacy', '2026-04-02 16:00:00', '2026-04-03 00:00:00', 'Scheduled', 1),
+(7, 'Main Pharmacy', '2026-04-03 08:00:00', '2026-04-03 16:00:00', 'Scheduled', 1),
+(8, 'Main Pharmacy', '2026-04-01 16:00:00', '2026-04-02 00:00:00', 'Completed', 1);
+
+-- Insert Medical Evaluations
 INSERT INTO Medical_Evaluations (doctor_id, patient_id, diagnosis, doctor_notes, source, assumed_risk)
-VALUES (1, 500, 'Mild Hypertension', 'Patient advised to reduce salt intake.', 'Physical Exam', 0);
+VALUES 
+(1, 500, 'Mild Hypertension', 'Patient advised to reduce salt intake.', 'Physical Exam', 0),
+(3, 501, 'Lupus Suspected', 'Ordering ANA panel and keeping patient under observation.', 'Lab Results', 1);
 
+-- Insert Hangouts
 INSERT INTO Hangouts (title, description, date_time, max_staff)
-VALUES ('Friday Pizza', 'Weekly team bonding in the breakroom', '2026-04-03 17:00:00', 10);
+VALUES 
+('Friday Pizza', 'Weekly team bonding in the breakroom', '2026-04-03 17:00:00', 10),
+('Coffee Break', 'Quick catchup before morning rounds', '2026-04-02 07:30:00', 5);
 
+-- Insert Hangout Participants
 INSERT INTO Hangout_Participants (hangout_id, staff_id)
-VALUES (1, 1), (1, 2);
+VALUES 
+(1, 1), (1, 2), (1, 6), (1, 7), 
+(2, 3), (2, 4);
 
+-- Output validation
 SELECT * FROM Staff;
 SELECT * FROM Shifts;
+GO
