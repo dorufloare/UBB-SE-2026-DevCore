@@ -126,6 +126,7 @@ VALUES
 ('Pharmacist', 'Pharmacy', 'Mark', 'Spencer', 1, 'Available', 'info8', 'BCPS', 5);
 
 -- Insert Appointments
+-- Recent/Current appointments
 INSERT INTO Appointments (patient_id, doctor_id, start_time, [status])
 VALUES (7759376, 1, GETDATE(), 'Confirmed');
 INSERT INTO Appointments (patient_id, doctor_id, start_time, end_time, status)
@@ -133,16 +134,27 @@ VALUES (500, 1, '2026-04-05 10:30:00', '2026-04-05 11:30:00', 'Confirmed');
 INSERT INTO Appointments (patient_id, doctor_id, start_time, end_time, status)
 VALUES (501, 3, '2026-04-06 09:00:00', '2026-04-06 10:00:00', 'Scheduled');
 
+-- FUTURE Appointments (For Hangout testing > 1 week away)
+INSERT INTO Appointments (patient_id, doctor_id, start_time, end_time, status)
+VALUES (502, 1, '2026-04-10 14:00:00', '2026-04-10 15:00:00', 'Scheduled'); -- Doc 1 is busy on April 10
+INSERT INTO Appointments (patient_id, doctor_id, start_time, end_time, status)
+VALUES (503, 2, '2026-04-15 10:00:00', '2026-04-15 11:00:00', 'Scheduled'); -- Doc 2 is busy on April 15
+
 -- Insert Shifts (Mix of completed and scheduled for both Doctors and Pharmacists)
 INSERT INTO Shifts (staff_id, location, start_time, end_time, status, is_active)
 VALUES 
--- Doctor Shifts
+-- Doctor Shifts (Current/Recent)
 (1, 'Cardiology Wing', '2026-04-01 08:00:00', '2026-04-01 16:00:00', 'Completed', 1),
 (2, 'Ward A', '2026-04-01 08:00:00', '2026-04-01 16:00:00', 'Completed', 1),
 (2, 'ER', '2026-04-02 14:00:00', '2026-04-02 22:00:00', 'Scheduled', 1),
 (3, 'Clinic', '2026-04-02 09:00:00', '2026-04-02 17:00:00', 'Scheduled', 1),
 (3, 'ICU', '2026-04-03 08:00:00', '2026-04-03 20:00:00', 'Scheduled', 1),
 (4, 'Oncology Wing', '2026-04-01 09:00:00', '2026-04-01 17:00:00', 'Completed', 1),
+
+-- FUTURE Doctor Shifts (For Hangout testing > 1 week away)
+(1, 'Cardiology Wing', '2026-04-10 08:00:00', '2026-04-10 16:00:00', 'Scheduled', 1), -- Doc 1 shift on April 10
+(2, 'ER', '2026-04-15 08:00:00', '2026-04-15 16:00:00', 'Scheduled', 1), -- Doc 2 shift on April 15
+(3, 'Clinic', '2026-04-10 09:00:00', '2026-04-10 17:00:00', 'Scheduled', 1),
 
 -- Pharmacist Shifts
 (6, 'Main Pharmacy', '2026-04-01 08:00:00', '2026-04-01 16:00:00', 'Completed', 1),
@@ -156,11 +168,13 @@ VALUES
 (1, 500, 'Mild Hypertension', 'Patient advised to reduce salt intake.', 'Physical Exam', 0),
 (3, 501, 'Lupus Suspected', 'Ordering ANA panel and keeping patient under observation.', 'Lab Results', 1);
 
--- Insert Hangouts
+-- Insert Hangouts (Including future hangouts for testing)
 INSERT INTO Hangouts (title, description, date_time, max_staff)
 VALUES 
 ('Friday Pizza', 'Weekly team bonding in the breakroom', '2026-04-03 17:00:00', 10),
-('Coffee Break', 'Quick catchup before morning rounds', '2026-04-02 07:30:00', 5);
+('Coffee Break', 'Quick catchup before morning rounds', '2026-04-02 07:30:00', 5),
+('Future Movie Night', 'Watching a medical drama', '2026-04-10 19:00:00', 10), -- Test Hangout 1
+('Mid-April Lunch', 'Lunch outing', '2026-04-15 12:30:00', 8); -- Test Hangout 2
 
 -- Insert Hangout Participants
 INSERT INTO Hangout_Participants (hangout_id, staff_id)
