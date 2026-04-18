@@ -1,29 +1,29 @@
-﻿using DevCoreHospital.Configuration;
+using System.Collections.Generic;
+using System;
+using DevCoreHospital.Configuration;
 using DevCoreHospital.Models;
 using Microsoft.Data.SqlClient;
-using System;
-using System.Collections.Generic;
 
 namespace DevCoreHospital.Data
 {
     public sealed class SqlERDispatchDataSource : IERDispatchDataSource
     {
-        private readonly string _connectionString;
-        private readonly ShiftSchemaCapabilities _shiftSchema;
+        private readonly string connectionString;
+        private readonly ShiftSchemaCapabilities shiftSchema;
 
         public SqlERDispatchDataSource(string? connectionString = null)
         {
-            _connectionString = string.IsNullOrWhiteSpace(connectionString)
+            this.connectionString = string.IsNullOrWhiteSpace(connectionString)
                 ? AppSettings.ConnectionString
                 : connectionString;
-            _shiftSchema = DetectShiftSchemaCapabilities();
+            shiftSchema = DetectShiftSchemaCapabilities();
         }
 
         public IReadOnlyList<DoctorRosterEntry> GetRosterEntries()
         {
             var entries = new List<DoctorRosterEntry>();
 
-            using (SqlConnection connection = new SqlConnection(_connectionString))
+            using (SqlConnection connection = new SqlConnection(connectionString))
             {
                 connection.Open();
                 using (SqlCommand command = connection.CreateCommand())
@@ -45,7 +45,9 @@ namespace DevCoreHospital.Data
                     using (SqlDataReader reader = command.ExecuteReader())
                     {
                         while (reader.Read())
+                        {
                             entries.Add(ReadDoctorRosterEntry(reader));
+                        }
                     }
                 }
             }
@@ -57,7 +59,7 @@ namespace DevCoreHospital.Data
         {
             var entries = new List<DoctorRosterEntry>();
 
-            using (SqlConnection connection = new SqlConnection(_connectionString))
+            using (SqlConnection connection = new SqlConnection(connectionString))
             {
                 connection.Open();
                 using (SqlCommand command = connection.CreateCommand())
@@ -81,7 +83,9 @@ namespace DevCoreHospital.Data
                     using (SqlDataReader reader = command.ExecuteReader())
                     {
                         while (reader.Read())
+                        {
                             entries.Add(ReadDoctorRosterEntry(reader));
+                        }
                     }
                 }
             }
@@ -93,7 +97,7 @@ namespace DevCoreHospital.Data
         {
             var requests = new List<ERRequest>();
 
-            using (SqlConnection connection = new SqlConnection(_connectionString))
+            using (SqlConnection connection = new SqlConnection(connectionString))
             {
                 connection.Open();
                 using (SqlCommand command = connection.CreateCommand())
@@ -127,7 +131,7 @@ namespace DevCoreHospital.Data
 
         public int CreateRequest(string specialization, string location, string status)
         {
-            using (SqlConnection connection = new SqlConnection(_connectionString))
+            using (SqlConnection connection = new SqlConnection(connectionString))
             {
                 connection.Open();
                 using (SqlCommand command = connection.CreateCommand())
@@ -141,14 +145,15 @@ namespace DevCoreHospital.Data
                     AddParameter(command, "@Location", location);
                     AddParameter(command, "@Status", status);
 
-                    return (int)command.ExecuteScalar()!;
+                    var insertedId = command.ExecuteScalar();
+                    return Convert.ToInt32(insertedId);
                 }
             }
         }
 
         public ERRequest? GetRequestById(int requestId)
         {
-            using (SqlConnection connection = new SqlConnection(_connectionString))
+            using (SqlConnection connection = new SqlConnection(connectionString))
             {
                 connection.Open();
                 using (SqlCommand command = connection.CreateCommand())
@@ -162,7 +167,9 @@ namespace DevCoreHospital.Data
                     using (SqlDataReader reader = command.ExecuteReader())
                     {
                         if (!reader.Read())
+                        {
                             return null;
+                        }
 
                         return new ERRequest
                         {
@@ -181,7 +188,7 @@ namespace DevCoreHospital.Data
 
         public void UpdateRequestStatus(int requestId, string status, int? assignedDoctorId, string? assignedDoctorName)
         {
-            using (SqlConnection connection = new SqlConnection(_connectionString))
+            using (SqlConnection connection = new SqlConnection(connectionString))
             {
                 connection.Open();
                 using (SqlCommand command = connection.CreateCommand())
@@ -204,7 +211,7 @@ namespace DevCoreHospital.Data
 
         public void UpdateDoctorStatus(int doctorId, DoctorStatus status)
         {
-            using (SqlConnection connection = new SqlConnection(_connectionString))
+            using (SqlConnection connection = new SqlConnection(connectionString))
             {
                 connection.Open();
                 using (SqlCommand command = connection.CreateCommand())
@@ -239,14 +246,14 @@ namespace DevCoreHospital.Data
 
         private string BuildShiftIsActiveProjection(string shiftAlias)
         {
-            return _shiftSchema.HasIsActive
+            return shiftSchema.HasIsActive
                 ? $"{shiftAlias}.is_active AS shift_is_active,"
                 : "CAST(NULL AS bit) AS shift_is_active,";
         }
 
         private string BuildShiftStatusProjection(string shiftAlias)
         {
-            return _shiftSchema.HasStatus
+            return shiftSchema.HasStatus
                 ? $"COALESCE({shiftAlias}.status, '') AS shift_status,"
                 : "CAST('' AS VARCHAR(50)) AS shift_status,";
         }
@@ -261,7 +268,7 @@ namespace DevCoreHospital.Data
 
         private ShiftSchemaCapabilities DetectShiftSchemaCapabilities()
         {
-            using (SqlConnection connection = new SqlConnection(_connectionString))
+            using (SqlConnection connection = new SqlConnection(connectionString))
             {
                 connection.Open();
                 return new ShiftSchemaCapabilities(
@@ -279,14 +286,11 @@ namespace DevCoreHospital.Data
                     FROM INFORMATION_SCHEMA.COLUMNS
                     WHERE TABLE_NAME = @TableName
                       AND COLUMN_NAME = @ColumnName;";
-
                 AddParameter(command, "@TableName", tableName);
                 AddParameter(command, "@ColumnName", columnName);
                 return Convert.ToInt32(command.ExecuteScalar()) > 0;
             }
         }
-
-
 
         private sealed class ShiftSchemaCapabilities
         {

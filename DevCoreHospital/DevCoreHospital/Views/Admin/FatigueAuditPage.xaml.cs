@@ -1,17 +1,17 @@
+using System;
 using DevCoreHospital.Configuration;
 using DevCoreHospital.Data;
 using DevCoreHospital.Repositories;
 using DevCoreHospital.Services;
 using DevCoreHospital.ViewModels;
-using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using System;
+using Microsoft.UI.Xaml;
 
 namespace DevCoreHospital.Views.Admin
 {
     public sealed partial class FatigueAuditPage : Page
     {
-        private readonly FatigueShiftAuditViewModel _viewModel;
+        private readonly FatigueShiftAuditViewModel viewModel;
 
         public FatigueAuditPage()
         {
@@ -21,8 +21,8 @@ namespace DevCoreHospital.Views.Admin
             IFatigueAuditRepository auditRepository = new FatigueAuditRepository(sqlDataSource);
             IFatigueAuditService auditService = new FatigueAuditService(auditRepository);
 
-            _viewModel = new FatigueShiftAuditViewModel(auditService);
-            DataContext = _viewModel;
+            viewModel = new FatigueShiftAuditViewModel(auditService);
+            DataContext = viewModel;
 
             WeekStartPicker.Date = new DateTimeOffset(DateTime.Today);
         }
@@ -31,7 +31,7 @@ namespace DevCoreHospital.Views.Admin
         {
             if (sender.Date.HasValue)
             {
-                _viewModel.SelectedWeekStart = sender.Date.Value;
+                viewModel.SelectedWeekStart = sender.Date.Value;
             }
         }
 
@@ -39,30 +39,30 @@ namespace DevCoreHospital.Views.Admin
         {
             try
             {
-                _viewModel.RunAutoAudit();
+                viewModel.RunAutoAudit();
             }
             catch (Exception ex)
             {
-                _viewModel.StatusMessage = $"Error during audit: {ex.Message}";
+                viewModel.StatusMessage = $"Error during audit: {ex.Message}";
             }
         }
 
         private void Refresh_Click(object sender, RoutedEventArgs e)
         {
-            _viewModel.Violations.Clear();
-            _viewModel.Suggestions.Clear();
+            viewModel.Violations.Clear();
+            viewModel.Suggestions.Clear();
         }
 
         private async void ApplyReassignment_Click(object sender, RoutedEventArgs e)
         {
             if (sender is Button button && button.Tag is int shiftId)
             {
-                var result = _viewModel.ApplyReassignment(shiftId);
+                var result = viewModel.ApplyReassignment(shiftId);
 
                 var dialog = new ContentDialog
                 {
-                    Title = result.Title,
-                    Content = result.Message,
+                    Title = result.title,
+                    Content = result.message,
                     CloseButtonText = "OK",
                     XamlRoot = Content.XamlRoot
                 };
@@ -72,12 +72,12 @@ namespace DevCoreHospital.Views.Admin
 
         private void PublishRoster_Click(object sender, RoutedEventArgs e)
         {
-            if (_viewModel.CanPublish)
+            if (viewModel.CanPublish)
             {
                 var dialog = new ContentDialog
                 {
                     Title = "Roster Published",
-                    Content = $"The roster for the {_viewModel.WeekLabel} has been published successfully.",
+                    Content = $"The roster for the {viewModel.WeekLabel} has been published successfully.",
                     CloseButtonText = "OK",
                     XamlRoot = Content.XamlRoot
                 };

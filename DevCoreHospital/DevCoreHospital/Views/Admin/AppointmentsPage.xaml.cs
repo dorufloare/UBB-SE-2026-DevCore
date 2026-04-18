@@ -1,13 +1,13 @@
-﻿using DevCoreHospital.Configuration;
+using System;
+using DevCoreHospital.Configuration;
 using DevCoreHospital.Data;
 using DevCoreHospital.Models;
 using DevCoreHospital.Repositories;
 using DevCoreHospital.Services;
 using DevCoreHospital.ViewModels;
 using DevCoreHospital.Views.Doctor;
-using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using System;
+using Microsoft.UI.Xaml;
 
 namespace DevCoreHospital.Views
 {
@@ -103,7 +103,9 @@ namespace DevCoreHospital.Views
                     ShowMessage("Appointment successfully canceled.", InfoBarSeverity.Informational);
 
                     if (FilterDoctorComboBox.SelectedValue is int doctorId)
+                    {
                         await ViewModel.LoadAppointmentsForDoctorAsync(doctorId);
+                    }
                 }
                 catch (InvalidOperationException ex)
                 {

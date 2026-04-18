@@ -1,22 +1,22 @@
-﻿using System;
 using System.Windows.Input;
+using System;
 
 namespace DevCoreHospital.ViewModels
 {
     public class RelayCommand : ICommand
     {
-        private readonly Action _execute;
-        private readonly Func<bool>? _canExecute; 
+        private readonly Action execute;
+        private readonly Func<bool>? canExecute;
 
         public RelayCommand(Action execute, Func<bool>? canExecute = null)
         {
-            _execute = execute;
-            _canExecute = canExecute;
+            this.execute = execute;
+            this.canExecute = canExecute;
         }
 
-        public bool CanExecute(object? parameter) => _canExecute == null || _canExecute();
+        public bool CanExecute(object? parameter) => canExecute == null || canExecute();
 
-        public void Execute(object? parameter) => _execute();
+        public void Execute(object? parameter) => execute();
 
         public event EventHandler? CanExecuteChanged;
 

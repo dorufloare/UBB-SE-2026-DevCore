@@ -1,11 +1,11 @@
-﻿using DevCoreHospital.Configuration;
+using System.Linq;
+using DevCoreHospital.Configuration;
 using DevCoreHospital.Data;
 using DevCoreHospital.Repositories;
 using DevCoreHospital.Services;
 using DevCoreHospital.ViewModels.Doctor;
-using Microsoft.UI.Xaml.Controls;
-using System.Linq;
 using DoctorModel = DevCoreHospital.Models.Doctor;
+using Microsoft.UI.Xaml.Controls;
 
 namespace DevCoreHospital.Views
 {

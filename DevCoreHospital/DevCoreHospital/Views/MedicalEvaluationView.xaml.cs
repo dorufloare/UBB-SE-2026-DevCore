@@ -1,7 +1,7 @@
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
-using DevCoreHospital.ViewModels;
 using System;
+using DevCoreHospital.ViewModels;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml;
 
 namespace DevCoreHospital.Views
 {
@@ -18,7 +18,6 @@ namespace DevCoreHospital.Views
 
         private async void DeleteButton_Click(object sender, RoutedEventArgs e)
         {
-
             ContentDialog deleteDialog = new ContentDialog
             {
                 Title = "Confirm Deletion",
@@ -26,7 +25,7 @@ namespace DevCoreHospital.Views
                 PrimaryButtonText = "Delete",
                 CloseButtonText = "Cancel",
                 DefaultButton = ContentDialogButton.Close,
-               
+
                 XamlRoot = this.Content.XamlRoot
             };
 

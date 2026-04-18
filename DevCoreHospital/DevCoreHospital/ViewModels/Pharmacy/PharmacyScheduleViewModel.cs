@@ -11,38 +11,40 @@ namespace DevCoreHospital.ViewModels.Pharmacy;
 
 public class PharmacyScheduleViewModel : ObservableObject
 {
-    private readonly ICurrentUserService _currentUser;
-    private readonly IPharmacyScheduleService _scheduleService;
-    private readonly StaffRepository _staffRepository;
-    private bool _isInitializing;
+    private readonly ICurrentUserService currentUser;
+    private readonly IPharmacyScheduleService scheduleService;
+    private readonly StaffRepository staffRepository;
+    private bool isInitializing;
 
-    public ObservableCollection<PharmacyShiftItemViewModel> Shifts { get; } = new();
-    public ObservableCollection<PharmacistOption> Pharmacists { get; } = new();
+    public ObservableCollection<PharmacyShiftItemViewModel> Shifts { get; } = new ObservableCollection<PharmacyShiftItemViewModel>();
+    public ObservableCollection<PharmacistOption> Pharmacists { get; } = new ObservableCollection<PharmacistOption>();
 
-    private PharmacistOption? _selectedPharmacist;
+    private PharmacistOption? selectedPharmacist;
     public PharmacistOption? SelectedPharmacist
     {
-        get => _selectedPharmacist;
+        get => selectedPharmacist;
         set
         {
-            if (SetProperty(ref _selectedPharmacist, value) && !_isInitializing)
+            if (SetProperty(ref selectedPharmacist, value) && !isInitializing)
+            {
                 _ = LoadAsync();
+            }
         }
     }
 
-    private bool _isLoading;
-    public bool IsLoading { get => _isLoading; set => SetProperty(ref _isLoading, value); }
+    private bool isLoading;
+    public bool IsLoading { get => isLoading; set => SetProperty(ref isLoading, value); }
 
-    private string _errorMessage = string.Empty;
-    public string ErrorMessage { get => _errorMessage; set => SetProperty(ref _errorMessage, value); }
+    private string errorMessage = string.Empty;
+    public string ErrorMessage { get => errorMessage; set => SetProperty(ref errorMessage, value); }
 
-    private DateTime _anchorDate = DateTime.Today;
+    private DateTime anchorDate = DateTime.Today;
     public DateTime AnchorDate
     {
-        get => _anchorDate;
+        get => anchorDate;
         set
         {
-            if (SetProperty(ref _anchorDate, value))
+            if (SetProperty(ref anchorDate, value))
             {
                 RaisePropertyChanged(nameof(HeaderSubtitle));
                 RaisePropertyChanged(nameof(SelectedDateText));
@@ -51,13 +53,13 @@ public class PharmacyScheduleViewModel : ObservableObject
         }
     }
 
-    private bool _isWeeklyView = true;
+    private bool isWeeklyView = true;
     public bool IsWeeklyView
     {
-        get => _isWeeklyView;
+        get => isWeeklyView;
         set
         {
-            if (SetProperty(ref _isWeeklyView, value))
+            if (SetProperty(ref isWeeklyView, value))
             {
                 RaisePropertyChanged(nameof(IsDailyView));
                 RaisePropertyChanged(nameof(HeaderSubtitle));
@@ -69,7 +71,7 @@ public class PharmacyScheduleViewModel : ObservableObject
 
     public bool IsDailyView
     {
-        get => !_isWeeklyView;
+        get => !isWeeklyView;
         set => IsWeeklyView = !value;
     }
 
@@ -78,14 +80,13 @@ public class PharmacyScheduleViewModel : ObservableObject
             ? $"Week of {StartOfWeek(AnchorDate):dd MMM yyyy} – {(StartOfWeek(AnchorDate).AddDays(6)):dd MMM yyyy}"
             : AnchorDate.ToString("dddd, dd MMM yyyy");
 
-    /// <summary>Toolbar date label (daily vs weekly), same idea as doctor schedule SelectedDateText.</summary>
     public string SelectedDateText =>
         IsWeeklyView
             ? $"Week of {StartOfWeek(AnchorDate):dd MMM yyyy}"
             : AnchorDate.ToString("dddd, dd MMM yyyy");
 
-    public bool IsPharmacist => string.Equals(_currentUser.Role, "Pharmacist", StringComparison.OrdinalIgnoreCase) ||
-                                string.Equals(_currentUser.Role, "Admin", StringComparison.OrdinalIgnoreCase);
+    public bool IsPharmacist => string.Equals(currentUser.Role, "Pharmacist", StringComparison.OrdinalIgnoreCase) ||
+                                string.Equals(currentUser.Role, "Admin", StringComparison.OrdinalIgnoreCase);
     public bool IsAccessDenied => !IsPharmacist;
     public bool IsEmpty => !IsLoading && string.IsNullOrWhiteSpace(ErrorMessage) && Shifts.Count == 0;
 
@@ -101,9 +102,9 @@ public class PharmacyScheduleViewModel : ObservableObject
         IPharmacyScheduleService scheduleService,
         StaffRepository staffRepository)
     {
-        _currentUser = currentUser;
-        _scheduleService = scheduleService;
-        _staffRepository = staffRepository;
+        this.currentUser = currentUser;
+        this.scheduleService = scheduleService;
+        this.staffRepository = staffRepository;
 
         RefreshCommand = new AsyncRelayCommand(LoadAsync, () => IsPharmacist);
         TodayCommand = new RelayCommand(() => AnchorDate = DateTime.Today, () => IsPharmacist);
@@ -119,14 +120,14 @@ public class PharmacyScheduleViewModel : ObservableObject
 
     public async Task InitializeAsync()
     {
-        _isInitializing = true;
+        isInitializing = true;
         try
         {
             await LoadPharmacistsAsync();
         }
         finally
         {
-            _isInitializing = false;
+            isInitializing = false;
         }
 
         await LoadAsync();
@@ -143,7 +144,7 @@ public class PharmacyScheduleViewModel : ObservableObject
     {
         if (!IsPharmacist)
         {
-            ErrorMessage = "";
+            ErrorMessage = string.Empty;
             Shifts.Clear();
             RaisePropertyChanged(nameof(IsAccessDenied));
             RaisePropertyChanged(nameof(IsEmpty));
@@ -153,7 +154,7 @@ public class PharmacyScheduleViewModel : ObservableObject
         try
         {
             IsLoading = true;
-            ErrorMessage = "";
+            ErrorMessage = string.Empty;
             Shifts.Clear();
 
             if (SelectedPharmacist is null)
@@ -167,10 +168,12 @@ public class PharmacyScheduleViewModel : ObservableObject
             var rangeEnd = IsWeeklyView ? rangeStart.AddDays(7) : rangeStart.AddDays(1);
 
             var staffId = SelectedPharmacist.StaffId;
-            var raw = await _scheduleService.GetShiftsAsync(staffId, rangeStart, rangeEnd);
+            var raw = await scheduleService.GetShiftsAsync(staffId, rangeStart, rangeEnd);
 
             foreach (var vm in raw.Select(s => new PharmacyShiftItemViewModel(s)))
+            {
                 Shifts.Add(vm);
+            }
         }
         catch (Exception ex)
         {
@@ -187,14 +190,14 @@ public class PharmacyScheduleViewModel : ObservableObject
     private async Task LoadPharmacistsAsync()
     {
         Pharmacists.Clear();
-        var all = await Task.Run(() => _staffRepository.GetPharmacists());
+        var all = await Task.Run(() => staffRepository.GetPharmacists());
 
         foreach (var p in all.OrderBy(x => x.FirstName).ThenBy(x => x.LastName))
         {
             Pharmacists.Add(new PharmacistOption
             {
                 StaffId = p.StaffID,
-                PharmacistName = string.Join(" ", new[] { p.FirstName?.Trim(), p.LastName?.Trim() }.Where(x => !string.IsNullOrWhiteSpace(x)))
+                PharmacistName = string.Join(" ", new[] { p.FirstName?.Trim(), p.LastName?.Trim() }.Where(x => !string.IsNullOrWhiteSpace(x))),
             });
         }
 
@@ -205,7 +208,7 @@ public class PharmacyScheduleViewModel : ObservableObject
             return;
         }
 
-        SelectedPharmacist = Pharmacists.FirstOrDefault(p => p.StaffId == _currentUser.UserId) ?? Pharmacists.First();
+        SelectedPharmacist = Pharmacists.FirstOrDefault(p => p.StaffId == currentUser.UserId) ?? Pharmacists.First();
     }
 
     public sealed class PharmacistOption

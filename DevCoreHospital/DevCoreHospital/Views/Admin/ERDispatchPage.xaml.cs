@@ -1,10 +1,10 @@
-﻿using DevCoreHospital.Configuration;
+using DevCoreHospital.Configuration;
 using DevCoreHospital.Data;
 using DevCoreHospital.Repositories;
 using DevCoreHospital.Services;
 using DevCoreHospital.ViewModels;
-using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml;
 
 namespace DevCoreHospital.Views
 {
@@ -29,7 +29,9 @@ namespace DevCoreHospital.Views
             await ViewModel.RunDispatchAsync();
 
             if (ViewModel.UnmatchedRequests.Count > 0)
+            {
                 UnmatchedRequestCombo.SelectedIndex = 0;
+            }
         }
 
         private void Refresh_Click(object sender, RoutedEventArgs e)
@@ -47,7 +49,9 @@ namespace DevCoreHospital.Views
         private async void UnmatchedRequestCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (UnmatchedRequestCombo.SelectedItem is ERDispatchViewModel.UnmatchedRequestRow row)
+            {
                 await ViewModel.LoadOverrideCandidatesAsync(row.RequestId);
+            }
         }
 
         private async void ApplyOverride_Click(object sender, RoutedEventArgs e)
@@ -64,13 +68,19 @@ namespace DevCoreHospital.Views
 
             var success = await ViewModel.ApplyOverrideAsync(req.RequestId, candidate.DoctorId);
             if (!success)
+            {
                 return;
+            }
 
             OverrideDoctorCombo.SelectedIndex = -1;
             if (ViewModel.UnmatchedRequests.Count > 0)
+            {
                 UnmatchedRequestCombo.SelectedIndex = 0;
+            }
             else
+            {
                 UnmatchedRequestCombo.SelectedIndex = -1;
+            }
         }
     }
 }

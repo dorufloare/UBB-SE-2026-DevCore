@@ -1,5 +1,5 @@
-﻿using Microsoft.UI.Xaml;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
+using Microsoft.UI.Xaml;
 
 namespace DevCoreHospital.Services
 {

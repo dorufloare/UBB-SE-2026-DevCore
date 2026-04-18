@@ -12,8 +12,10 @@
         public int YearsOfExperience { get; set; }
         public DoctorStatus DoctorStatus { get; set; }
 
+        public Doctor()
+        {
+        }
 
-        public Doctor() { }
         public Doctor(int staffID, string firstName, string lastName, string contactInfo, string v, bool available,
             string specialization, string licenseNumber, DoctorStatus doctorStatus, int yearsExp)
         {

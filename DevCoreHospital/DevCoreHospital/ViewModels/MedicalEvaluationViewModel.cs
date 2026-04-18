@@ -1,36 +1,36 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Media;
-using Microsoft.UI;
+using DevCoreHospital.Configuration;
 using DevCoreHospital.Models;
 using DevCoreHospital.Repositories;
-using DevCoreHospital.Configuration;
 using DevCoreHospital.ViewModels.Base;
+using Microsoft.UI;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Media;
 
 namespace DevCoreHospital.ViewModels
 {
     public partial class MedicalEvaluationViewModel : ObservableObject
     {
-        private readonly EvaluationsRepository _repository = new();
-        private List<MedicalEvaluation> _allRecords = new List<MedicalEvaluation>();
+        private readonly EvaluationsRepository repository = new EvaluationsRepository();
+        private List<MedicalEvaluation> allRecords = new List<MedicalEvaluation>();
 
-        public ObservableCollection<MedicalEvaluation> PastEvaluations { get; } = new();
-        public ObservableCollection<Appointment> AvailableAppointments { get; } = new();
-        public ObservableCollection<DevCoreHospital.Models.Doctor> AllDoctors { get; } = new();
+        public ObservableCollection<MedicalEvaluation> PastEvaluations { get; } = new ObservableCollection<MedicalEvaluation>();
+        public ObservableCollection<Appointment> AvailableAppointments { get; } = new ObservableCollection<Appointment>();
+        public ObservableCollection<DevCoreHospital.Models.Doctor> AllDoctors { get; } = new ObservableCollection<DevCoreHospital.Models.Doctor>();
 
         #region Properties
 
-        private DevCoreHospital.Models.Doctor? _selectedDoctor;
+        private DevCoreHospital.Models.Doctor? selectedDoctor;
         public DevCoreHospital.Models.Doctor? SelectedDoctor
         {
-            get => _selectedDoctor;
+            get => selectedDoctor;
             set
             {
-                if (SetProperty(ref _selectedDoctor, value))
+                if (SetProperty(ref selectedDoctor, value))
                 {
                     if (value != null)
                     {
@@ -41,20 +41,20 @@ namespace DevCoreHospital.ViewModels
             }
         }
 
-        private string _currentDoctorName = "Physician";
+        private string currentDoctorName = "Physician";
         public string CurrentDoctorName
         {
-            get => _currentDoctorName;
-            set => SetProperty(ref _currentDoctorName, value);
+            get => currentDoctorName;
+            set => SetProperty(ref currentDoctorName, value);
         }
 
-        private Appointment? _selectedAppointment;
+        private Appointment? selectedAppointment;
         public Appointment? SelectedAppointment
         {
-            get => _selectedAppointment;
+            get => selectedAppointment;
             set
             {
-                if (SetProperty(ref _selectedAppointment, value))
+                if (SetProperty(ref selectedAppointment, value))
                 {
                     if (value != null)
                     {
@@ -65,20 +65,20 @@ namespace DevCoreHospital.ViewModels
             }
         }
 
-        private string _patientId = string.Empty;
+        private string patientId = string.Empty;
         public string PatientId
         {
-            get => _patientId;
-            set => SetProperty(ref _patientId, value);
+            get => patientId;
+            set => SetProperty(ref patientId, value);
         }
 
-        private MedicalEvaluation? _selectedEvaluation;
+        private MedicalEvaluation? selectedEvaluation;
         public MedicalEvaluation? SelectedEvaluation
         {
-            get => _selectedEvaluation;
+            get => selectedEvaluation;
             set
             {
-                if (SetProperty(ref _selectedEvaluation, value))
+                if (SetProperty(ref selectedEvaluation, value))
                 {
                     if (value != null)
                     {
@@ -91,7 +91,7 @@ namespace DevCoreHospital.ViewModels
                     {
                         ResetForm();
                     }
-                    // CRITICAL FIX: Refresh buttons when history item is selected
+
                     RaisePropertyChanged(nameof(IsEditing));
                     DeleteEvaluationCommand.RaiseCanExecuteChanged();
                     SaveDiagnosisCommand.RaiseCanExecuteChanged();
@@ -101,55 +101,80 @@ namespace DevCoreHospital.ViewModels
 
         public bool IsEditing => SelectedEvaluation != null;
 
-        private string _searchText = string.Empty;
+        private string searchText = string.Empty;
         public string SearchText
         {
-            get => _searchText;
-            set { if (SetProperty(ref _searchText, value)) ApplyFilter(); }
-        }
-
-        private string _symptoms = string.Empty;
-        public string Symptoms
-        {
-            get => _symptoms;
-            set { if (SetProperty(ref _symptoms, value)) RefreshButtonState(); }
-        }
-
-        private string _medsList = string.Empty;
-        public string MedsList
-        {
-            get => _medsList;
-            set { if (SetProperty(ref _medsList, value)) { ValidateMedsConflict(value); RefreshButtonState(); } }
-        }
-
-        private string _doctorNotes = string.Empty;
-        public string DoctorNotes
-        {
-            get => _doctorNotes;
-            set { if (SetProperty(ref _doctorNotes, value)) RefreshButtonState(); }
-        }
-
-        private string _validationError = string.Empty;
-        public string ValidationError
-        {
-            get => _validationError;
-            set => SetProperty(ref _validationError, value);
-        }
-
-        private string _conflictWarning = string.Empty;
-        public string ConflictWarning
-        {
-            get => _conflictWarning;
-            set => SetProperty(ref _conflictWarning, value);
-        }
-
-        private bool _isConflictVisible;
-        public bool IsConflictVisible
-        {
-            get => _isConflictVisible;
+            get => searchText;
             set
             {
-                if (SetProperty(ref _isConflictVisible, value))
+                if (SetProperty(ref searchText, value))
+                {
+                    ApplyFilter();
+                }
+            }
+        }
+
+        private string symptoms = string.Empty;
+        public string Symptoms
+        {
+            get => symptoms;
+            set
+            {
+                if (SetProperty(ref symptoms, value))
+                {
+                    RefreshButtonState();
+                }
+            }
+        }
+
+        private string medsList = string.Empty;
+        public string MedsList
+        {
+            get => medsList;
+            set
+            {
+                if (SetProperty(ref medsList, value))
+                {
+                    ValidateMedsConflict(value);
+                    RefreshButtonState();
+                }
+            }
+        }
+
+        private string doctorNotes = string.Empty;
+        public string DoctorNotes
+        {
+            get => doctorNotes;
+            set
+            {
+                if (SetProperty(ref doctorNotes, value))
+                {
+                    RefreshButtonState();
+                }
+            }
+        }
+
+        private string validationError = string.Empty;
+        public string ValidationError
+        {
+            get => validationError;
+            set => SetProperty(ref validationError, value);
+        }
+
+        private string conflictWarning = string.Empty;
+        public string ConflictWarning
+        {
+            get => conflictWarning;
+            set => SetProperty(ref conflictWarning, value);
+        }
+
+        private bool isConflictVisible;
+        public bool IsConflictVisible
+        {
+            get => isConflictVisible;
+            set
+            {
+                if (SetProperty(ref isConflictVisible, value))
                 {
                     RaisePropertyChanged(nameof(NotesBackground));
                     RaisePropertyChanged(nameof(ConflictVisibility));
@@ -161,24 +186,30 @@ namespace DevCoreHospital.ViewModels
 
         public Visibility ConflictVisibility => IsConflictVisible ? Visibility.Visible : Visibility.Collapsed;
 
-        private bool _isRiskAssumed;
+        private bool isRiskAssumed;
         public bool IsRiskAssumed
         {
-            get => _isRiskAssumed;
-            set { if (SetProperty(ref _isRiskAssumed, value)) RefreshButtonState(); }
+            get => isRiskAssumed;
+            set
+            {
+                if (SetProperty(ref isRiskAssumed, value))
+                {
+                    RefreshButtonState();
+                }
+            }
         }
 
         public Brush NotesBackground => IsConflictVisible
             ? new SolidColorBrush(Windows.UI.Color.FromArgb(100, 255, 255, 0))
             : new SolidColorBrush(Colors.Transparent);
 
-        private bool _isFatigued;
+        private bool isFatigued;
         public bool IsFatigued
         {
-            get => _isFatigued;
+            get => isFatigued;
             set
             {
-                if (SetProperty(ref _isFatigued, value))
+                if (SetProperty(ref isFatigued, value))
                 {
                     RaisePropertyChanged(nameof(IsFormEnabled));
                     RaisePropertyChanged(nameof(LockoutVisibility));
@@ -190,11 +221,18 @@ namespace DevCoreHospital.ViewModels
         public bool IsFormEnabled => !IsFatigued;
         public Visibility LockoutVisibility => IsFatigued ? Visibility.Visible : Visibility.Collapsed;
 
-        private bool _isLoading;
+        private bool isLoading;
         public bool IsLoading
         {
-            get => _isLoading;
-            set { if (SetProperty(ref _isLoading, value)) { RaisePropertyChanged(nameof(IsEmptyStateVisible)); RaisePropertyChanged(nameof(EmptyStateVisibility)); } }
+            get => isLoading;
+            set
+            {
+                if (SetProperty(ref isLoading, value))
+                {
+                    RaisePropertyChanged(nameof(IsEmptyStateVisible));
+                    RaisePropertyChanged(nameof(EmptyStateVisibility));
+                }
+            }
         }
 
         public bool IsEmptyStateVisible => !IsLoading && PastEvaluations.Count == 0;
@@ -224,20 +262,23 @@ namespace DevCoreHospital.ViewModels
         private void LoadDoctorList()
         {
             AllDoctors.Clear();
-            var doctors = _repository.GetAllDoctors();
-            foreach (var doc in doctors) AllDoctors.Add(doc);
-
-            _selectedDoctor = AllDoctors.FirstOrDefault(d => d.StaffID == AppSettings.DefaultDoctorId);
-            if (_selectedDoctor != null)
+            var doctors = repository.GetAllDoctors();
+            foreach (var doc in doctors)
             {
-                CurrentDoctorName = $"Dr. {_selectedDoctor.FirstName} {_selectedDoctor.LastName}";
+                AllDoctors.Add(doc);
+            }
+
+            selectedDoctor = AllDoctors.FirstOrDefault(d => d.StaffID == AppSettings.DefaultDoctorId);
+            if (selectedDoctor != null)
+            {
+                CurrentDoctorName = $"Dr. {selectedDoctor.FirstName} {selectedDoctor.LastName}";
             }
         }
 
         private void LoadAppointments()
         {
             AvailableAppointments.Clear();
-            var appointments = _repository.GetAppointmentsByDoctor(AppSettings.DefaultDoctorId);
+            var appointments = repository.GetAppointmentsByDoctor(AppSettings.DefaultDoctorId);
             foreach (var app in appointments)
             {
                 AvailableAppointments.Add(app);
@@ -252,11 +293,11 @@ namespace DevCoreHospital.ViewModels
                 return;
             }
 
-            //Check the High-Risk Medicine Table 
-            string? warning = _repository.GetHighRiskMedicineWarning(currentMeds);
+            // Check the High-Risk Medicine Table
+            string? warning = repository.GetHighRiskMedicineWarning(currentMeds);
 
-            //Check the Patient's actual History for "Allergy" or "Adverse Reactions"
-            string? historyWarning = _repository.CheckPatientHistoryForRisk(PatientId, currentMeds);
+            // Check the patient's history for allergies or adverse reactions
+            string? historyWarning = repository.CheckPatientHistoryForRisk(PatientId, currentMeds);
 
             if (!string.IsNullOrEmpty(warning) || !string.IsNullOrEmpty(historyWarning))
             {
@@ -271,18 +312,28 @@ namespace DevCoreHospital.ViewModels
 
         private bool CanSaveDiagnosis()
         {
-            if (IsFatigued) return false;
-            if (string.IsNullOrWhiteSpace(PatientId) || PatientId == "N/A" || PatientId == string.Empty) return false;
+            if (IsFatigued)
+            {
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(PatientId) || PatientId == "N/A" || PatientId == string.Empty)
+            {
+                return false;
+            }
+
             if (string.IsNullOrWhiteSpace(Symptoms) || string.IsNullOrWhiteSpace(DoctorNotes))
             {
-                ValidationError = "⚠️ Symptoms and Doctor Notes are required.";
+                ValidationError = "?? Symptoms and Doctor Notes are required.";
                 return false;
             }
+
             if (IsConflictVisible && !IsRiskAssumed)
             {
-                ValidationError = "⚠️ You must acknowledge the clinical risk.";
+                ValidationError = "?? You must acknowledge the clinical risk.";
                 return false;
             }
+
             ValidationError = string.Empty;
             return true;
         }
@@ -291,7 +342,6 @@ namespace DevCoreHospital.ViewModels
         {
             if (IsEditing && SelectedEvaluation != null)
             {
-                // This would be an update function in a full system
                 SelectedEvaluation = null;
             }
             else
@@ -303,10 +353,10 @@ namespace DevCoreHospital.ViewModels
                     MedsList = this.MedsList,
                     Notes = this.DoctorNotes,
                     EvaluationDate = DateTime.Now,
-                    Evaluator = new DevCoreHospital.Models.Doctor(AppSettings.DefaultDoctorId,"", "", "", "",true,"","Available",DoctorStatus.AVAILABLE,0)
+                    Evaluator = new DevCoreHospital.Models.Doctor(AppSettings.DefaultDoctorId, string.Empty, string.Empty, string.Empty, string.Empty, true, string.Empty, "Available", DoctorStatus.AVAILABLE, 0),
                 };
 
-                _repository.SaveEvaluation(newRecord);
+                repository.SaveEvaluation(newRecord);
             }
 
             ResetForm();
@@ -320,7 +370,7 @@ namespace DevCoreHospital.ViewModels
             DoctorNotes = string.Empty;
             IsRiskAssumed = false;
             IsConflictVisible = false;
-            _selectedEvaluation = null; // Use backing field to avoid triggering logic
+            selectedEvaluation = null;
             SelectedAppointment = null;
             PatientId = string.Empty;
 
@@ -335,7 +385,7 @@ namespace DevCoreHospital.ViewModels
             DoctorNotes = string.Empty;
             IsRiskAssumed = false;
             IsConflictVisible = false;
-            _selectedEvaluation = null;
+            selectedEvaluation = null;
 
             NotifyAllProperties();
             RefreshButtonState();
@@ -373,7 +423,7 @@ namespace DevCoreHospital.ViewModels
             PastEvaluations.Clear();
             await Task.Delay(500);
 
-            _allRecords = _repository.GetEvaluationsByDoctor(AppSettings.DefaultDoctorId.ToString());
+            allRecords = repository.GetEvaluationsByDoctor(AppSettings.DefaultDoctorId.ToString());
 
             ApplyFilter();
             IsLoading = false;
@@ -383,29 +433,34 @@ namespace DevCoreHospital.ViewModels
         {
             PastEvaluations.Clear();
             var filtered = string.IsNullOrWhiteSpace(SearchText)
-                ? _allRecords
-                : _allRecords.Where(r => r.PatientId.Contains(SearchText, StringComparison.OrdinalIgnoreCase));
+                ? allRecords
+                : allRecords.Where(r => r.PatientId.Contains(SearchText, StringComparison.OrdinalIgnoreCase));
 
-            foreach (var record in filtered) { PastEvaluations.Add(record); }
+            foreach (var record in filtered)
+            {
+                PastEvaluations.Add(record);
+            }
+
             RaisePropertyChanged(nameof(IsEmptyStateVisible));
             RaisePropertyChanged(nameof(EmptyStateVisibility));
         }
 
         private void CheckDoctorFatigue()
         {
-            double fatigueHours = _repository.GetDoctorFatigueHours(AppSettings.DefaultDoctorId.ToString());
+            double fatigueHours = repository.GetDoctorFatigueHours(AppSettings.DefaultDoctorId.ToString());
             IsFatigued = fatigueHours >= 12.0;
         }
 
         public void ExecuteDeletion()
         {
-            if (SelectedEvaluation == null) return;
-            _repository.DeleteEvaluation(SelectedEvaluation.EvaluationID);
+            if (SelectedEvaluation == null)
+            {
+                return;
+            }
+
+            repository.DeleteEvaluation(SelectedEvaluation.EvaluationID);
             ResetForm();
             PopulateHistory();
         }
-
-
-
     }
 }

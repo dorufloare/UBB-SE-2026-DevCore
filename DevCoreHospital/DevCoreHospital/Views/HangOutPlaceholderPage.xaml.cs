@@ -1,5 +1,5 @@
-﻿using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml;
 using DevCoreHospital.ViewModels.Doctor; // <-- Make sure this is here!
 
 namespace DevCoreHospital.Views

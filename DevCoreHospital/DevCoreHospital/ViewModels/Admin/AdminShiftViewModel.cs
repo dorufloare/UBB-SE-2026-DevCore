@@ -1,8 +1,8 @@
-﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
+using System;
 using DevCoreHospital.Models;
 using DevCoreHospital.Services;
 using Microsoft.IdentityModel.Tokens;
@@ -11,66 +11,66 @@ namespace DevCoreHospital.ViewModels.Admin
 {
     public class AdminShiftViewModel : INotifyPropertyChanged
     {
-        private readonly IStaffAndShiftService _StaffAndShiftService;
+        private readonly IStaffAndShiftService staffAndShiftService;
 
-        public ObservableCollection<Shift> Shifts { get; set; } = new();
-        public ObservableCollection<IStaff> AvailableStaff { get; set; } = new();
-        public ObservableCollection<string> SpecializationsAndCertifications { get; set; } = new();
+        public ObservableCollection<Shift> Shifts { get; set; } = new ObservableCollection<Shift>();
+        public ObservableCollection<IStaff> AvailableStaff { get; set; } = new ObservableCollection<IStaff>();
+        public ObservableCollection<string> SpecializationsAndCertifications { get; set; } = new ObservableCollection<string>();
 
-        private DateTime _selectedDate = DateTime.Today;
+        private DateTime selectedDate = DateTime.Today;
         public DateTime SelectedDate
         {
-            get => _selectedDate;
+            get => selectedDate;
             set
             {
-                if (_selectedDate != value)
+                if (selectedDate != value)
                 {
-                    _selectedDate = value;
+                    selectedDate = value;
                     OnPropertyChanged(nameof(SelectedDate));
                     LoadAndFilterShifts();
                 }
             }
         }
 
-        private string _selectedDepartment = "All Departments";
+        private string selectedDepartment = "All Departments";
         public string SelectedDepartment
         {
-            get => _selectedDepartment;
+            get => selectedDepartment;
             set
             {
-                if (_selectedDepartment != value)
+                if (selectedDepartment != value)
                 {
-                    _selectedDepartment = value;
+                    selectedDepartment = value;
                     OnPropertyChanged(nameof(SelectedDepartment));
                     LoadAndFilterShifts();
                 }
             }
         }
 
-        private bool _isWeeklyView = false;
+        private bool isWeeklyView;
         public bool IsWeeklyView
         {
-            get => _isWeeklyView;
+            get => isWeeklyView;
             set
             {
-                if (_isWeeklyView != value)
+                if (isWeeklyView != value)
                 {
-                    _isWeeklyView = value;
+                    isWeeklyView = value;
                     OnPropertyChanged(nameof(IsWeeklyView));
                     LoadAndFilterShifts();
                 }
             }
         }
 
-        private string _scheduleTitle = "";
+        private string scheduleTitle = string.Empty;
         public string ScheduleTitle
         {
-            get => _scheduleTitle;
+            get => scheduleTitle;
             set
             {
-                if (_scheduleTitle != value)
+                if (scheduleTitle != value)
                 {
-                    _scheduleTitle = value;
+                    scheduleTitle = value;
                     OnPropertyChanged(nameof(ScheduleTitle));
                 }
             }
@@ -78,14 +78,13 @@ namespace DevCoreHospital.ViewModels.Admin
 
         public AdminShiftViewModel(IStaffAndShiftService service)
         {
-            _StaffAndShiftService = service;
+            staffAndShiftService = service;
             LoadAndFilterShifts();
         }
-        
 
         public void LoadAndFilterShifts()
         {
-            var rawShifts = _StaffAndShiftService.GetWeeklyShifts(SelectedDate);
+            var rawShifts = staffAndShiftService.GetWeeklyShifts(SelectedDate);
             IEnumerable<Shift> filtered = rawShifts;
             var englishCulture = System.Globalization.CultureInfo.GetCultureInfo("en-US");
 
@@ -106,18 +105,18 @@ namespace DevCoreHospital.ViewModels.Admin
                 filtered = filtered.Where(s => s.Location == SelectedDepartment);
             }
 
-
             Shifts.Clear();
             var finalResult = filtered.OrderBy(s => s.StartTime).ToList();
-            foreach (var s in finalResult) Shifts.Add(s);
+            foreach (var s in finalResult)
+            {
+                Shifts.Add(s);
+            }
         }
 
-
-        
         public void FilterSpecializationsAndCertificationsForLocation(string location)
         {
             SpecializationsAndCertifications.Clear();
-            var list = _StaffAndShiftService.GetSpecializationsAndCertificationsForLocation(location);
+            var list = staffAndShiftService.GetSpecializationsAndCertificationsForLocation(location);
             foreach (var item in list)
             {
                 SpecializationsAndCertifications.Add(item);
@@ -127,7 +126,7 @@ namespace DevCoreHospital.ViewModels.Admin
         public void FilterStaffForShift(string location, string requiredSpecializationOrCertification)
         {
             AvailableStaff.Clear();
-            var filtered = _StaffAndShiftService.GetFilteredStaff(location, requiredSpecializationOrCertification);
+            var filtered = staffAndShiftService.GetFilteredStaff(location, requiredSpecializationOrCertification);
 
             foreach (var staff in filtered)
             {
@@ -137,23 +136,23 @@ namespace DevCoreHospital.ViewModels.Admin
 
         public void CreateNewShift(IStaff staff, DateTime start, DateTime end, string location)
         {
-            if (_StaffAndShiftService.ValidateNoOverlap(staff.StaffID, start, end))
+            if (staffAndShiftService.ValidateNoOverlap(staff.StaffID, start, end))
             {
                 var newShift = new Shift(0, staff, location, start, end, ShiftStatus.SCHEDULED);
-                _StaffAndShiftService.AddShift(newShift);
+                staffAndShiftService.AddShift(newShift);
                 LoadAndFilterShifts();
             }
         }
 
         public void SetShiftActive(int shiftID)
         {
-            _StaffAndShiftService.SetShiftActive(shiftID);
+            staffAndShiftService.SetShiftActive(shiftID);
             LoadAndFilterShifts();
         }
 
         public void ReassignShift(Shift shift, IStaff newStaff)
         {
-            bool success = _StaffAndShiftService.ReassignShift(shift, newStaff);
+            bool success = staffAndShiftService.ReassignShift(shift, newStaff);
             if (success)
             {
                 LoadAndFilterShifts();
@@ -162,20 +161,20 @@ namespace DevCoreHospital.ViewModels.Admin
 
         public void CancelShift(int shiftID)
         {
-            _StaffAndShiftService.CancelShift(shiftID);
+            staffAndShiftService.CancelShift(shiftID);
             LoadAndFilterShifts();
         }
 
         public void AutoFindReplacement(Shift shift)
         {
-            var replacementsList = _StaffAndShiftService.FindStaffReplacements(shift);
+            var replacementsList = staffAndShiftService.FindStaffReplacements(shift);
             if (!replacementsList.IsNullOrEmpty())
             {
                 ReassignShift(shift, replacementsList.First());
             }
         }
 
-        public event PropertyChangedEventHandler PropertyChanged;
+        public event PropertyChangedEventHandler? PropertyChanged;
         protected void OnPropertyChanged(string name) =>
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }

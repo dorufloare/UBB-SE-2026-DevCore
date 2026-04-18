@@ -3,8 +3,8 @@ using DevCoreHospital.Data;
 using DevCoreHospital.Repositories;
 using DevCoreHospital.Services;
 using DevCoreHospital.ViewModels.Pharmacy;
-using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml;
 
 namespace DevCoreHospital.Views.Pharmacy;
 
@@ -36,7 +36,7 @@ public sealed partial class PharmacistVacationPage : Page
             StartDatePicker.Date,
             EndDatePicker.Date);
 
-        ShowMessage(result.Message, MapSeverity(result.Status));
+        ShowMessage(result.message, MapSeverity(result.status));
     }
 
     private static InfoBarSeverity MapSeverity(VacationRegistrationStatus status) => status switch

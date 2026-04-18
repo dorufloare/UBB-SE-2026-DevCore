@@ -1,21 +1,21 @@
-﻿using DevCoreHospital.Configuration;
+using System;
+using DevCoreHospital.Configuration;
 using DevCoreHospital.Data;
+using DevCoreHospital.Models;
 using DevCoreHospital.Repositories;
 using DevCoreHospital.Services;
 using DevCoreHospital.ViewModels.Admin;
-using DevCoreHospital.Models;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
+using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
-using System;
+using Microsoft.UI.Xaml;
 
 namespace DevCoreHospital.Views.Admin
 {
     public sealed partial class AdminSchedulePage : Page
     {
         public AdminShiftViewModel ViewModel { get; }
-        private bool _initialized;
+        private bool initialized;
 
         public AdminSchedulePage()
         {
@@ -35,8 +35,12 @@ namespace DevCoreHospital.Views.Admin
         {
             base.OnNavigatedTo(e);
 
-            if (_initialized) return;
-            _initialized = true;
+            if (initialized)
+            {
+                return;
+            }
+
+            initialized = true;
 
             ViewModel.LoadAndFilterShifts();
             DateCalendar.SelectedDates.Add(DateTime.Today);
@@ -44,7 +48,10 @@ namespace DevCoreHospital.Views.Admin
 
         private void DateCalendar_SelectedDatesChanged(CalendarView sender, CalendarViewSelectedDatesChangedEventArgs args)
         {
-            if (sender.SelectedDates == null || sender.SelectedDates.Count == 0) return;
+            if (sender.SelectedDates == null || sender.SelectedDates.Count == 0)
+            {
+                return;
+            }
 
             var picked = sender.SelectedDates[0].Date;
             var minSqlDate = new DateTime(1753, 1, 1);
@@ -57,7 +64,7 @@ namespace DevCoreHospital.Views.Admin
 
         private void DepartmentFilterComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (DepartmentFilterComboBox.SelectedItem is string selectedDept && _initialized)
+            if (DepartmentFilterComboBox.SelectedItem is string selectedDept && initialized)
             {
                 ViewModel.SelectedDepartment = selectedDept;
             }
@@ -78,7 +85,6 @@ namespace DevCoreHospital.Views.Admin
                 ViewModel.IsWeeklyView = true;
             }
         }
-
 
         private void SetActive_Click(object sender, RoutedEventArgs e)
         {

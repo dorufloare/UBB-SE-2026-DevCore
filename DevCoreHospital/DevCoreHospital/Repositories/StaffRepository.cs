@@ -1,58 +1,57 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using DevCoreHospital.Models;
+using System;
 using DevCoreHospital.Data;
+using DevCoreHospital.Models;
 using Microsoft.IdentityModel.Tokens;
 
 namespace DevCoreHospital.Repositories
 {
     public class StaffRepository
     {
-        private List<IStaff> _staffList;
-        private readonly DatabaseManager _dbManager;
+        private List<IStaff> staffList;
+        private readonly DatabaseManager dbManager;
 
         public StaffRepository(DatabaseManager dbManager)
         {
-            _staffList = new List<IStaff>();
-            _dbManager = dbManager;
+            staffList = new List<IStaff>();
+            this.dbManager = dbManager;
             LoadStaff();
         }
 
         public void LoadStaff()
         {
-            _staffList = _dbManager.GetStaff();
+            staffList = this.dbManager.GetStaff();
         }
 
         public List<IStaff> LoadAllStaff()
         {
-            return _dbManager.GetStaff();
+            return dbManager.GetStaff();
         }
 
         public void SaveStaffChanges()
         {
-            _dbManager.SaveStaff(_staffList);
+            dbManager.SaveStaff(staffList);
         }
 
         public IStaff? GetStaffById(int staffId)
         {
-            // Fresh read avoids stale cache surprises
-            return _dbManager.GetStaff().FirstOrDefault(s => s.StaffID == staffId);
+            return dbManager.GetStaff().FirstOrDefault(s => s.StaffID == staffId);
         }
 
         public List<Doctor> GetAvailableDoctors()
         {
-            return _dbManager.GetStaff().OfType<Doctor>().Where(doctor => doctor.Available).ToList();
+            return dbManager.GetStaff().OfType<Doctor>().Where(doctor => doctor.Available).ToList();
         }
 
         private List<Pharmacyst> GetAvailablePharmacists()
         {
-            return _dbManager.GetStaff().OfType<Pharmacyst>().Where(ph => ph.Available).ToList();
+            return dbManager.GetStaff().OfType<Pharmacyst>().Where(ph => ph.Available).ToList();
         }
 
         public List<Pharmacyst> GetPharmacists()
         {
-            return _dbManager.GetStaff().OfType<Pharmacyst>().ToList();
+            return dbManager.GetStaff().OfType<Pharmacyst>().ToList();
         }
 
         private static string Normalize(string? value)
@@ -61,9 +60,12 @@ namespace DevCoreHospital.Repositories
         public List<IStaff> GetPotentialSwapColleagues(IStaff requester)
         {
             // Always fresh from DB
-            var all = _dbManager.GetStaff();
+            var all = dbManager.GetStaff();
             var req = all.FirstOrDefault(s => s.StaffID == requester.StaffID);
-            if (req == null) return new List<IStaff>();
+            if (req == null)
+            {
+                return new List<IStaff>();
+            }
 
             if (req is Doctor reqDoctor)
             {
@@ -132,26 +134,30 @@ namespace DevCoreHospital.Repositories
 
         public List<Doctor> GetDoctorsBySpecialization(string specialization)
         {
-            return _dbManager.GetStaff().OfType<Doctor>()
+            return dbManager.GetStaff().OfType<Doctor>()
                 .Where(doctor => doctor.Specialization.Equals(specialization, StringComparison.OrdinalIgnoreCase))
                 .ToList();
         }
 
         public List<Pharmacyst> GetPharmacystsByCertification(string certification)
         {
-            return _dbManager.GetStaff().OfType<Pharmacyst>()
+            return dbManager.GetStaff().OfType<Pharmacyst>()
                 .Where(ph => ph.Certification.Equals(certification, StringComparison.OrdinalIgnoreCase))
                 .ToList();
         }
 
         public void UpdateStaffAvailability(int staffId, bool isAvailable, DoctorStatus status = DoctorStatus.OFF_DUTY)
         {
-            var staff = _staffList.FirstOrDefault(st => st.StaffID == staffId);
+            var staff = staffList.FirstOrDefault(st => st.StaffID == staffId);
             if (staff != null)
             {
                 staff.Available = isAvailable;
-                if (staff is Doctor doc) doc.DoctorStatus = status;
-                _dbManager.UpdateStaff(staff);
+                if (staff is Doctor doc)
+                {
+                    doc.DoctorStatus = status;
+                }
+
+                dbManager.UpdateStaff(staff);
             }
         }
     }

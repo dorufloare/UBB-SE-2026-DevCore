@@ -1,5 +1,5 @@
-using System;
 using System.Collections.Generic;
+using System;
 using DevCoreHospital.Models;
 
 namespace DevCoreHospital.Services

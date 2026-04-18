@@ -50,17 +50,17 @@
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Grid.Column="0" Spacing="4">
-                                    <TextBlock Text="{x:Bind title}" FontSize="20" FontWeight="Bold"/>
-                                    <TextBlock Text="{x:Bind description}" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                    <TextBlock Text="{x:Bind Title}" FontSize="20" FontWeight="Bold"/>
+                                    <TextBlock Text="{x:Bind Description}" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
                                     <StackPanel Orientation="Horizontal" Spacing="16" Margin="0,8,0,0">
                                         <TextBlock Text="{x:Bind FormattedDate}"/>
-                                        <TextBlock Text="{x:Bind participantList.Count}"/>
+                                        <TextBlock Text="{x:Bind ParticipantList.Count}"/>
                                         <TextBlock Text="/"/>
-                                        <TextBlock Text="{x:Bind maxParticipants}"/>
+                                        <TextBlock Text="{x:Bind MaxParticipants}"/>
                                         <TextBlock Text="Participants"/>
                                     </StackPanel>
                                 </StackPanel>
-                                <Button Grid.Column="1" Content="Join" VerticalAlignment="Center" Click="Join_Click" Tag="{x:Bind hangoutID}" Style="{StaticResource AccentButtonStyle}"/>
+                                <Button Grid.Column="1" Content="Join" VerticalAlignment="Center" Click="Join_Click" Tag="{x:Bind HangoutID}" Style="{StaticResource AccentButtonStyle}"/>
                             </Grid>
                         </Border>
                     </DataTemplate>

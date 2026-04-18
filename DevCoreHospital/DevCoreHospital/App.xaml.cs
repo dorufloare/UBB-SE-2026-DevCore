@@ -1,24 +1,23 @@
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Runtime.InteropServices.WindowsRuntime;
+using System;
 using Microsoft.UI.Xaml.Controls.Primitives;
+using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
 using Microsoft.UI.Xaml.Shapes;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices.WindowsRuntime;
-using Windows.ApplicationModel;
+using Microsoft.UI.Xaml;
 using Windows.ApplicationModel.Activation;
-using Windows.Foundation;
+using Windows.ApplicationModel;
 using Windows.Foundation.Collections;
+using Windows.Foundation;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
-
 namespace DevCoreHospital
 {
     /// <summary>
@@ -26,7 +25,7 @@ namespace DevCoreHospital
     /// </summary>
     public partial class App : Application
     {
-        private Window? _window;
+        private Window? window;
 
         /// <summary>
         /// Initializes the singleton application object.  This is the first line of authored code
@@ -43,8 +42,8 @@ namespace DevCoreHospital
         /// <param name="args">Details about the launch request and process.</param>
         protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
         {
-            _window = new MainWindow();
-            _window.Activate();
+            window = new MainWindow();
+            window.Activate();
         }
     }
 }

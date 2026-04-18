@@ -1,11 +1,11 @@
-﻿using System;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
-using DevCoreHospital.ViewModels.Admin;
-using DevCoreHospital.Models;
+using System;
 using DevCoreHospital.Configuration;
+using DevCoreHospital.Models;
 using DevCoreHospital.Repositories;
 using DevCoreHospital.Services;
+using DevCoreHospital.ViewModels.Admin;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml;
 
 namespace DevCoreHospital.Views.Admin
 {
@@ -28,7 +28,10 @@ namespace DevCoreHospital.Views.Admin
 
         private void LocationComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (ViewModel == null) return;
+            if (ViewModel == null)
+            {
+                return;
+            }
 
             if (LocationComboBox.SelectedItem is string selectedLocation)
             {
@@ -38,7 +41,10 @@ namespace DevCoreHospital.Views.Admin
 
         private void SpecializationCertificationComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (ViewModel == null) return;
+            if (ViewModel == null)
+            {
+                return;
+            }
 
             var selectedLocation = LocationComboBox.SelectedItem as string;
             var selectedSpecializationOrCertification = SpecializationCertificationComboBox.SelectedItem as string;
@@ -49,7 +55,6 @@ namespace DevCoreHospital.Views.Admin
                 StaffComboBox.SelectedIndex = -1;
             }
         }
-
 
         private void CreateShift_Click(object sender, RoutedEventArgs e)
         {

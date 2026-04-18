@@ -1,5 +1,5 @@
-﻿using Microsoft.UI.Xaml.Controls;
 using DevCoreHospital.ViewModels;
+using Microsoft.UI.Xaml.Controls;
 
 namespace DevCoreHospital.Views
 {

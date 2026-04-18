@@ -1,50 +1,48 @@
-﻿using DevCoreHospital.Models;
-using DevCoreHospital.Services;
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using DevCoreHospital.Models;
+using DevCoreHospital.Services;
 
 namespace DevCoreHospital.ViewModels
 {
     public class AdminAppointmentsViewModel : INotifyPropertyChanged
     {
-        private readonly IDoctorAppointmentService _appointmentService;
+        private readonly IDoctorAppointmentService appointmentService;
 
-        public ObservableCollection<DoctorOption> Doctors { get; } = new();
+        public ObservableCollection<DoctorOption> Doctors { get; } = new ObservableCollection<DoctorOption>();
         public ObservableCollection<Appointment> AppointmentsList { get; } = new ObservableCollection<Appointment>();
 
         public AdminAppointmentsViewModel(IDoctorAppointmentService appointmentService)
         {
-            _appointmentService = appointmentService;
+            this.appointmentService = appointmentService;
         }
-
 
         public async Task LoadDoctorsAsync()
         {
-            var doctors = await _appointmentService.GetAllDoctorsAsync();
+            var doctors = await appointmentService.GetAllDoctorsAsync();
             Doctors.Clear();
             foreach (var doc in doctors)
             {
                 Doctors.Add(new DoctorOption
                 {
                     DoctorId = doc.DoctorId,
-                    DoctorName = string.IsNullOrWhiteSpace(doc.DoctorName) ? $"Doctor #{doc.DoctorId}" : doc.DoctorName
+                    DoctorName = string.IsNullOrWhiteSpace(doc.DoctorName) ? $"Doctor #{doc.DoctorId}" : doc.DoctorName,
                 });
             }
         }
 
         public async Task LoadAppointmentsForDoctorAsync(int doctorId)
         {
-            var apps = await _appointmentService.GetAppointmentsForAdminAsync(doctorId);
+            var apps = await appointmentService.GetAppointmentsForAdminAsync(doctorId);
             AppointmentsList.Clear();
             foreach (var app in apps)
             {
                 AppointmentsList.Add(app);
             }
         }
-
 
         public async Task BookAppointmentAsync(string patientId, int doctorId, DateTime date, TimeSpan time)
         {
@@ -55,24 +53,25 @@ namespace DevCoreHospital.ViewModels
                 Date = date.Date,
                 StartTime = time,
                 EndTime = time.Add(TimeSpan.FromMinutes(30)),
-                Status = "Scheduled"
+                Status = "Scheduled",
             };
 
-            await _appointmentService.BookAppointmentAsync(newAppointment);
+            await appointmentService.BookAppointmentAsync(newAppointment);
         }
 
         public async Task FinishAppointmentAsync(Appointment appointment)
         {
-            await _appointmentService.FinishAppointmentAsync(appointment);
+            await appointmentService.FinishAppointmentAsync(appointment);
         }
 
         public async Task CancelAppointmentAsync(Appointment appointment)
         {
-            await _appointmentService.CancelAppointmentAsync(appointment);
+            await appointmentService.CancelAppointmentAsync(appointment);
         }
 
-        public event PropertyChangedEventHandler PropertyChanged;
-        protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }

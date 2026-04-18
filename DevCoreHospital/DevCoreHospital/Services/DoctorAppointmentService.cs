@@ -1,55 +1,50 @@
-﻿using DevCoreHospital.Data;
-using DevCoreHospital.Models;
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System;
+using DevCoreHospital.Data;
+using DevCoreHospital.Models;
 
 namespace DevCoreHospital.Services
 {
     public sealed class DoctorAppointmentService : IDoctorAppointmentService
     {
-        private readonly IDoctorAppointmentDataSource _dataSource;
+        private readonly IDoctorAppointmentDataSource dataSource;
 
         public DoctorAppointmentService(IDoctorAppointmentDataSource dataSource)
         {
-            _dataSource = dataSource;
+            this.dataSource = dataSource;
         }
 
-        // Metodele de citire doar dau mai departe cererea către Repository
         public Task<IReadOnlyList<Appointment>> GetUpcomingAppointmentsAsync(int doctorUserId, DateTime fromDate, int skip, int take) =>
-            _dataSource.GetUpcomingAppointmentsAsync(doctorUserId, fromDate, skip, take);
+            dataSource.GetUpcomingAppointmentsAsync(doctorUserId, fromDate, skip, take);
 
-        // IMPORTANT: Doctors come from Staff table (role='Doctor')
         public Task<IReadOnlyList<(int DoctorId, string DoctorName)>> GetAllDoctorsAsync() =>
-            _dataSource.GetAllDoctorsAsync();
+            dataSource.GetAllDoctorsAsync();
 
         public Task<Appointment?> GetAppointmentDetailsAsync(int appointmentId) =>
-            _dataSource.GetAppointmentDetailsAsync(appointmentId);
+            dataSource.GetAppointmentDetailsAsync(appointmentId);
 
         public Task<IReadOnlyList<Appointment>> GetAppointmentsForAdminAsync(int doctorId) =>
-            _dataSource.GetAppointmentsForAdminAsync(doctorId);
-
-        
+            dataSource.GetAppointmentsForAdminAsync(doctorId);
 
         public async Task BookAppointmentAsync(Appointment appointment)
         {
-            // !!!
-            await _dataSource.AddAppointmentAsync(appointment);
-            await _dataSource.UpdateDoctorStatusAsync(appointment.DoctorId, "IN_EXAMINATION");
+            await dataSource.AddAppointmentAsync(appointment);
+            await dataSource.UpdateDoctorStatusAsync(appointment.DoctorId, "IN_EXAMINATION");
         }
 
         public async Task FinishAppointmentAsync(Appointment appointment)
         {
-            // 1. Salvăm statusul programării ca "Finished"
-            await _dataSource.UpdateAppointmentStatusAsync(appointment.Id, "Finished");
+            // 1. Salvam statusul programarii ca "Finished"
+            await dataSource.UpdateAppointmentStatusAsync(appointment.Id, "Finished");
 
-            // 2. REGULA DE BUSINESS: Verificăm dacă doctorul mai are programări
-            int activeAppointments = await _dataSource.GetActiveAppointmentsCountForDoctorAsync(appointment.DoctorId);
+            // 2. REGULA DE BUSINESS: Verificam daca doctorul mai are programari
+            int activeAppointments = await dataSource.GetActiveAppointmentsCountForDoctorAsync(appointment.DoctorId);
 
-            // 3. Dacă e liber, îl facem AVAILABLE
+            // 3. Daca e liber, �l facem AVAILABLE
             if (activeAppointments == 0)
             {
-                await _dataSource.UpdateDoctorStatusAsync(appointment.DoctorId, "AVAILABLE");
+                await dataSource.UpdateDoctorStatusAsync(appointment.DoctorId, "AVAILABLE");
             }
         }
 
@@ -62,7 +57,7 @@ namespace DevCoreHospital.Services
                     "Cannot cancel an appointment that is already Finished.");
             }
 
-            await _dataSource.UpdateAppointmentStatusAsync(appointment!.Id, "Canceled");
+            await dataSource.UpdateAppointmentStatusAsync(appointment!.Id, "Canceled");
         }
     }
 }

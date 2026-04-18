@@ -1,16 +1,16 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Data;
-using Microsoft.Data.SqlClient;
-using DevCoreHospital.Models;
+using System.Linq;
 using DevCoreHospital.Configuration;
+using DevCoreHospital.Models;
+using Microsoft.Data.SqlClient;
 
 namespace DevCoreHospital.Repositories
 {
     public class EvaluationsRepository
     {
-        private readonly string _connectionString = AppSettings.ConnectionString;
+        private readonly string connectionString = AppSettings.ConnectionString;
 
         public List<Appointment> GetAppointmentsByDoctor(int doctorId)
         {
@@ -20,7 +20,7 @@ namespace DevCoreHospital.Repositories
                            WHERE doctor_id = @DocId AND status = 'Confirmed'
                            ORDER BY start_time ASC";
 
-            using (SqlConnection conn = new SqlConnection(_connectionString))
+            using (SqlConnection conn = new SqlConnection(connectionString))
             {
                 using (SqlCommand cmd = new SqlCommand(sql, conn))
                 {
@@ -56,7 +56,7 @@ namespace DevCoreHospital.Repositories
             int patientId = int.TryParse(record.PatientId, out var parsedPatientId) ? parsedPatientId : 0;
             bool assumedRisk = (record.Symptoms ?? string.Empty).IndexOf("[RISK]", StringComparison.OrdinalIgnoreCase) >= 0;
 
-            using (SqlConnection conn = new SqlConnection(_connectionString))
+            using (SqlConnection conn = new SqlConnection(connectionString))
             {
                 using (SqlCommand cmd = new SqlCommand(sql, conn))
                 {
@@ -83,9 +83,12 @@ namespace DevCoreHospital.Repositories
                            WHERE doctor_id = @DocId
                            ORDER BY evaluation_id DESC";
 
-            if (!int.TryParse(doctorId, out var parsedDoctorId)) return results;
+            if (!int.TryParse(doctorId, out var parsedDoctorId))
+            {
+                return results;
+            }
 
-            using (SqlConnection conn = new SqlConnection(_connectionString))
+            using (SqlConnection conn = new SqlConnection(connectionString))
             {
                 using (SqlCommand cmd = new SqlCommand(sql, conn))
                 {
@@ -120,7 +123,7 @@ namespace DevCoreHospital.Repositories
         public void DeleteEvaluation(int evaluationId)
         {
             string sql = "DELETE FROM Medical_Evaluations WHERE evaluation_id = @Id";
-            using (SqlConnection conn = new SqlConnection(_connectionString))
+            using (SqlConnection conn = new SqlConnection(connectionString))
             {
                 using (SqlCommand cmd = new SqlCommand(sql, conn))
                 {
@@ -137,7 +140,7 @@ namespace DevCoreHospital.Repositories
                            FROM Shifts 
                            WHERE staff_id = @DocId AND end_time >= DATEADD(day, -1, GETDATE())";
 
-            using (SqlConnection conn = new SqlConnection(_connectionString))
+            using (SqlConnection conn = new SqlConnection(connectionString))
             {
                 using (SqlCommand cmd = new SqlCommand(sql, conn))
                 {
@@ -151,7 +154,7 @@ namespace DevCoreHospital.Repositories
 
         public DevCoreHospital.Models.Doctor? GetDoctorById(int id)
         {
-            using var conn = new SqlConnection(_connectionString);
+            using var conn = new SqlConnection(connectionString);
             using var cmd = new SqlCommand("SELECT staff_id, first_name, last_name FROM Staff WHERE staff_id = @Id", conn);
             cmd.Parameters.AddWithValue("@Id", id);
             conn.Open();
@@ -160,15 +163,15 @@ namespace DevCoreHospital.Repositories
             {
                 return new DevCoreHospital.Models.Doctor(
                     Convert.ToInt32(reader["staff_id"]),
-                    reader["first_name"].ToString() ?? "",
-                    reader["last_name"].ToString() ?? "",
-                    "", // ContactInfo
-                    "", // Specialization
-                    true, // Available
-                    "", // LicenseNumber
-                    "Available", // StatusString
+                    reader["first_name"].ToString() ?? string.Empty,
+                    reader["last_name"].ToString() ?? string.Empty,
+                    string.Empty,
+                    string.Empty,
+                    true,
+                    string.Empty,
+                    "Available",
                     DoctorStatus.AVAILABLE,
-                    0); // yearsOfExp
+                    0);
             }
             return null;
         }
@@ -176,7 +179,7 @@ namespace DevCoreHospital.Repositories
         public List<DevCoreHospital.Models.Doctor> GetAllDoctors()
         {
             var doctors = new List<DevCoreHospital.Models.Doctor>();
-            using (SqlConnection conn = new SqlConnection(_connectionString))
+            using (SqlConnection conn = new SqlConnection(connectionString))
             {
                 string sql = "SELECT staff_id, first_name, last_name FROM Staff WHERE role = 'Doctor'";
                 using (SqlCommand cmd = new SqlCommand(sql, conn))
@@ -188,15 +191,15 @@ namespace DevCoreHospital.Repositories
                         {
                             doctors.Add(new DevCoreHospital.Models.Doctor(
                                 Convert.ToInt32(reader["staff_id"]),
-                                reader["first_name"].ToString() ?? "",
-                                reader["last_name"].ToString() ?? "",
-                                "", 
-                                "", 
-                                true, 
-                                "", 
-                                "Available", 
+                                reader["first_name"].ToString() ?? string.Empty,
+                                reader["last_name"].ToString() ?? string.Empty,
+                                string.Empty,
+                                string.Empty,
+                                true,
+                                string.Empty,
+                                "Available",
                                 DoctorStatus.AVAILABLE,
-                                0)); 
+                                0));
                         }
                     }
                 }
@@ -206,7 +209,7 @@ namespace DevCoreHospital.Repositories
 
         public string? GetHighRiskMedicineWarning(string medicineName)
         {
-            using (SqlConnection conn = new SqlConnection(_connectionString))
+            using (SqlConnection conn = new SqlConnection(connectionString))
             {
                 conn.Open();
                 using var cmd = new SqlCommand("SELECT warning_message FROM High_Risk_Medicines WHERE medicine_name = @Name", conn);
@@ -218,9 +221,8 @@ namespace DevCoreHospital.Repositories
 
         public string? CheckPatientHistoryForRisk(string patientId, string currentMeds)
         {
-            using (SqlConnection conn = new SqlConnection(_connectionString))
+            using (SqlConnection conn = new SqlConnection(connectionString))
             {
-
                 string sql = @"SELECT diagnosis, medications FROM Medical_Evaluations 
                        WHERE patient_id = @PatId 
                        AND (diagnosis LIKE '%Allergy%' 
@@ -236,7 +238,7 @@ namespace DevCoreHospital.Repositories
                     {
                         while (reader.Read())
                         {
-                            string pastMeds = reader["medications"].ToString() ?? "";
+                            string pastMeds = reader["medications"].ToString() ?? string.Empty;
 
                             if (!string.IsNullOrEmpty(currentMeds) && pastMeds.Contains(currentMeds, StringComparison.OrdinalIgnoreCase))
                             {
@@ -248,6 +250,5 @@ namespace DevCoreHospital.Repositories
             }
             return null;
         }
-
     }
 }

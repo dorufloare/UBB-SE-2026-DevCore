@@ -1,5 +1,5 @@
-using System;
 using System.Globalization;
+using System;
 using DevCoreHospital.Models;
 
 namespace DevCoreHospital.ViewModels.Pharmacy;
@@ -32,10 +32,16 @@ public sealed class PharmacyShiftItemViewModel
         get
         {
             if (!ShiftEndTime.HasValue)
+            {
                 return "Open-ended";
+            }
+
             var span = ShiftEndTime.Value - ShiftStartTime;
             if (span.TotalMinutes <= 0)
+            {
                 return "—";
+            }
+
             return $"{(int)span.TotalHours}h {span.Minutes}m";
         }
     }

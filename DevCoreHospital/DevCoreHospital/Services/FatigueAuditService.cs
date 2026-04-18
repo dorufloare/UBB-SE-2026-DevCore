@@ -1,8 +1,8 @@
-﻿using DevCoreHospital.Models;
-using DevCoreHospital.Repositories;
-using System;
 using System.Collections.Generic;
 using System.Linq;
+using System;
+using DevCoreHospital.Models;
+using DevCoreHospital.Repositories;
 
 namespace DevCoreHospital.Services
 {
@@ -11,16 +11,16 @@ namespace DevCoreHospital.Services
         private const double MaxWeeklyHours = 60.0;
         private static readonly TimeSpan MinRestGap = TimeSpan.FromHours(12);
 
-        private readonly IFatigueAuditRepository _repository;
+        private readonly IFatigueAuditRepository repository;
 
         public FatigueAuditService(IFatigueAuditRepository repository)
         {
-            _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+            this.repository = repository ?? throw new ArgumentNullException(nameof(repository));
         }
 
         public bool ReassignShift(int shiftId, int newStaffId)
         {
-            return _repository.ReassignShift(shiftId, newStaffId);
+            return repository.ReassignShift(shiftId, newStaffId);
         }
 
         public AutoAuditResult RunAutoAudit(DateTime weekStart)
@@ -28,7 +28,7 @@ namespace DevCoreHospital.Services
             var normalizedWeekStart = StartOfWeek(weekStart);
             var normalizedWeekEnd = normalizedWeekStart.AddDays(7);
 
-            var allShifts = _repository.GetAllShifts()
+            var allShifts = repository.GetAllShifts()
                 .Where(IsAuditableShift)
                 .ToList();
 
@@ -38,7 +38,7 @@ namespace DevCoreHospital.Services
                 .ThenBy(s => s.Start)
                 .ToList();
 
-            var staffProfiles = _repository.GetStaffProfiles()
+            var staffProfiles = repository.GetStaffProfiles()
                 .Where(IsEligibleStaff)
                 .ToList();
             var violations = new List<AuditViolation>();
@@ -127,7 +127,9 @@ namespace DevCoreHospital.Services
             foreach (var violation in violations)
             {
                 if (!weeklyById.TryGetValue(violation.ShiftId, out var violatingShift))
+                {
                     continue;
+                }
 
                 var violatingShiftInPlan = effectiveShifts.FirstOrDefault(s => s.Id == violatingShift.Id) ?? violatingShift;
                 var strictCandidates = staffProfiles
@@ -192,7 +194,9 @@ namespace DevCoreHospital.Services
         private static bool CanTakeShift(int candidateStaffId, RosterShift proposed, IReadOnlyList<RosterShift> allShifts, DateTime weekStart)
         {
             if (HasOverlap(candidateStaffId, proposed, allShifts))
+            {
                 return false;
+            }
 
             var candidateShifts = allShifts
                 .Where(s => s.StaffId == candidateStaffId && s.Id != proposed.Id)
@@ -201,11 +205,15 @@ namespace DevCoreHospital.Services
 
             var previousShift = candidateShifts.LastOrDefault(s => s.End <= proposed.Start);
             if (previousShift != null && (proposed.Start - previousShift.End) < MinRestGap)
+            {
                 return false;
+            }
 
             var nextShift = candidateShifts.FirstOrDefault(s => s.Start >= proposed.End);
             if (nextShift != null && (nextShift.Start - proposed.End) < MinRestGap)
+            {
                 return false;
+            }
 
             var weekEnd = weekStart.AddDays(7);
             var existingHours = candidateShifts.Sum(s => GetOverlapHours(s.Start, s.End, weekStart, weekEnd));
@@ -217,7 +225,9 @@ namespace DevCoreHospital.Services
         {
             var shift = allShifts.FirstOrDefault(s => s.Id == shiftId);
             if (shift is null)
+            {
                 return;
+            }
 
             shift.StaffId = newStaffId;
             shift.StaffName = newStaffName;

@@ -1,5 +1,5 @@
-﻿using DevCoreHospital.Models;
-using System;
+﻿using System;
+using DevCoreHospital.Models;
 
 namespace DevCoreHospital.Services
 {

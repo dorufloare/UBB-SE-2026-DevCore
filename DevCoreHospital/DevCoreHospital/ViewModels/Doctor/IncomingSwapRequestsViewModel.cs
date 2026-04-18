@@ -1,38 +1,40 @@
-﻿using DevCoreHospital.Models;
-using DevCoreHospital.Services;
-using DevCoreHospital.ViewModels;
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
+using DevCoreHospital.Models;
+using DevCoreHospital.Services;
+using DevCoreHospital.ViewModels;
 
 namespace DevCoreHospital.ViewModels.Doctor
 {
     public sealed class IncomingSwapRequestsViewModel : INotifyPropertyChanged
     {
-        private readonly IStaffAndShiftService _service;
+        private readonly IStaffAndShiftService service;
 
-        public ObservableCollection<IncomingSwapRequestItemViewModel> Requests { get; } = new();
+        public ObservableCollection<IncomingSwapRequestItemViewModel> Requests { get; } = new ObservableCollection<IncomingSwapRequestItemViewModel>();
 
-        private DoctorOptionViewModel? _selectedDoctor;
+        private DoctorOptionViewModel? selectedDoctor;
         public DoctorOptionViewModel? SelectedDoctor
         {
-            get => _selectedDoctor;
+            get => selectedDoctor;
             set
             {
-                if (SetProperty(ref _selectedDoctor, value))
+                if (SetProperty(ref selectedDoctor, value))
+                {
                     LoadRequests();
+                }
             }
         }
 
-        public ObservableCollection<DoctorOptionViewModel> Doctors { get; } = new();
+        public ObservableCollection<DoctorOptionViewModel> Doctors { get; } = new ObservableCollection<DoctorOptionViewModel>();
 
-        private string _statusMessage = string.Empty;
+        private string statusMessage = string.Empty;
         public string StatusMessage
         {
-            get => _statusMessage;
-            set => SetProperty(ref _statusMessage, value);
+            get => statusMessage;
+            set => SetProperty(ref statusMessage, value);
         }
 
         public ICommand RefreshCommand { get; }
@@ -41,23 +43,30 @@ namespace DevCoreHospital.ViewModels.Doctor
 
         public IncomingSwapRequestsViewModel(IStaffAndShiftService service, System.Collections.Generic.IEnumerable<DoctorOptionViewModel> doctors)
         {
-            _service = service;
+            this.service = service;
 
-            foreach (var d in doctors) Doctors.Add(d);
-            if (Doctors.Count > 0) SelectedDoctor = Doctors[0];
+            foreach (var d in doctors)
+            {
+                Doctors.Add(d);
+            }
+
+            if (Doctors.Count > 0)
+            {
+                SelectedDoctor = Doctors[0];
+            }
 
             RefreshCommand = new RelayCommand(LoadRequests, () => SelectedDoctor != null);
             AcceptCommand = new RelayCommand(AcceptSelected, CanProcessSelected);
             RejectCommand = new RelayCommand(RejectSelected, CanProcessSelected);
         }
 
-        private IncomingSwapRequestItemViewModel? _selectedRequest;
+        private IncomingSwapRequestItemViewModel? selectedRequest;
         public IncomingSwapRequestItemViewModel? SelectedRequest
         {
-            get => _selectedRequest;
+            get => selectedRequest;
             set
             {
-                if (SetProperty(ref _selectedRequest, value))
+                if (SetProperty(ref selectedRequest, value))
                 {
                     (AcceptCommand as RelayCommand)?.RaiseCanExecuteChanged();
                     (RejectCommand as RelayCommand)?.RaiseCanExecuteChanged();
@@ -69,18 +78,32 @@ namespace DevCoreHospital.ViewModels.Doctor
 
         private void AcceptSelected()
         {
-            if (SelectedDoctor == null || SelectedRequest == null) return;
-            var ok = _service.AcceptSwapRequest(SelectedRequest.SwapId, SelectedDoctor.StaffId, out var msg);
+            if (SelectedDoctor == null || SelectedRequest == null)
+            {
+                return;
+            }
+
+            var ok = service.AcceptSwapRequest(SelectedRequest.SwapId, SelectedDoctor.StaffId, out var msg);
             StatusMessage = msg;
-            if (ok) LoadRequests();
+            if (ok)
+            {
+                LoadRequests();
+            }
         }
 
         private void RejectSelected()
         {
-            if (SelectedDoctor == null || SelectedRequest == null) return;
-            var ok = _service.RejectSwapRequest(SelectedRequest.SwapId, SelectedDoctor.StaffId, out var msg);
+            if (SelectedDoctor == null || SelectedRequest == null)
+            {
+                return;
+            }
+
+            var ok = service.RejectSwapRequest(SelectedRequest.SwapId, SelectedDoctor.StaffId, out var msg);
             StatusMessage = msg;
-            if (ok) LoadRequests();
+            if (ok)
+            {
+                LoadRequests();
+            }
         }
 
         private void LoadRequests()
@@ -93,7 +116,7 @@ namespace DevCoreHospital.ViewModels.Doctor
                 return;
             }
 
-            var list = _service.GetIncomingSwapRequests(SelectedDoctor.StaffId);
+            var list = service.GetIncomingSwapRequests(SelectedDoctor.StaffId);
             foreach (var r in list)
             {
                 Requests.Add(new IncomingSwapRequestItemViewModel
@@ -102,7 +125,7 @@ namespace DevCoreHospital.ViewModels.Doctor
                     ShiftId = r.ShiftId,
                     RequesterId = r.RequesterId,
                     RequestedAt = r.RequestedAt,
-                    Status = r.Status.ToString()
+                    Status = r.Status.ToString(),
                 });
             }
 
@@ -113,7 +136,11 @@ namespace DevCoreHospital.ViewModels.Doctor
         public event PropertyChangedEventHandler? PropertyChanged;
         private bool SetProperty<T>(ref T field, T value, [CallerMemberName] string propertyName = "")
         {
-            if (Equals(field, value)) return false;
+            if (Equals(field, value))
+            {
+                return false;
+            }
+
             field = value;
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
             return true;

@@ -1,10 +1,10 @@
-﻿using DevCoreHospital.Data;
 using DevCoreHospital.Configuration;
+using DevCoreHospital.Data;
+using DevCoreHospital.Repositories;
 using DevCoreHospital.Services;
 using DevCoreHospital.ViewModels;
-using DevCoreHospital.Repositories;
-using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml;
 
 namespace DevCoreHospital.Views
 {

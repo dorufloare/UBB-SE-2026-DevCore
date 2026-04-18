@@ -1,5 +1,5 @@
-﻿using DevCoreHospital.Models;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using DevCoreHospital.Models;
 
 namespace DevCoreHospital.Data
 {

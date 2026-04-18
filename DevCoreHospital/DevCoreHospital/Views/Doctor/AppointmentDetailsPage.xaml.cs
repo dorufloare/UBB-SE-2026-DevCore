@@ -1,19 +1,19 @@
-﻿using DevCoreHospital.Configuration;
+using System;
+using DevCoreHospital.Configuration;
 using DevCoreHospital.Data;
 using DevCoreHospital.Models;
 using DevCoreHospital.Repositories;
 using DevCoreHospital.Services;
-using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
-using System;
+using Microsoft.UI.Xaml;
 
 namespace DevCoreHospital.Views
 {
     public sealed partial class AppointmentDetailsPage : Page
     {
-        private Appointment _currentAppointment;
-        private DoctorAppointmentService _service;
+        private Appointment currentAppointment;
+        private DoctorAppointmentService service;
 
         public AppointmentDetailsPage()
         {
@@ -21,7 +21,7 @@ namespace DevCoreHospital.Views
 
             var dbManager = new DatabaseManager(AppSettings.ConnectionString);
             var repo = new AppointmentRepository(dbManager);
-            _service = new DoctorAppointmentService(repo);
+            service = new DoctorAppointmentService(repo);
         }
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
@@ -30,23 +30,23 @@ namespace DevCoreHospital.Views
 
             if (e.Parameter is Appointment appt)
             {
-                _currentAppointment = appt;
+                currentAppointment = appt;
                 PopulateData();
             }
         }
 
         private void PopulateData()
         {
-            PatientNameText.Text = _currentAppointment.PatientName;
-            DoctorNameText.Text = _currentAppointment.DoctorName;
-            DateText.Text = _currentAppointment.Date.ToString("yyyy-MM-dd");
-            TimeText.Text = $"{_currentAppointment.StartTime:hh\\:mm} - {_currentAppointment.EndTime:hh\\:mm}";
-            StatusText.Text = _currentAppointment.Status;
+            PatientNameText.Text = currentAppointment.PatientName;
+            DoctorNameText.Text = currentAppointment.DoctorName;
+            DateText.Text = currentAppointment.Date.ToString("yyyy-MM-dd");
+            TimeText.Text = $"{currentAppointment.StartTime:hh\\:mm} - {currentAppointment.EndTime:hh\\:mm}";
+            StatusText.Text = currentAppointment.Status;
         }
 
         private async void FinishBtn_Click(object sender, RoutedEventArgs e)
         {
-            if (_currentAppointment.Status == "Finished")
+            if (currentAppointment.Status == "Finished")
             {
                 ShowMessage("This appointment is already finished.", InfoBarSeverity.Warning);
                 return;
@@ -54,9 +54,9 @@ namespace DevCoreHospital.Views
 
             try
             {
-                await _service.FinishAppointmentAsync(_currentAppointment);
+                await service.FinishAppointmentAsync(currentAppointment);
 
-                _currentAppointment.Status = "Finished";
+                currentAppointment.Status = "Finished";
                 PopulateData();
                 ShowMessage("Appointment finished successfully! Doctor status updated.", InfoBarSeverity.Success);
             }

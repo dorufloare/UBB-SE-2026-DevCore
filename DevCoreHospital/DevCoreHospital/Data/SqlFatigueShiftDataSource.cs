@@ -1,29 +1,27 @@
-﻿using DevCoreHospital.Configuration;
-using DevCoreHospital.Models;
-using Microsoft.Data.SqlClient;
 using System;
 using System.Collections.Generic;
+using DevCoreHospital.Configuration;
+using DevCoreHospital.Models;
+using Microsoft.Data.SqlClient;
 
 namespace DevCoreHospital.Data
 {
-  
     public sealed class SqlFatigueShiftDataSource : IFatigueShiftDataSource
     {
-        private readonly string _connectionString;
+        private readonly string connectionString;
 
         public SqlFatigueShiftDataSource(string? connectionString = null)
         {
-            _connectionString = string.IsNullOrWhiteSpace(connectionString)
+            this.connectionString = string.IsNullOrWhiteSpace(connectionString)
                 ? AppSettings.ConnectionString
                 : connectionString;
         }
 
-        
         public IReadOnlyList<RosterShift> GetAllShifts()
         {
             var shifts = new List<RosterShift>();
 
-            using (SqlConnection connection = new SqlConnection(_connectionString))
+            using (SqlConnection connection = new SqlConnection(connectionString))
             {
                 connection.Open();
                 using (SqlCommand command = connection.CreateCommand())
@@ -53,7 +51,7 @@ namespace DevCoreHospital.Data
                                 Specialization = reader.IsDBNull(4) ? string.Empty : reader.GetString(4),
                                 Start = reader.GetDateTime(5),
                                 End = reader.GetDateTime(6),
-                                Status = reader.IsDBNull(7) ? null : reader.GetString(7)
+                                Status = reader.IsDBNull(7) ? null : reader.GetString(7),
                             });
                         }
                     }
@@ -63,12 +61,11 @@ namespace DevCoreHospital.Data
             return shifts;
         }
 
-        
         public IReadOnlyList<StaffProfile> GetStaffProfiles()
         {
             var profiles = new List<StaffProfile>();
 
-            using (SqlConnection connection = new SqlConnection(_connectionString))
+            using (SqlConnection connection = new SqlConnection(connectionString))
             {
                 connection.Open();
                 var staffSchema = GetStaffSchemaCapabilities(connection);
@@ -107,7 +104,7 @@ namespace DevCoreHospital.Data
                                 Specialization = reader.IsDBNull(3) ? string.Empty : reader.GetString(3),
                                 IsAvailable = reader.IsDBNull(4) ? null : reader.GetBoolean(4),
                                 IsActive = reader.IsDBNull(5) ? null : reader.GetBoolean(5),
-                                Status = reader.IsDBNull(6) ? null : reader.GetString(6)
+                                Status = reader.IsDBNull(6) ? null : reader.GetString(6),
                             });
                         }
                     }
@@ -117,10 +114,9 @@ namespace DevCoreHospital.Data
             return profiles;
         }
 
-        
         public bool ReassignShift(int shiftId, int newStaffId)
         {
-            using (SqlConnection connection = new SqlConnection(_connectionString))
+            using (SqlConnection connection = new SqlConnection(connectionString))
             {
                 connection.Open();
                 using (SqlTransaction transaction = connection.BeginTransaction())
@@ -148,7 +144,6 @@ namespace DevCoreHospital.Data
             }
         }
 
-        
         private static StaffSchemaCapabilities GetStaffSchemaCapabilities(SqlConnection connection, SqlTransaction? transaction = null)
         {
             return new StaffSchemaCapabilities(
@@ -174,7 +169,6 @@ namespace DevCoreHospital.Data
             }
         }
 
-      
         private static void AddParameter(SqlCommand command, string name, object value)
         {
             var parameter = command.CreateParameter();
@@ -183,7 +177,6 @@ namespace DevCoreHospital.Data
             command.Parameters.Add(parameter);
         }
 
-       
         private sealed class StaffSchemaCapabilities
         {
             public StaffSchemaCapabilities(bool hasIsActive, bool hasIsAvailable, bool hasStatus)

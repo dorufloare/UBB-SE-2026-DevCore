@@ -1,10 +1,10 @@
-using DevCoreHospital.Data;
+using System;
 using DevCoreHospital.Configuration;
+using DevCoreHospital.Data;
 using DevCoreHospital.Repositories;
 using DevCoreHospital.Services;
 using DevCoreHospital.ViewModels.Pharmacy;
 using Microsoft.UI.Xaml.Controls;
-using System;
 
 namespace DevCoreHospital.Views.Pharmacy;
 
@@ -37,13 +37,17 @@ public sealed partial class PharmacySchedulePage : Page
     private void DateCalendar_SelectedDatesChanged(CalendarView sender, CalendarViewSelectedDatesChangedEventArgs args)
     {
         if (sender.SelectedDates == null || sender.SelectedDates.Count == 0)
+        {
             return;
+        }
 
         var picked = sender.SelectedDates[0].Date;
         var minSqlDate = new DateTime(1753, 1, 1);
 
         if (picked < minSqlDate)
+        {
             return;
+        }
 
         ViewModel.AnchorDate = picked;
     }
