@@ -1,108 +1,65 @@
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
-using DevCoreHospital.Configuration;
-using DevCoreHospital.Data;
 using DevCoreHospital.Models;
-using DevCoreHospital.Repositories;
 using DevCoreHospital.Services;
+using DevCoreHospital.Repositories;
 using DevCoreHospital.ViewModels.Base;
+using DevCoreHospital.Configuration; // Needed for AppSettings
+using DevCoreHospital.Data;
 
 namespace DevCoreHospital.ViewModels.Doctor
 {
     public class HangoutViewModel : ObservableObject
     {
-        private readonly IHangoutService hangoutService;
-        private readonly DatabaseManager dbManager;
+        private readonly IHangoutService _hangoutService;
+        private readonly DatabaseManager _dbManager; // Added DatabaseManager
 
         public ObservableCollection<Hangout> Hangouts { get; } = new ObservableCollection<Hangout>();
 
-        public ObservableCollection<DoctorScheduleViewModel.DoctorOption> Doctors { get; } = new ObservableCollection<DoctorScheduleViewModel.DoctorOption>();
+        // Add Doctor Collection and Selected Doctor
+        public ObservableCollection<DoctorScheduleViewModel.DoctorOption> Doctors { get; } = new();
 
-        private DoctorScheduleViewModel.DoctorOption? selectedDoctor;
+        private DoctorScheduleViewModel.DoctorOption? _selectedDoctor;
         public DoctorScheduleViewModel.DoctorOption? SelectedDoctor
         {
-            get => selectedDoctor;
-            set
-            {
-                SetProperty(ref selectedDoctor, value);
-                CreateCommand.RaiseCanExecuteChanged();
-            }
+            get => _selectedDoctor;
+            set { SetProperty(ref _selectedDoctor, value); CreateCommand.RaiseCanExecuteChanged(); }
         }
 
-        private string title = string.Empty;
-        public string Title
-        {
-            get => title;
-            set
-            {
-                SetProperty(ref title, value);
-                CreateCommand.RaiseCanExecuteChanged();
-            }
-        }
+        private string _title = string.Empty;
+        public string Title { get => _title; set { SetProperty(ref _title, value); CreateCommand.RaiseCanExecuteChanged(); } }
 
-        private string description = string.Empty;
-        public string Description
-        {
-            get => description;
-            set
-            {
-                SetProperty(ref description, value);
-                CreateCommand.RaiseCanExecuteChanged();
-            }
-        }
+        private string _description = string.Empty;
+        public string Description { get => _description; set { SetProperty(ref _description, value); CreateCommand.RaiseCanExecuteChanged(); } }
 
-        private DateTimeOffset selectedDate = DateTimeOffset.Now.AddDays(7);
-        public DateTimeOffset SelectedDate
-        {
-            get => selectedDate;
-            set
-            {
-                SetProperty(ref selectedDate, value);
-                CreateCommand.RaiseCanExecuteChanged();
-            }
-        }
+        private DateTimeOffset _selectedDate = DateTimeOffset.Now.AddDays(7);
+        public DateTimeOffset SelectedDate { get => _selectedDate; set { SetProperty(ref _selectedDate, value); CreateCommand.RaiseCanExecuteChanged(); } }
 
-        private int maxParticipants = 5;
-        public int MaxParticipants
-        {
-            get => maxParticipants;
-            set
-            {
-                SetProperty(ref maxParticipants, value);
-                CreateCommand.RaiseCanExecuteChanged();
-            }
-        }
+        private int _maxParticipants = 5;
+        public int MaxParticipants { get => _maxParticipants; set { SetProperty(ref _maxParticipants, value); CreateCommand.RaiseCanExecuteChanged(); } }
 
         public ObservableCollection<int> MaxParticipantsOptions { get; } = new ObservableCollection<int> { 2, 3, 4, 5, 10, 15, 20 };
 
-        private string errorMessage = string.Empty;
-        public string ErrorMessage
-        {
-            get => errorMessage;
-            set => SetProperty(ref errorMessage, value);
-        }
+        private string _errorMessage = string.Empty;
+        public string ErrorMessage { get => _errorMessage; set => SetProperty(ref _errorMessage, value); }
 
-        private string successMessage = string.Empty;
-        public string SuccessMessage
-        {
-            get => successMessage;
-            set => SetProperty(ref successMessage, value);
-        }
+        private string _successMessage = string.Empty;
+        public string SuccessMessage { get => _successMessage; set => SetProperty(ref _successMessage, value); }
 
         public RelayCommand CreateCommand { get; }
 
-        private static HangoutRepository globalRepo = new HangoutRepository();
+        private static HangoutRepository _globalRepo = new HangoutRepository();
 
         public HangoutViewModel()
         {
-            hangoutService = new HangoutService(globalRepo);
-            dbManager = new DatabaseManager(AppSettings.ConnectionString);
+            _hangoutService = new HangoutService(_globalRepo);
+            _dbManager = new DatabaseManager(AppSettings.ConnectionString); // Initialize DB Manager
 
             CreateCommand = new RelayCommand(CreateHangout, CanCreateHangout);
             LoadHangouts();
-            _ = LoadDoctorsAsync();
+            _ = LoadDoctorsAsync(); // Load Doctors when VM initializes
         }
 
         private async Task LoadDoctorsAsync()
@@ -110,15 +67,15 @@ namespace DevCoreHospital.ViewModels.Doctor
             Doctors.Clear();
             try
             {
-                var allDoctors = await dbManager.GetAllDoctorsAsync();
-                foreach (var d in allDoctors.OrderBy(x => x.DoctorName))
+                var allDoctors = await _dbManager.GetAllDoctorsAsync();
+                foreach (var doctor in allDoctors.OrderBy(doctor => doctor.DoctorName))
                 {
                     Doctors.Add(new DoctorScheduleViewModel.DoctorOption
                     {
-                        DoctorId = d.DoctorId,
-                        DoctorName = d.DoctorName,
-                        FirstName = DoctorScheduleViewModel.DoctorOption.SplitFirstLast(d.DoctorName).FirstName,
-                        LastName = DoctorScheduleViewModel.DoctorOption.SplitFirstLast(d.DoctorName).LastName,
+                        DoctorId = doctor.DoctorId,
+                        DoctorName = doctor.DoctorName,
+                        FirstName = DoctorScheduleViewModel.DoctorOption.SplitFirstLast(doctor.DoctorName).FirstName,
+                        LastName = DoctorScheduleViewModel.DoctorOption.SplitFirstLast(doctor.DoctorName).LastName
                     });
                 }
 
@@ -136,12 +93,13 @@ namespace DevCoreHospital.ViewModels.Doctor
         private void LoadHangouts()
         {
             Hangouts.Clear();
-            foreach (var h in hangoutService.GetAllHangouts())
+            foreach (var hangout in _hangoutService.GetAllHangouts())
             {
-                Hangouts.Add(h);
+                Hangouts.Add(hangout);
             }
         }
 
+        // Must have a title, description, and a doctor selected
         private bool CanCreateHangout() => Title.Length >= 5 && Title.Length <= 25 && Description.Length <= 100 && SelectedDoctor != null;
 
         private void CreateHangout()
@@ -150,14 +108,15 @@ namespace DevCoreHospital.ViewModels.Doctor
             SuccessMessage = string.Empty;
             try
             {
+                // Create a doctor object based on the SelectedDoctor dropdown
                 var currentDoctor = new Models.Doctor
                 {
                     StaffID = SelectedDoctor!.DoctorId,
                     FirstName = SelectedDoctor.FirstName,
-                    LastName = SelectedDoctor.LastName,
+                    LastName = SelectedDoctor.LastName
                 };
 
-                hangoutService.CreateHangout(Title, Description, SelectedDate.DateTime, MaxParticipants, currentDoctor);
+                _hangoutService.CreateHangout(Title, Description, SelectedDate.DateTime, MaxParticipants, currentDoctor);
                 SuccessMessage = "Hangout created successfully!";
                 LoadHangouts();
 
@@ -183,14 +142,15 @@ namespace DevCoreHospital.ViewModels.Doctor
 
             try
             {
+                // Create a doctor object based on the SelectedDoctor dropdown
                 var currentDoctor = new Models.Doctor
                 {
                     StaffID = SelectedDoctor.DoctorId,
                     FirstName = SelectedDoctor.FirstName,
-                    LastName = SelectedDoctor.LastName,
+                    LastName = SelectedDoctor.LastName
                 };
 
-                hangoutService.JoinHangout(id, currentDoctor);
+                _hangoutService.JoinHangout(id, currentDoctor);
                 SuccessMessage = "Joined hangout successfully!";
                 LoadHangouts();
             }

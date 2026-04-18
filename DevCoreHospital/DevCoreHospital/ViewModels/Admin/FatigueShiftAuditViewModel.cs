@@ -1,29 +1,29 @@
+﻿using DevCoreHospital.Services;
+using DevCoreHospital.ViewModels.Base;
+using Microsoft.UI;
+using Microsoft.UI.Xaml.Media;
 using System;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
-using DevCoreHospital.Services;
-using DevCoreHospital.ViewModels.Base;
-using Microsoft.UI;
-using Microsoft.UI.Xaml.Media;
 
 namespace DevCoreHospital.ViewModels
 {
     public sealed class FatigueShiftAuditViewModel : ObservableObject
     {
-        private readonly IFatigueAuditService auditService;
+        private readonly IFatigueAuditService _auditService;
 
-        public ObservableCollection<AuditViolationRow> Violations { get; } = new ObservableCollection<AuditViolationRow>();
-        public ObservableCollection<AutoSuggestRow> Suggestions { get; } = new ObservableCollection<AutoSuggestRow>();
+        public ObservableCollection<AuditViolationRow> Violations { get; } = new();
+        public ObservableCollection<AutoSuggestRow> Suggestions { get; } = new();
 
-        private DateTimeOffset selectedWeekStart = new DateTimeOffset(StartOfWeek(DateTime.Today));
+        private DateTimeOffset _selectedWeekStart = new DateTimeOffset(StartOfWeek(DateTime.Today));
         public DateTimeOffset SelectedWeekStart
         {
-            get => selectedWeekStart;
+            get => _selectedWeekStart;
             set
             {
                 var normalized = new DateTimeOffset(StartOfWeek(value.Date));
-                if (SetProperty(ref selectedWeekStart, normalized))
+                if (SetProperty(ref _selectedWeekStart, normalized))
                 {
                     RaisePropertyChanged(nameof(WeekLabel));
                     RunAutoAuditCommand.RaiseCanExecuteChanged();
@@ -40,20 +40,20 @@ namespace DevCoreHospital.ViewModels
             }
         }
 
-        private string statusMessage = "Run Auto-Audit to validate this roster.";
+        private string _statusMessage = "Run Auto-Audit to validate this roster.";
         public string StatusMessage
         {
-            get => statusMessage;
-            set => SetProperty(ref statusMessage, value);
+            get => _statusMessage;
+            set => SetProperty(ref _statusMessage, value);
         }
 
-        private bool canPublish;
+        private bool _canPublish = false;
         public bool CanPublish
         {
-            get => canPublish;
+            get => _canPublish;
             private set
             {
-                if (SetProperty(ref canPublish, value))
+                if (SetProperty(ref _canPublish, value))
                 {
                     RaisePropertyChanged(nameof(PublishStatus));
                     RaisePropertyChanged(nameof(PublishStatusColor));
@@ -64,19 +64,19 @@ namespace DevCoreHospital.ViewModels
 
         public string PublishStatus => CanPublish ? "Publish status: READY" : "Publish status: BLOCKED";
 
-        public Brush PublishStatusColor => CanPublish
-            ? new SolidColorBrush(Colors.Green)
+        public Brush PublishStatusColor => CanPublish 
+            ? new SolidColorBrush(Colors.Green) 
             : new SolidColorBrush(Colors.Red);
 
         public string PublishStatusDescription => CanPublish
-            ? "? No violations detected. Roster is ready to publish."
+            ? "✓ No violations detected. Roster is ready to publish."
             : "Roster cannot be published while violations exist. Run audit and resolve all conflicts.";
 
         public RelayCommand RunAutoAuditCommand { get; }
 
         public FatigueShiftAuditViewModel(IFatigueAuditService auditService)
         {
-            this.auditService = auditService;
+            _auditService = auditService;
             RunAutoAuditCommand = new RelayCommand(RunAutoAudit);
 
             RunAutoAudit();
@@ -84,34 +84,34 @@ namespace DevCoreHospital.ViewModels
 
         public void RunAutoAudit()
         {
-            var result = auditService.RunAutoAudit(SelectedWeekStart.Date);
+            var result = _auditService.RunAutoAudit(SelectedWeekStart.Date);
             var englishCulture = CultureInfo.GetCultureInfo("en-US");
 
             Violations.Clear();
-            foreach (var v in result.Violations.OrderBy(x => x.ShiftStart))
+            foreach (var violation in result.Violations.OrderBy(violation => violation.ShiftStart))
             {
                 Violations.Add(new AuditViolationRow
                 {
-                    ShiftId = v.ShiftId,
-                    Staff = v.StaffName,
-                    Window = $"{v.ShiftStart.ToString("ddd HH:mm", englishCulture)} - {v.ShiftEnd.ToString("ddd HH:mm", englishCulture)}",
-                    Rule = v.Rule,
-                    Message = v.Message,
+                    ShiftId = violation.ShiftId,
+                    Staff = violation.StaffName,
+                    Window = $"{violation.ShiftStart.ToString("ddd HH:mm", englishCulture)} - {violation.ShiftEnd.ToString("ddd HH:mm", englishCulture)}",
+                    Rule = violation.Rule,
+                    Message = violation.Message
                 });
             }
 
             Suggestions.Clear();
-            foreach (var s in result.Suggestions.OrderBy(x => x.ShiftId))
+            foreach (var suggestion in result.Suggestions.OrderBy(suggestion => suggestion.ShiftId))
             {
                 Suggestions.Add(new AutoSuggestRow
                 {
-                    ShiftId = s.ShiftId,
-                    ReassignText = s.SuggestedStaffId.HasValue
-                        ? $"Shift #{s.ShiftId}: {s.OriginalStaffName} -> {s.SuggestedStaffName}"
-                        : $"Shift #{s.ShiftId}: no replacement candidate",
-                    Reason = s.Reason,
-                    SuggestedStaffId = s.SuggestedStaffId,
-                    SuggestedStaffName = s.SuggestedStaffName,
+                    ShiftId = suggestion.ShiftId,
+                    ReassignText = suggestion.SuggestedStaffId.HasValue
+                        ? $"Shift #{suggestion.ShiftId}: {suggestion.OriginalStaffName} -> {suggestion.SuggestedStaffName}"
+                        : $"Shift #{suggestion.ShiftId}: no replacement candidate",
+                    Reason = suggestion.Reason,
+                    SuggestedStaffId = suggestion.SuggestedStaffId,
+                    SuggestedStaffName = suggestion.SuggestedStaffName
                 });
             }
 
@@ -122,9 +122,13 @@ namespace DevCoreHospital.ViewModels
 
         public bool HasConflicts => Violations.Count > 0;
 
+        /// <summary>
+        /// Applies the audit-recommended reassignment for a shift and re-runs the audit.
+        /// Returns a human-readable result status used by the view.
+        /// </summary>
         public ReassignmentResult ApplyReassignment(int shiftId)
         {
-            var suggestion = Suggestions.FirstOrDefault(s => s.ShiftId == shiftId);
+            var suggestion = Suggestions.FirstOrDefault(auditSuggestion => auditSuggestion.ShiftId == shiftId);
             if (suggestion == null || !suggestion.SuggestedStaffId.HasValue)
             {
                 return new ReassignmentResult(
@@ -133,7 +137,7 @@ namespace DevCoreHospital.ViewModels
                     "No valid reassignment candidate found for this shift.");
             }
 
-            bool success = auditService.ReassignShift(shiftId, suggestion.SuggestedStaffId.Value);
+            bool success = _auditService.ReassignShift(shiftId, suggestion.SuggestedStaffId.Value);
             if (!success)
             {
                 return new ReassignmentResult(
@@ -150,12 +154,13 @@ namespace DevCoreHospital.ViewModels
                 $"Shift #{shiftId} has been reassigned to {suggestion.SuggestedStaffName}.\n\nAudit was re-run to verify changes.");
         }
 
-        public sealed record ReassignmentResult(bool success, string title, string message);
+        public sealed record ReassignmentResult(bool Success, string Title, string Message);
 
         private static DateTime StartOfWeek(DateTime date)
         {
-            var diff = (7 + (date.DayOfWeek - DayOfWeek.Monday)) % 7;
-            return date.Date.AddDays(-diff);
+            const int daysInWeek = 7;
+            var daysFromMonday = (daysInWeek + (date.DayOfWeek - DayOfWeek.Monday)) % daysInWeek;
+            return date.Date.AddDays(-daysFromMonday);
         }
 
         public sealed class AuditViolationRow

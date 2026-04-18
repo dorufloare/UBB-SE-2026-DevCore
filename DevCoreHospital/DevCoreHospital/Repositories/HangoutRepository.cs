@@ -1,44 +1,44 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using DevCoreHospital.Configuration;
-using DevCoreHospital.Data;
 using DevCoreHospital.Models;
+using DevCoreHospital.Data;
+using DevCoreHospital.Configuration;
 
 namespace DevCoreHospital.Repositories
 {
     public class HangoutRepository
     {
-        private readonly DatabaseManager dbManager;
+        private readonly DatabaseManager _dbManager;
 
         public HangoutRepository()
         {
-            dbManager = new DatabaseManager(AppSettings.ConnectionString);
+            _dbManager = new DatabaseManager(AppSettings.ConnectionString);
         }
 
         public void AddHangout(Hangout hangout)
         {
-            int newId = dbManager.InsertHangout(hangout.Title, hangout.Description, hangout.Date, hangout.MaxParticipants);
+            int newId = _dbManager.InsertHangout(hangout.title, hangout.description, hangout.date, hangout.maxParticipants);
 
-            foreach (var p in hangout.ParticipantList)
+            foreach (var participant in hangout.participantList)
             {
-                dbManager.InsertHangoutParticipant(newId, p.StaffID);
+                _dbManager.InsertHangoutParticipant(newId, participant.StaffID);
             }
         }
 
         public void AddParticipant(int hangoutId, int staffId)
         {
-            dbManager.InsertHangoutParticipant(hangoutId, staffId);
+            _dbManager.InsertHangoutParticipant(hangoutId, staffId);
         }
 
         public List<Hangout> GetAllHangouts()
         {
-            var list = dbManager.GetAllHangouts();
+            var list = _dbManager.GetAllHangouts();
 
-            foreach (var h in list)
+            foreach (var hangout in list)
             {
-                var participants = dbManager.GetHangoutParticipants(h.HangoutID);
-                h.ParticipantList.AddRange(participants);
+                var participants = _dbManager.GetHangoutParticipants(hangout.hangoutID);
+                hangout.participantList.AddRange(participants);
             }
 
             return list;
@@ -46,24 +46,25 @@ namespace DevCoreHospital.Repositories
 
         public Hangout? GetHangoutById(int id)
         {
-            var h = dbManager.GetHangoutById(id);
-            if (h != null)
+            var hangout = _dbManager.GetHangoutById(id);
+            if (hangout != null)
             {
-                var participants = dbManager.GetHangoutParticipants(h.HangoutID);
-                h.ParticipantList.AddRange(participants);
+                var participants = _dbManager.GetHangoutParticipants(hangout.hangoutID);
+                hangout.participantList.AddRange(participants);
             }
-
-            return h;
+            return hangout;
         }
 
+        // Conflict Check: Evaluates the business logic locally using raw data from DB
         public bool HasConflictsOnDate(int staffId, DateTime date)
         {
-            var statuses = dbManager.GetAppointmentStatusesForStaffOnDate(staffId, date);
+            var statuses = _dbManager.GetAppointmentStatusesForStaffOnDate(staffId, date);
 
-            var activeConflicts = statuses.Where(status =>
-                !string.Equals(status, "Finished", StringComparison.OrdinalIgnoreCase) &&
-                !string.Equals(status, "Canceled", StringComparison.OrdinalIgnoreCase) &&
-                !string.Equals(status, "Cancelled", StringComparison.OrdinalIgnoreCase));
+            var activeConflicts = statuses.Where(appointmentStatus =>
+                !string.Equals(appointmentStatus, "Finished", StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(appointmentStatus, "Canceled", StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(appointmentStatus, "Cancelled", StringComparison.OrdinalIgnoreCase)
+            );
 
             return activeConflicts.Any();
         }

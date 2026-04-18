@@ -1,10 +1,10 @@
-﻿using System.Collections.Generic;
-using System.Data.Common;
+using DevCoreHospital.Models;
+using System;
+using System.Collections.Generic;
 using System.Data;
+using System.Data.Common;
 using System.Linq;
 using System.Threading.Tasks;
-using System;
-using DevCoreHospital.Models;
 
 namespace DevCoreHospital.Data
 {
@@ -39,32 +39,30 @@ namespace DevCoreHospital.Data
                     string role = reader.GetString(1);
                     string firstName = reader.GetString(2);
                     string lastName = reader.GetString(3);
-                    string contactInfo = reader.IsDBNull(4) ? string.Empty : reader.GetString(4);
+                    string contactInfo = reader.IsDBNull(4) ? "" : reader.GetString(4);
                     bool isAvailable = reader.GetBoolean(5);
-                    string license = reader.IsDBNull(6) ? string.Empty : reader.GetString(6);
-                    string special = reader.IsDBNull(7) ? string.Empty : reader.GetString(7);
+                    string license = reader.IsDBNull(6) ? "" : reader.GetString(6);
+                    string specialization = reader.IsDBNull(7) ? "" : reader.GetString(7);
                     string statusStr = reader.IsDBNull(8) ? "Available" : reader.GetString(8);
-                    string cert = reader.IsDBNull(9) ? string.Empty : reader.GetString(9);
-                    int yearsExp = reader.IsDBNull(10) ? 0 : reader.GetInt32(10);
+                    string certification = reader.IsDBNull(9) ? "" : reader.GetString(9);
+                    int yearsOfExperience = reader.IsDBNull(10) ? 0 : reader.GetInt32(10);
 
-                    Enum.TryParse<DoctorStatus>(statusStr, true, out DoctorStatus docStatus);
+                    Enum.TryParse<DoctorStatus>(statusStr, true, out DoctorStatus doctorStatus);
 
                     if (role == "Doctor")
                     {
-                        var doc = new Doctor(id, firstName, lastName, contactInfo, string.Empty, isAvailable, special, license, docStatus, yearsExp);
-                        staffList.Add(doc);
+                        var doctor = new Doctor(id, firstName, lastName, contactInfo, "", isAvailable, specialization, license, doctorStatus, yearsOfExperience);
+                        staffList.Add(doctor);
                     }
                     else if (role == "Pharmacist")
                     {
-                        var pharm = new Pharmacyst(id, firstName, lastName, contactInfo, isAvailable, cert, yearsExp);
-                        staffList.Add(pharm);
+                        var pharmacist = new Pharmacyst(id, firstName, lastName, contactInfo, isAvailable, certification, yearsOfExperience);
+                        
+                        staffList.Add(pharmacist);
                     }
                 }
             }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Eroare GetStaff: {ex.Message}");
-            }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Eroare GetStaff: {ex.Message}"); }
             return staffList;
         }
 
@@ -95,15 +93,12 @@ namespace DevCoreHospital.Data
                     AddParameter(cmd, "@License", staff is Doctor doc ? doc.LicenseNumber : DBNull.Value);
                     AddParameter(cmd, "@Specialization", staff is Doctor doc2 ? doc2.Specialization : DBNull.Value);
                     AddParameter(cmd, "@Status", staff is Doctor doc3 ? doc3.DoctorStatus.ToString() : DBNull.Value);
-                    AddParameter(cmd, "@Certification", staff is Pharmacyst ph ? ph.Certification : DBNull.Value);
+                    AddParameter(cmd, "@Certification", staff is Pharmacyst pharmacist ? pharmacist.Certification : DBNull.Value);
                     AddParameter(cmd, "@Id", staff.StaffID);
                     cmd.ExecuteNonQuery();
                 }
             }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Eroare SaveStaff: {ex.Message}");
-            }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Eroare SaveStaff: {ex.Message}"); }
         }
 
         public void UpdateStaff(IStaff staff)
@@ -135,12 +130,10 @@ namespace DevCoreHospital.Data
                 AddParameter(cmd, "@Id", staff.StaffID);
                 cmd.ExecuteNonQuery();
             }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Eroare la actualizarea personalului: {ex.Message}");
-            }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Eroare la actualizarea personalului: {ex.Message}"); }
         }
 
+        
         public List<Shift> GetShifts()
         {
             List<Shift> shiftList = new List<Shift>();
@@ -157,7 +150,7 @@ namespace DevCoreHospital.Data
                 {
                     int shiftId = reader.GetInt32(0);
                     int staffId = reader.GetInt32(1);
-                    string location = reader.IsDBNull(2) ? string.Empty : reader.GetString(2);
+                    string location = reader.IsDBNull(2) ? "" : reader.GetString(2);
                     DateTime startTime = reader.GetDateTime(3);
                     DateTime endTime = reader.GetDateTime(4);
                     string statusStr = reader.IsDBNull(5) ? "Scheduled" : reader.GetString(5);
@@ -166,15 +159,10 @@ namespace DevCoreHospital.Data
                     var appointedStaff = allStaff.FirstOrDefault(s => s.StaffID == staffId);
 
                     if (appointedStaff != null)
-                    {
                         shiftList.Add(new Shift(shiftId, appointedStaff, location, startTime, endTime, shiftStatus));
-                    }
                 }
             }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Eroare GetShifts: {ex.Message}");
-            }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Eroare GetShifts: {ex.Message}"); }
             return shiftList;
         }
 
@@ -226,10 +214,7 @@ namespace DevCoreHospital.Data
 
                 cmd.ExecuteNonQuery();
             }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Eroare la crearea turei noi: {ex.Message}");
-            }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Eroare la crearea turei noi: {ex.Message}"); }
         }
 
         public void UpdateShift(Shift shift)
@@ -255,10 +240,7 @@ namespace DevCoreHospital.Data
                 AddParameter(cmd, "@Id", shift.Id);
                 cmd.ExecuteNonQuery();
             }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Eroare la actualizarea turei: {ex.Message}");
-            }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Eroare la actualizarea turei: {ex.Message}"); }
         }
 
         public void DeleteShift(int shiftId)
@@ -272,10 +254,7 @@ namespace DevCoreHospital.Data
                 AddParameter(cmd, "@Id", shiftId);
                 cmd.ExecuteNonQuery();
             }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Eroare la stergerea turei: {ex.Message}");
-            }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Eroare la stergerea turei: {ex.Message}"); }
         }
 
         public void SaveShifts(List<Shift> shiftList)
@@ -304,10 +283,7 @@ namespace DevCoreHospital.Data
                     cmd.ExecuteNonQuery();
                 }
             }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Eroare SaveShifts: {ex.Message}");
-            }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Eroare SaveShifts: {ex.Message}"); }
         }
 
         public double GetShiftHoursFromDb(int shiftId)
@@ -330,10 +306,7 @@ namespace DevCoreHospital.Data
                     hours = (end - start).TotalHours;
                 }
             }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error GetShiftHoursFromDb: {ex.Message}");
-            }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Error GetShiftHoursFromDb: {ex.Message}"); }
             return hours;
         }
 
@@ -384,6 +357,7 @@ namespace DevCoreHospital.Data
             }
         }
 
+        
         public int CreateShiftSwapRequest(ShiftSwapRequest request)
         {
             try
@@ -442,10 +416,7 @@ namespace DevCoreHospital.Data
                     });
                 }
             }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Eroare GetPendingSwapRequestsForColleague: {ex.Message}");
-            }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Eroare GetPendingSwapRequestsForColleague: {ex.Message}"); }
             return items;
         }
 
@@ -463,10 +434,7 @@ namespace DevCoreHospital.Data
                 AddParameter(cmd, "@SwapId", swapId);
 
                 using var r = cmd.ExecuteReader();
-                if (!r.Read())
-                {
-                    return null;
-                }
+                if (!r.Read()) return null;
 
                 Enum.TryParse<ShiftSwapRequestStatus>(r.GetString(5), true, out var st);
                 return new ShiftSwapRequest
@@ -505,6 +473,7 @@ namespace DevCoreHospital.Data
             }
         }
 
+
         // ========================= NOTIFICATIONS (NEW) =========================
         public void AddNotification(int recipientStaffId, string title, string message)
         {
@@ -529,6 +498,7 @@ namespace DevCoreHospital.Data
             }
         }
 
+
         // ========================= MEDICINES =========================
         public int GetMedicinesSold(int pharmacistStaffId, int month, int year)
         {
@@ -548,11 +518,9 @@ namespace DevCoreHospital.Data
                 var result = command.ExecuteScalar();
                 return result == null || result == DBNull.Value ? 0 : Convert.ToInt32(result);
             }
-            catch
-            {
-                return 150;
-            }
+            catch { return 150; }
         }
+
 
         // ========================= APPOINTMENTS CRUD =========================
         public async Task<List<Appointment>> GetUpcomingAppointmentsAsync(int doctorId, DateTime fromDate, DateTime toDate, int skip, int take)
@@ -579,11 +547,7 @@ namespace DevCoreHospital.Data
             AddParameter(cmd, "@Take", take);
 
             using var reader = await cmd.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
-            {
-                items.Add(MapReaderToAppointment(reader, true));
-            }
-
+            while (await reader.ReadAsync()) items.Add(MapReaderToAppointment(reader, true));
             return items;
         }
 
@@ -597,11 +561,7 @@ namespace DevCoreHospital.Data
             AddParameter(cmd, "@Id", appointmentId);
 
             using var reader = await cmd.ExecuteReaderAsync();
-            if (await reader.ReadAsync())
-            {
-                return MapReaderToAppointment(reader, false);
-            }
-
+            if (await reader.ReadAsync()) return MapReaderToAppointment(reader, false);
             return null;
         }
 
@@ -616,11 +576,7 @@ namespace DevCoreHospital.Data
             AddParameter(cmd, "@DocId", doctorId);
 
             using var reader = await cmd.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
-            {
-                items.Add(MapReaderToAppointment(reader, false));
-            }
-
+            while (await reader.ReadAsync()) items.Add(MapReaderToAppointment(reader, false));
             return items;
         }
 
@@ -644,8 +600,7 @@ namespace DevCoreHospital.Data
             await conn.OpenAsync();
             using var cmd = conn.CreateCommand();
             cmd.CommandText = "UPDATE Appointments SET status = @Status WHERE appointment_id = @Id;";
-            AddParameter(cmd, "@Status", status);
-            AddParameter(cmd, "@Id", appointmentId);
+            AddParameter(cmd, "@Status", status); AddParameter(cmd, "@Id", appointmentId);
             await cmd.ExecuteNonQueryAsync();
         }
 
@@ -659,6 +614,7 @@ namespace DevCoreHospital.Data
             return Convert.ToInt32(await cmd.ExecuteScalarAsync());
         }
 
+
         // ========================= DOCTOR =========================
         public async Task UpdateDoctorStatusAsync(int doctorId, string status)
         {
@@ -666,8 +622,7 @@ namespace DevCoreHospital.Data
             await conn.OpenAsync();
             using var cmd = conn.CreateCommand();
             cmd.CommandText = "UPDATE Staff SET status = @Status WHERE staff_id = @DocId AND role = 'Doctor';";
-            AddParameter(cmd, "@Status", status);
-            AddParameter(cmd, "@DocId", doctorId);
+            AddParameter(cmd, "@Status", status); AddParameter(cmd, "@DocId", doctorId);
             await cmd.ExecuteNonQueryAsync();
         }
 
@@ -686,12 +641,11 @@ namespace DevCoreHospital.Data
 
             using var reader = await cmd.ExecuteReaderAsync();
             while (await reader.ReadAsync())
-            {
-                items.Add((reader.GetInt32(0), reader.IsDBNull(1) ? string.Empty : reader.GetString(1)));
-            }
+                items.Add((reader.GetInt32(0), reader.IsDBNull(1) ? "" : reader.GetString(1)));
 
             return items;
         }
+
 
         // ========================= UTILS =========================
         internal DbConnection GetConnection()
@@ -702,10 +656,10 @@ namespace DevCoreHospital.Data
 
         private void AddParameter(DbCommand cmd, string name, object value)
         {
-            var p = cmd.CreateParameter();
-            p.ParameterName = name;
-            p.Value = value ?? DBNull.Value;
-            cmd.Parameters.Add(p);
+            var parameter = cmd.CreateParameter();
+            parameter.ParameterName = name;
+            parameter.Value = value ?? DBNull.Value;
+            cmd.Parameters.Add(parameter);
         }
 
         private Appointment MapReaderToAppointment(DbDataReader reader, bool hasDoctorName)
@@ -716,30 +670,30 @@ namespace DevCoreHospital.Data
             int statusOrdinal = reader.GetOrdinal("status");
             int doctorNameOrdinal = hasDoctorName ? reader.GetOrdinal("DoctorName") : -1;
 
-            DateTime startDt = reader.IsDBNull(startOrdinal) ? DateTime.Now : reader.GetDateTime(startOrdinal);
-            DateTime endDt = reader.IsDBNull(endOrdinal) ? startDt : reader.GetDateTime(endOrdinal);
-            int patId = reader.IsDBNull(patientOrdinal) ? 0 : reader.GetInt32(patientOrdinal);
+            DateTime startDateTime = reader.IsDBNull(startOrdinal) ? DateTime.Now : reader.GetDateTime(startOrdinal);
+            DateTime endDateTime = reader.IsDBNull(endOrdinal) ? startDateTime : reader.GetDateTime(endOrdinal);
+            int patientId = reader.IsDBNull(patientOrdinal) ? 0 : reader.GetInt32(patientOrdinal);
 
             return new Appointment
             {
                 Id = reader.GetInt32(reader.GetOrdinal("appointment_id")),
                 DoctorId = reader.GetInt32(reader.GetOrdinal("doctor_id")),
-                DoctorName = hasDoctorName && !reader.IsDBNull(doctorNameOrdinal) ? reader.GetString(doctorNameOrdinal) : string.Empty,
-                PatientName = "PAT-" + patId,
-                Date = startDt.Date,
-                StartTime = startDt.TimeOfDay,
-                EndTime = endDt.TimeOfDay,
+                DoctorName = hasDoctorName && !reader.IsDBNull(doctorNameOrdinal) ? reader.GetString(doctorNameOrdinal) : "",
+                PatientName = "PAT-" + patientId,
+                Date = startDateTime.Date,
+                StartTime = startDateTime.TimeOfDay,
+                EndTime = endDateTime.TimeOfDay,
                 Status = reader.IsDBNull(statusOrdinal) ? "Scheduled" : reader.GetString(statusOrdinal),
-                Type = string.Empty,
-                Location = string.Empty
+                Type = "",
+                Location = ""
             };
         }
         // HANGOUTS CRUD
         public int InsertHangout(string title, string description, DateTime date, int maxParticipants)
         {
-            using var conn = GetConnection();
-            conn.Open();
-            using var cmd = conn.CreateCommand();
+            using var connection = GetConnection();
+            connection.Open();
+            using var cmd = connection.CreateCommand();
             cmd.CommandText = @"
         INSERT INTO Hangouts (title, description, date_time, max_staff)
         OUTPUT INSERTED.hangout_id
@@ -777,9 +731,10 @@ namespace DevCoreHospital.Data
                 list.Add(new Hangout(
                     reader.GetInt32(0),
                     reader.GetString(1),
-                    reader.IsDBNull(2) ? string.Empty : reader.GetString(2),
+                    reader.IsDBNull(2) ? "" : reader.GetString(2),
                     reader.GetDateTime(3),
-                    reader.GetInt32(4)));
+                    reader.GetInt32(4)
+                ));
             }
             return list;
         }
@@ -797,9 +752,10 @@ namespace DevCoreHospital.Data
                 return new Hangout(
                     id,
                     reader.GetString(1),
-                    reader.IsDBNull(2) ? string.Empty : reader.GetString(2),
+                    reader.IsDBNull(2) ? "" : reader.GetString(2),
                     reader.GetDateTime(3),
-                    reader.GetInt32(4));
+                    reader.GetInt32(4)
+                );
             }
             return null;
         }
@@ -851,7 +807,7 @@ namespace DevCoreHospital.Data
                 using var reader = cmd.ExecuteReader();
                 while (reader.Read())
                 {
-                    statuses.Add(reader.IsDBNull(0) ? string.Empty : reader.GetString(0));
+                    statuses.Add(reader.IsDBNull(0) ? "" : reader.GetString(0));
                 }
             }
             catch (Exception ex)
@@ -860,7 +816,7 @@ namespace DevCoreHospital.Data
             }
             return statuses;
         }
-        // for salary bonus
+        //for salary bonus
         public bool DidStaffParticipateInHangout(int staffId, int month, int year)
         {
             try

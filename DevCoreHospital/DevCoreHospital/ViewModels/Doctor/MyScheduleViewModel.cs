@@ -1,12 +1,12 @@
+﻿using DevCoreHospital.Models;
+using DevCoreHospital.Repositories;
+using DevCoreHospital.Services;
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
-using DevCoreHospital.Models;
-using DevCoreHospital.Repositories;
-using DevCoreHospital.Services;
 using DevCoreHospital.ViewModels;
 using DoctorModel = DevCoreHospital.Models.Doctor;
 
@@ -14,21 +14,21 @@ namespace DevCoreHospital.ViewModels.Doctor
 {
     public sealed class MyScheduleViewModel : INotifyPropertyChanged
     {
-        private readonly IStaffAndShiftService staffAndShiftService;
-        private readonly ShiftRepository shiftRepository;
-        private readonly StaffRepository staffRepository;
+        private readonly IStaffAndShiftService _staffAndShiftService;
+        private readonly ShiftRepository _shiftRepository;
+        private readonly StaffRepository _staffRepository;
 
-        public ObservableCollection<DoctorOptionViewModel> Doctors { get; } = new ObservableCollection<DoctorOptionViewModel>();
-        public ObservableCollection<DoctorShiftItemViewModel> FutureShifts { get; } = new ObservableCollection<DoctorShiftItemViewModel>();
-        public ObservableCollection<StaffOptionViewModel> EligibleColleagues { get; } = new ObservableCollection<StaffOptionViewModel>();
+        public ObservableCollection<DoctorOptionViewModel> Doctors { get; } = new();
+        public ObservableCollection<DoctorShiftItemViewModel> FutureShifts { get; } = new();
+        public ObservableCollection<StaffOptionViewModel> EligibleColleagues { get; } = new();
 
-        private DoctorOptionViewModel? selectedDoctor;
+        private DoctorOptionViewModel? _selectedDoctor;
         public DoctorOptionViewModel? SelectedDoctor
         {
-            get => selectedDoctor;
+            get => _selectedDoctor;
             set
             {
-                if (SetProperty(ref selectedDoctor, value))
+                if (SetProperty(ref _selectedDoctor, value))
                 {
                     SelectedShift = null;
                     SelectedColleague = null;
@@ -38,13 +38,13 @@ namespace DevCoreHospital.ViewModels.Doctor
             }
         }
 
-        private DoctorShiftItemViewModel? selectedShift;
+        private DoctorShiftItemViewModel? _selectedShift;
         public DoctorShiftItemViewModel? SelectedShift
         {
-            get => selectedShift;
+            get => _selectedShift;
             set
             {
-                if (SetProperty(ref selectedShift, value))
+                if (SetProperty(ref _selectedShift, value))
                 {
                     LoadEligibleColleagues();
                     ((RelayCommand)RequestSwapCommand).RaiseCanExecuteChanged();
@@ -52,24 +52,24 @@ namespace DevCoreHospital.ViewModels.Doctor
             }
         }
 
-        private StaffOptionViewModel? selectedColleague;
+        private StaffOptionViewModel? _selectedColleague;
         public StaffOptionViewModel? SelectedColleague
         {
-            get => selectedColleague;
+            get => _selectedColleague;
             set
             {
-                if (SetProperty(ref selectedColleague, value))
+                if (SetProperty(ref _selectedColleague, value))
                 {
                     ((RelayCommand)RequestSwapCommand).RaiseCanExecuteChanged();
                 }
             }
         }
 
-        private string statusMessage = string.Empty;
+        private string _statusMessage = string.Empty;
         public string StatusMessage
         {
-            get => statusMessage;
-            set => SetProperty(ref statusMessage, value);
+            get => _statusMessage;
+            set => SetProperty(ref _statusMessage, value);
         }
 
         public ICommand RequestSwapCommand { get; }
@@ -79,9 +79,9 @@ namespace DevCoreHospital.ViewModels.Doctor
             ShiftRepository shiftRepository,
             StaffRepository staffRepository)
         {
-            this.staffAndShiftService = staffAndShiftService;
-            this.shiftRepository = shiftRepository;
-            this.staffRepository = staffRepository;
+            _staffAndShiftService = staffAndShiftService;
+            _shiftRepository = shiftRepository;
+            _staffRepository = staffRepository;
 
             RequestSwapCommand = new RelayCommand(RequestSwap, CanRequestSwap);
 
@@ -92,30 +92,25 @@ namespace DevCoreHospital.ViewModels.Doctor
         {
             Doctors.Clear();
 
-            var doctors = staffRepository
+            // IMPORTANT: load ALL doctors, not only available ones
+            var doctors = _staffRepository
                 .LoadAllStaff()
                 .OfType<DoctorModel>()
-                .OrderBy(d => d.FirstName)
-                .ThenBy(d => d.LastName)
-                .Select(d => new DoctorOptionViewModel
+                .OrderBy(doctor => doctor.FirstName)
+                .ThenBy(doctor => doctor.LastName)
+                .Select(doctor => new DoctorOptionViewModel
                 {
-                    StaffId = d.StaffID,
-                    DisplayName = $"{d.FirstName} {d.LastName}".Trim(),
+                    StaffId = doctor.StaffID,
+                    DisplayName = $"{doctor.FirstName} {doctor.LastName}".Trim()
                 });
 
             foreach (var doctor in doctors)
-            {
                 Doctors.Add(doctor);
-            }
 
             if (Doctors.Count > 0)
-            {
                 SelectedDoctor = Doctors[0];
-            }
             else
-            {
                 StatusMessage = "No doctors found in database.";
-            }
         }
 
         private void LoadFutureShifts()
@@ -129,16 +124,14 @@ namespace DevCoreHospital.ViewModels.Doctor
                 return;
             }
 
-            var data = shiftRepository
+            var data = _shiftRepository
                 .GetShiftsByStaffID(SelectedDoctor.StaffId)
-                .Where(s => s.StartTime > DateTime.Now)
-                .OrderBy(s => s.StartTime)
-                .Select(s => new DoctorShiftItemViewModel(s));
+                .Where(shift => shift.StartTime > DateTime.Now)
+                .OrderBy(shift => shift.StartTime)
+                .Select(shift => new DoctorShiftItemViewModel(shift));
 
             foreach (var item in data)
-            {
                 FutureShifts.Add(item);
-            }
 
             StatusMessage = FutureShifts.Count == 0
                 ? "Selected doctor has no future shifts available for swap requests."
@@ -161,7 +154,7 @@ namespace DevCoreHospital.ViewModels.Doctor
                 return;
             }
 
-            var colleagues = staffAndShiftService.GetEligibleSwapColleaguesForShift(
+            var colleagues = _staffAndShiftService.GetEligibleSwapColleaguesForShift(
                 SelectedDoctor.StaffId,
                 SelectedShift.Id,
                 out var error);
@@ -172,12 +165,12 @@ namespace DevCoreHospital.ViewModels.Doctor
                 return;
             }
 
-            foreach (var c in colleagues)
+            foreach (var colleague in colleagues)
             {
                 EligibleColleagues.Add(new StaffOptionViewModel
                 {
-                    StaffId = c.StaffID,
-                    DisplayName = $"{c.FirstName} {c.LastName}".Trim(),
+                    StaffId = colleague.StaffID,
+                    DisplayName = $"{colleague.FirstName} {colleague.LastName}".Trim()
                 });
             }
 
@@ -199,7 +192,7 @@ namespace DevCoreHospital.ViewModels.Doctor
                 return;
             }
 
-            var success = staffAndShiftService.RequestShiftSwap(
+            var success = _staffAndShiftService.RequestShiftSwap(
                 SelectedDoctor.StaffId,
                 SelectedShift.Id,
                 SelectedColleague.StaffId,
@@ -208,20 +201,14 @@ namespace DevCoreHospital.ViewModels.Doctor
             StatusMessage = message;
 
             if (success)
-            {
                 SelectedColleague = null;
-            }
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
         private bool SetProperty<T>(ref T field, T value, [CallerMemberName] string propertyName = "")
         {
-            if (Equals(field, value))
-            {
-                return false;
-            }
-
+            if (Equals(field, value)) return false;
             field = value;
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
             return true;

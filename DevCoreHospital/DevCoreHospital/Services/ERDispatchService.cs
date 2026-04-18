@@ -1,26 +1,26 @@
+﻿using DevCoreHospital.Models;
+using DevCoreHospital.Repositories;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using System;
-using DevCoreHospital.Models;
-using DevCoreHospital.Repositories;
 
 namespace DevCoreHospital.Services
 {
     public sealed class ERDispatchService : IERDispatchService
     {
-        private readonly IERDispatchRepository repository;
+        private readonly IERDispatchRepository _repository;
 
         public ERDispatchService(IERDispatchRepository repository)
         {
-            this.repository = repository;
+            _repository = repository;
         }
 
         public Task<IReadOnlyList<int>> SimulateIncomingRequestsAsync(int count)
         {
-            var liveTemplates = GetAvailableDoctors(repository.GetDoctorRoster())
-                .Where(d => !string.IsNullOrWhiteSpace(d.Specialization) && !string.IsNullOrWhiteSpace(d.Location))
-                .Select(d => (Specialization: d.Specialization.Trim(), Location: d.Location.Trim()))
+            var liveTemplates = GetAvailableDoctors(_repository.GetDoctorRoster())
+                .Where(doctor => !string.IsNullOrWhiteSpace(doctor.Specialization) && !string.IsNullOrWhiteSpace(doctor.Location))
+                .Select(doctor => (Specialization: doctor.Specialization.Trim(), Location: doctor.Location.Trim()))
                 .Distinct()
                 .ToArray();
 
@@ -38,10 +38,10 @@ namespace DevCoreHospital.Services
             var startIndex = DateTime.Now.Minute % templates.Length;
             var createdIds = new List<int>(normalizedCount);
 
-            for (int i = 0; i < normalizedCount; i++)
+            for (int templateIndex = 0; templateIndex < normalizedCount; templateIndex++)
             {
-                var template = templates[(startIndex + i) % templates.Length];
-                var newId = repository.CreateIncomingRequest(template.Specialization, template.Location);
+                var template = templates[(startIndex + templateIndex) % templates.Length];
+                var newId = _repository.CreateIncomingRequest(template.Specialization, template.Location);
                 createdIds.Add(newId);
             }
 
@@ -50,7 +50,7 @@ namespace DevCoreHospital.Services
 
         public Task<IReadOnlyList<int>> GetPendingRequestIdsAsync()
         {
-            var ids = repository.GetPendingRequests()
+            var ids = _repository.GetPendingRequests()
                 .Select(request => request.Id)
                 .ToList();
 
@@ -59,7 +59,7 @@ namespace DevCoreHospital.Services
 
         public Task<ERDispatchResult> DispatchERRequestAsync(int requestId)
         {
-            var request = repository.GetPendingRequests().FirstOrDefault(r => r.Id == requestId);
+            var request = _repository.GetPendingRequests().FirstOrDefault(pendingRequest => pendingRequest.Id == requestId);
             if (request == null)
             {
                 return Task.FromResult(new ERDispatchResult
@@ -80,13 +80,13 @@ namespace DevCoreHospital.Services
                     Message = $"No AVAILABLE {request.Specialization} specialist found for {request.Location}."
                 };
 
-                repository.UpdateRequestStatus(requestId, "UNMATCHED", null, null);
+                _repository.UpdateRequestStatus(requestId, "UNMATCHED", null, null);
 
                 return Task.FromResult(result);
             }
 
-            repository.UpdateRequestStatus(requestId, "ASSIGNED", matchedDoctor.DoctorId, matchedDoctor.FullName);
-            repository.UpdateDoctorStatus(matchedDoctor.DoctorId, DoctorStatus.IN_EXAMINATION);
+            _repository.UpdateRequestStatus(requestId, "ASSIGNED", matchedDoctor.DoctorId, matchedDoctor.FullName);
+            _repository.UpdateDoctorStatus(matchedDoctor.DoctorId, DoctorStatus.IN_EXAMINATION);
 
             return Task.FromResult(new ERDispatchResult
             {
@@ -101,37 +101,35 @@ namespace DevCoreHospital.Services
 
         public Task<IReadOnlyList<DoctorProfile>> GetManualOverrideCandidatesAsync(int requestId, int nearEndMinutes)
         {
-            var request = repository.GetRequestById(requestId);
+            var request = _repository.GetRequestById(requestId);
             if (request == null)
-            {
                 return Task.FromResult<IReadOnlyList<DoctorProfile>>(Array.Empty<DoctorProfile>());
-            }
 
             var now = DateTime.Now;
-            var inExamDoctors = GetDoctorsInExamination(repository.GetDoctorRoster());
+            var inExamDoctors = GetDoctorsInExamination(_repository.GetDoctorRoster());
 
             var nearEndInExam = inExamDoctors
-                .Where(d => d.ScheduleEnd.HasValue)
-                .Where(d =>
+                .Where(doctor => doctor.ScheduleEnd.HasValue)
+                .Where(doctor =>
                 {
-                    var minutesToEnd = (d.ScheduleEnd!.Value - now).TotalMinutes;
+                    var minutesToEnd = (doctor.ScheduleEnd!.Value - now).TotalMinutes;
                     return minutesToEnd >= 0 && minutesToEnd <= nearEndMinutes;
                 })
                 .ToList();
 
             var strictCandidates = nearEndInExam
-                .GroupBy(d => d.DoctorId)
-                .Select(g => g.First())
-                .Where(d => IsSameValue(d.Specialization, request.Specialization))
+                .GroupBy(doctor => doctor.DoctorId)
+                .Select(doctorGroup => doctorGroup.First())
+                .Where(doctor => IsSameValue(doctor.Specialization, request.Specialization))
                 .ToList();
 
             var candidates = strictCandidates
-                .GroupBy(d => d.DoctorId)
-                .Select(g => g.First())
-                .OrderByDescending(d => IsSameValue(d.Specialization, request.Specialization))
-                .ThenByDescending(d => IsSameValue(d.Location, request.Location))
-                .ThenBy(d => d.ScheduleEnd ?? DateTime.MaxValue)
-                .ThenBy(d => d.FullName)
+                .GroupBy(doctor => doctor.DoctorId)
+                .Select(doctorGroup => doctorGroup.First())
+                .OrderByDescending(doctor => IsSameValue(doctor.Specialization, request.Specialization))
+                .ThenByDescending(doctor => IsSameValue(doctor.Location, request.Location))
+                .ThenBy(doctor => doctor.ScheduleEnd ?? DateTime.MaxValue)
+                .ThenBy(doctor => doctor.FullName)
                 .ToList();
 
             return Task.FromResult<IReadOnlyList<DoctorProfile>>(candidates);
@@ -139,8 +137,8 @@ namespace DevCoreHospital.Services
 
         public async Task<ERDispatchResult> ManualOverrideAsync(int requestId, int doctorId, int nearEndMinutes)
         {
-            var request = repository.GetRequestById(requestId);
-            var doctorRow = repository.GetDoctorById(doctorId);
+            var request = _repository.GetRequestById(requestId);
+            var doctorRow = _repository.GetDoctorById(doctorId);
             var doctor = doctorRow == null ? null : ToDoctorProfile(doctorRow);
 
             if (request == null || doctor == null)
@@ -153,7 +151,7 @@ namespace DevCoreHospital.Services
             }
 
             var eligible = await GetManualOverrideCandidatesAsync(requestId, nearEndMinutes);
-            if (!eligible.Any(d => d.DoctorId == doctorId))
+            if (!eligible.Any(doctor => doctor.DoctorId == doctorId))
             {
                 return new ERDispatchResult
                 {
@@ -164,8 +162,8 @@ namespace DevCoreHospital.Services
                 };
             }
 
-            repository.UpdateRequestStatus(requestId, "ASSIGNED", doctor.DoctorId, doctor.FullName);
-            repository.UpdateDoctorStatus(doctor.DoctorId, DoctorStatus.IN_EXAMINATION);
+            _repository.UpdateRequestStatus(requestId, "ASSIGNED", doctor.DoctorId, doctor.FullName);
+            _repository.UpdateDoctorStatus(doctor.DoctorId, DoctorStatus.IN_EXAMINATION);
 
             return new ERDispatchResult
             {
@@ -180,14 +178,14 @@ namespace DevCoreHospital.Services
 
         private DoctorProfile? FindBestMatchingDoctor(ERRequest request)
         {
-            var availableDoctors = GetAvailableDoctors(repository.GetDoctorRoster());
+            var availableDoctors = GetAvailableDoctors(_repository.GetDoctorRoster());
 
             var matches = availableDoctors
-                .Where(d =>
-                    IsSameValue(d.Specialization, request.Specialization) &&
-                    d.Status == DoctorStatus.AVAILABLE &&
-                    IsSameValue(d.Location, request.Location))
-                .OrderBy(d => d.FullName)
+                .Where(doctor =>
+                    IsSameValue(doctor.Specialization, request.Specialization) &&
+                    doctor.Status == DoctorStatus.AVAILABLE &&
+                    IsSameValue(doctor.Location, request.Location))
+                .OrderBy(doctor => doctor.FullName)
                 .ToList();
 
             return matches.FirstOrDefault();
@@ -213,12 +211,12 @@ namespace DevCoreHospital.Services
             };
         }
 
-        private static IReadOnlyList<DoctorProfile> GetDoctorsByStatus(IEnumerable<DoctorRosterEntry> roster, DoctorStatus status)
+        private static IReadOnlyList<DoctorProfile> GetDoctorsByStatus(IEnumerable<DoctorRosterEntry> roster, DoctorStatus targetStatus)
         {
             return roster
                 .Select(ToDoctorProfile)
                 .Where(IsOnCurrentShift)
-                .Where(profile => profile.Status == status)
+                .Where(doctorProfile => doctorProfile.Status == targetStatus)
                 .ToList();
         }
 
