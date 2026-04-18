@@ -10,18 +10,18 @@ namespace DevCoreHospital.Services
     {
         private const int MaxVacationDaysPerMonth = 4;
 
-        private readonly StaffRepository _staffRepository;
-        private readonly ShiftRepository _shiftRepository;
+        private readonly StaffRepository staffRepository;
+        private readonly ShiftRepository shiftRepository;
 
         public PharmacyVacationService(StaffRepository staffRepository, ShiftRepository shiftRepository)
         {
-            _staffRepository = staffRepository ?? throw new ArgumentNullException(nameof(staffRepository));
-            _shiftRepository = shiftRepository ?? throw new ArgumentNullException(nameof(shiftRepository));
+            this.staffRepository = staffRepository ?? throw new ArgumentNullException(nameof(staffRepository));
+            this.shiftRepository = shiftRepository ?? throw new ArgumentNullException(nameof(shiftRepository));
         }
 
         public IReadOnlyList<Pharmacyst> GetPharmacists()
         {
-            return _staffRepository
+            return staffRepository
                 .GetPharmacists()
                 .OrderBy(pharmacist => pharmacist.FirstName)
                 .ThenBy(pharmacist => pharmacist.LastName)
@@ -34,27 +34,33 @@ namespace DevCoreHospital.Services
             var endExclusive = endDate.Date.AddDays(1);
 
             if (endDate.Date < start)
+            {
                 throw new ArgumentException("End date must be on or after start date.");
+            }
 
-            var pharmacist = _staffRepository
+            var pharmacist = staffRepository
                 .GetPharmacists()
                 .FirstOrDefault(existingPharmacist => existingPharmacist.StaffID == pharmacistStaffId)
                 ?? throw new ArgumentException("Pharmacist not found.");
 
-            var pharmacistShifts = _shiftRepository.GetShiftsByStaffID(pharmacistStaffId);
+            var pharmacistShifts = shiftRepository.GetShiftsByStaffID(pharmacistStaffId);
 
             var overlappingShift = pharmacistShifts.FirstOrDefault(shift =>
                 start < shift.EndTime && endExclusive > shift.StartTime);
 
             if (overlappingShift is not null)
+            {
                 throw new InvalidOperationException(
                     "Cannot add vacation: this period overlaps an existing shift.");
+            }
 
             if (WouldExceedMonthlyVacationLimit(pharmacistShifts, start, endExclusive, MaxVacationDaysPerMonth))
+            {
                 throw new InvalidOperationException(
                     $"Cannot add vacation: pharmacist would exceed {MaxVacationDaysPerMonth} vacation days in a month.");
+            }
 
-            var allShifts = _shiftRepository.GetShifts();
+            var allShifts = shiftRepository.GetShifts();
             var nextId = allShifts.Count == 0 ? 1 : allShifts.Max(shift => shift.Id) + 1;
 
             var vacationShift = new Shift(
@@ -65,7 +71,7 @@ namespace DevCoreHospital.Services
                 endExclusive,
                 ShiftStatus.VACATION);
 
-            _shiftRepository.AddShift(vacationShift);
+            shiftRepository.AddShift(vacationShift);
         }
 
         private static bool WouldExceedMonthlyVacationLimit(
@@ -76,8 +82,10 @@ namespace DevCoreHospital.Services
         {
             var daysByMonth = new Dictionary<(int Year, int Month), HashSet<DateTime>>();
 
-            foreach (var shift in staffShifts.Where(vacationShift => vacationShift.Status == ShiftStatus.VACATION))
+            foreach (var shift in staffShifts.Where(existingShift => existingShift.Status == ShiftStatus.VACATION))
+            {
                 AddShiftDaysToBuckets(daysByMonth, shift.StartTime.Date, shift.EndTime.Date);
+            }
 
             AddShiftDaysToBuckets(daysByMonth, newStartInclusive.Date, newEndExclusive.Date);
 
@@ -92,13 +100,13 @@ namespace DevCoreHospital.Services
             for (var day = startInclusive.Date; day < endExclusive.Date; day = day.AddDays(1))
             {
                 var key = (day.Year, day.Month);
-                if (!buckets.TryGetValue(key, out var set))
+                if (!buckets.TryGetValue(key, out var daysInMonth))
                 {
-                    set = new HashSet<DateTime>();
-                    buckets[key] = set;
+                    daysInMonth = new HashSet<DateTime>();
+                    buckets[key] = daysInMonth;
                 }
 
-                set.Add(day);
+                daysInMonth.Add(day);
             }
         }
     }

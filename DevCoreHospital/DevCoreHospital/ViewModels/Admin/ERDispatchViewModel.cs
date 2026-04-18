@@ -1,34 +1,35 @@
-﻿using DevCoreHospital.Models;
-using DevCoreHospital.Services;
-using DevCoreHospital.ViewModels.Base;
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
+using DevCoreHospital.Models;
+using DevCoreHospital.Services;
+using DevCoreHospital.ViewModels.Base;
 
 namespace DevCoreHospital.ViewModels
 {
     public sealed class ERDispatchViewModel : ObservableObject
     {
         private const int NearEndMinutesThreshold = 30;
-        private readonly IERDispatchService _dispatchService;
+        private const int DefaultSimulatedRequestCount = 3;
+        private readonly IERDispatchService dispatchService;
 
-        public ObservableCollection<UnmatchedRequestRow> UnmatchedRequests { get; } = new();
-        public ObservableCollection<SuccessfulMatchRow> SuccessfulMatches { get; } = new();
-        public ObservableCollection<OverrideCandidateRow> OverrideCandidates { get; } = new();
+        public ObservableCollection<UnmatchedRequestRow> UnmatchedRequests { get; } = new ObservableCollection<UnmatchedRequestRow>();
+        public ObservableCollection<SuccessfulMatchRow> SuccessfulMatches { get; } = new ObservableCollection<SuccessfulMatchRow>();
+        public ObservableCollection<OverrideCandidateRow> OverrideCandidates { get; } = new ObservableCollection<OverrideCandidateRow>();
 
-        private string _statusMessage = "Ready";
+        private string statusMessage = "Ready";
         public string StatusMessage
         {
-            get => _statusMessage;
-            private set => SetProperty(ref _statusMessage, value);
+            get => statusMessage;
+            private set => SetProperty(ref statusMessage, value);
         }
 
-        private string _manualInterventionHint = "Manual override accepts near-end IN_EXAMINATION doctors only.";
+        private string manualInterventionHint = "Manual override accepts near-end IN_EXAMINATION doctors only.";
         public string ManualInterventionHint
         {
-            get => _manualInterventionHint;
-            private set => SetProperty(ref _manualInterventionHint, value);
+            get => manualInterventionHint;
+            private set => SetProperty(ref manualInterventionHint, value);
         }
 
         public AsyncRelayCommand RunDispatchCommand { get; }
@@ -37,22 +38,19 @@ namespace DevCoreHospital.ViewModels
 
         public ERDispatchViewModel(IERDispatchService dispatchService)
         {
-            _dispatchService = dispatchService;
+            this.dispatchService = dispatchService;
             RunDispatchCommand = new AsyncRelayCommand(RunDispatchAsync);
             RefreshCommand = new RelayCommand(Refresh);
-            SimulateIncomingCommand = new AsyncRelayCommand(() => SimulateIncomingAsync(3));
+            SimulateIncomingCommand = new AsyncRelayCommand(() => SimulateIncomingAsync(DefaultSimulatedRequestCount));
 
             Refresh();
         }
 
-        
         public void LoadFlaggedRequests() => Refresh();
 
-     
         public Task HandleERRequestAsync(ERRequest request)
             => request == null ? Task.CompletedTask : HandleRequestByIdAsync(request.Id);
 
-      
         public Task OverrideAssignmentAsync(int doctorId, int requestId)
             => ApplyOverrideAsync(requestId, doctorId);
 
@@ -69,7 +67,7 @@ namespace DevCoreHospital.ViewModels
         {
             try
             {
-                var createdIds = await _dispatchService.SimulateIncomingRequestsAsync(count);
+                var createdIds = await dispatchService.SimulateIncomingRequestsAsync(count);
                 StatusMessage = $"Simulated {createdIds.Count} incoming request(s) from Clinical Team. Click Run Dispatch.";
                 ManualInterventionHint = "Incoming ER requests were added as PENDING.";
             }
@@ -89,10 +87,12 @@ namespace DevCoreHospital.ViewModels
 
             try
             {
-                var pendingList = await _dispatchService.GetPendingRequestIdsAsync();
+                var pendingRequestIds = await dispatchService.GetPendingRequestIdsAsync();
 
-                foreach (var requestId in pendingList)
+                foreach (var requestId in pendingRequestIds)
+                {
                     await HandleRequestByIdAsync(requestId);
+                }
 
                 StatusMessage = $"{SuccessfulMatches.Count} matched, {UnmatchedRequests.Count} unmatched";
 
@@ -114,7 +114,7 @@ namespace DevCoreHospital.ViewModels
         public async Task LoadOverrideCandidatesAsync(int requestId)
         {
             OverrideCandidates.Clear();
-            var candidates = await _dispatchService.GetManualOverrideCandidatesAsync(requestId, NearEndMinutesThreshold);
+            var candidates = await dispatchService.GetManualOverrideCandidatesAsync(requestId, NearEndMinutesThreshold);
 
             foreach (var candidate in candidates)
             {
@@ -137,21 +137,21 @@ namespace DevCoreHospital.ViewModels
 
         public async Task<bool> ApplyOverrideAsync(int requestId, int doctorId)
         {
-            var req = UnmatchedRequests.FirstOrDefault(unmatchedRequest => unmatchedRequest.RequestId == requestId);
-            if (req == null)
+            var unmatchedRequest = UnmatchedRequests.FirstOrDefault(unmatchedRequest => unmatchedRequest.RequestId == requestId);
+            if (unmatchedRequest == null)
             {
                 ManualInterventionHint = "Select an unmatched request first.";
                 return false;
             }
 
-            var candidate = OverrideCandidates.FirstOrDefault(overrideCandidate => overrideCandidate.DoctorId == doctorId);
-            if (candidate == null)
+            var overrideCandidate = OverrideCandidates.FirstOrDefault(overrideCandidate => overrideCandidate.DoctorId == doctorId);
+            if (overrideCandidate == null)
             {
                 ManualInterventionHint = "Select an eligible override doctor first.";
                 return false;
             }
 
-            var result = await _dispatchService.ManualOverrideAsync(requestId, doctorId, NearEndMinutesThreshold);
+            var result = await dispatchService.ManualOverrideAsync(requestId, doctorId, NearEndMinutesThreshold);
             if (!result.IsSuccess)
             {
                 ManualInterventionHint = result.Message;
@@ -160,19 +160,21 @@ namespace DevCoreHospital.ViewModels
 
             ManualInterventionHint = result.Message;
 
-            UnmatchedRequests.Remove(req);
+            UnmatchedRequests.Remove(unmatchedRequest);
             SuccessfulMatches.Add(new SuccessfulMatchRow
             {
                 RequestId = result.Request.Id,
                 AssignedDoctor = result.MatchedDoctorName ?? "Unknown",
                 Specialization = result.Request.Specialization,
-                MatchReason = result.MatchReason
+                MatchReason = result.MatchReason,
             });
 
             StatusMessage = $"{SuccessfulMatches.Count} matched, {UnmatchedRequests.Count} unmatched";
 
             if (UnmatchedRequests.Count > 0)
+            {
                 await LoadOverrideCandidatesAsync(UnmatchedRequests[0].RequestId);
+            }
             else
             {
                 OverrideCandidates.Clear();
@@ -184,7 +186,7 @@ namespace DevCoreHospital.ViewModels
 
         private async Task HandleRequestByIdAsync(int requestId)
         {
-            var result = await _dispatchService.DispatchERRequestAsync(requestId);
+            var result = await dispatchService.DispatchERRequestAsync(requestId);
 
             if (result.IsSuccess)
             {
@@ -193,7 +195,7 @@ namespace DevCoreHospital.ViewModels
                     RequestId = result.Request.Id,
                     AssignedDoctor = result.MatchedDoctorName ?? "Unknown",
                     Specialization = result.Request.Specialization,
-                    MatchReason = result.MatchReason
+                    MatchReason = result.MatchReason,
                 });
             }
             else
@@ -203,7 +205,7 @@ namespace DevCoreHospital.ViewModels
                     RequestId = result.Request.Id,
                     RequestSpecialization = result.Request.Specialization,
                     RequestLocation = result.Request.Location,
-                    NoMatchReason = result.Message
+                    NoMatchReason = result.Message,
                 });
             }
         }
@@ -238,4 +240,3 @@ namespace DevCoreHospital.ViewModels
         }
     }
 }
-

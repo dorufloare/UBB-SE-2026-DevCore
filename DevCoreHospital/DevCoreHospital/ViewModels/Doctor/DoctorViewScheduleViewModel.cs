@@ -1,38 +1,44 @@
-using DevCoreHospital.Models;
-using DevCoreHospital.Repositories;
-using DevCoreHospital.Services;
-using DevCoreHospital.ViewModels.Base;
 using System;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
+using DevCoreHospital.Models;
+using DevCoreHospital.Repositories;
+using DevCoreHospital.Services;
+using DevCoreHospital.ViewModels.Base;
 
 namespace DevCoreHospital.ViewModels.Doctor
 {
     public class DoctorScheduleViewModel : ObservableObject
     {
-        private readonly ICurrentUserService _currentUser;
-        private readonly IDoctorAppointmentService _appointmentService;
-        private readonly IShiftRepository _shiftRepository;
-        private readonly IDialogService _dialogService;
+        private const int MaxAppointmentsToLoad = 500;
 
-        private int _loadVersion = 0;
-        private bool _isInitializing = false;
+        private readonly ICurrentUserService currentUser;
+        private readonly IDoctorAppointmentService appointmentService;
+        private readonly IShiftRepository shiftRepository;
+        private readonly IDialogService dialogService;
 
-        public ObservableCollection<AppointmentItemViewModel> Appointments { get; } = new();
-        public ObservableCollection<DoctorShiftItemViewModel> Shifts { get; } = new();
-        public ObservableCollection<DoctorOption> Doctors { get; } = new();
+        private int loadVersion;
+        private bool isInitializing;
 
-        public enum ScheduleViewMode { Daily, Weekly }
+        public ObservableCollection<AppointmentItemViewModel> Appointments { get; } = new ObservableCollection<AppointmentItemViewModel>();
+        public ObservableCollection<DoctorShiftItemViewModel> Shifts { get; } = new ObservableCollection<DoctorShiftItemViewModel>();
+        public ObservableCollection<DoctorOption> Doctors { get; } = new ObservableCollection<DoctorOption>();
 
-        private ScheduleViewMode _viewMode = ScheduleViewMode.Daily;
+        public enum ScheduleViewMode
+        {
+            Daily,
+            Weekly,
+        }
+
+        private ScheduleViewMode viewMode = ScheduleViewMode.Daily;
         public ScheduleViewMode ViewMode
         {
-            get => _viewMode;
+            get => viewMode;
             set
             {
-                if (SetProperty(ref _viewMode, value))
+                if (SetProperty(ref viewMode, value))
                 {
                     RaisePropertyChanged(nameof(IsDaily));
                     RaisePropertyChanged(nameof(IsWeekly));
@@ -50,46 +56,52 @@ namespace DevCoreHospital.ViewModels.Doctor
         public string PreviousButtonText => IsWeekly ? "Previous Week" : "Previous";
         public string NextButtonText => IsWeekly ? "Next Week" : "Next";
 
-        private DoctorOption? _selectedDoctor;
+        private DoctorOption? selectedDoctor;
         public DoctorOption? SelectedDoctor
         {
-            get => _selectedDoctor;
+            get => selectedDoctor;
             set
             {
-                if (SetProperty(ref _selectedDoctor, value) && !_isInitializing)
+                if (SetProperty(ref selectedDoctor, value) && !isInitializing)
+                {
                     _ = LoadAsync();
+                }
             }
         }
 
-        private bool _isLoading;
+        private bool isLoading;
         public bool IsLoading
         {
-            get => _isLoading;
+            get => isLoading;
             set
             {
-                if (SetProperty(ref _isLoading, value))
+                if (SetProperty(ref isLoading, value))
+                {
                     RaisePropertyChanged(nameof(IsEmpty));
+                }
             }
         }
 
-        private string _errorMessage = string.Empty;
+        private string errorMessage = string.Empty;
         public string ErrorMessage
         {
-            get => _errorMessage;
+            get => errorMessage;
             set
             {
-                if (SetProperty(ref _errorMessage, value))
+                if (SetProperty(ref errorMessage, value))
+                {
                     RaisePropertyChanged(nameof(IsEmpty));
+                }
             }
         }
 
-        private DateTime _selectedDate = DateTime.Today;
+        private DateTime selectedDate = DateTime.Today;
         public DateTime SelectedDate
         {
-            get => _selectedDate;
+            get => selectedDate;
             set
             {
-                if (SetProperty(ref _selectedDate, value))
+                if (SetProperty(ref selectedDate, value))
                 {
                     RaisePropertyChanged(nameof(SelectedDateText));
                     _ = LoadAsync();
@@ -108,8 +120,8 @@ namespace DevCoreHospital.ViewModels.Doctor
             }
         }
 
-        public bool IsDoctor => string.Equals(_currentUser.Role, "Doctor", StringComparison.OrdinalIgnoreCase) ||
-                                string.Equals(_currentUser.Role, "Admin", StringComparison.OrdinalIgnoreCase);
+        public bool IsDoctor => string.Equals(currentUser.Role, "Doctor", StringComparison.OrdinalIgnoreCase) ||
+                                string.Equals(currentUser.Role, "Admin", StringComparison.OrdinalIgnoreCase);
         public bool IsAccessDenied => !IsDoctor;
         public bool IsEmpty => !IsLoading && string.IsNullOrWhiteSpace(ErrorMessage) && Appointments.Count == 0 && Shifts.Count == 0;
 
@@ -126,10 +138,10 @@ namespace DevCoreHospital.ViewModels.Doctor
             IShiftRepository shiftRepository,
             IDialogService dialogService)
         {
-            _currentUser = currentUser;
-            _appointmentService = appointmentService;
-            _shiftRepository = shiftRepository;
-            _dialogService = dialogService;
+            this.currentUser = currentUser;
+            this.appointmentService = appointmentService;
+            this.shiftRepository = shiftRepository;
+            this.dialogService = dialogService;
 
             RefreshCommand = new AsyncRelayCommand(LoadAsync, () => IsDoctor);
             TodayCommand = new RelayCommand(() => SelectedDate = DateTime.Today, () => IsDoctor);
@@ -148,9 +160,9 @@ namespace DevCoreHospital.ViewModels.Doctor
 
         public async Task InitializeAsync()
         {
-            _isInitializing = true;
+            isInitializing = true;
             IsLoading = true;
-            ErrorMessage = "";
+            ErrorMessage = string.Empty;
             Appointments.Clear();
             Shifts.Clear();
 
@@ -164,7 +176,7 @@ namespace DevCoreHospital.ViewModels.Doctor
             }
             finally
             {
-                _isInitializing = false;
+                isInitializing = false;
             }
 
             await LoadAsync();
@@ -176,7 +188,7 @@ namespace DevCoreHospital.ViewModels.Doctor
 
             try
             {
-                var allDoctors = await _appointmentService.GetAllDoctorsAsync();
+                var allDoctors = await appointmentService.GetAllDoctorsAsync();
 
                 foreach (var doctor in allDoctors.OrderBy(doctor => doctor.DoctorName))
                 {
@@ -194,7 +206,7 @@ namespace DevCoreHospital.ViewModels.Doctor
                     return;
                 }
 
-                SelectedDoctor = Doctors.FirstOrDefault(doctor => doctor.DoctorId == _currentUser.UserId) ?? Doctors.First();
+                SelectedDoctor = Doctors.FirstOrDefault(doctor => doctor.DoctorId == currentUser.UserId) ?? Doctors.First();
             }
             catch (Exception ex)
             {
@@ -205,7 +217,7 @@ namespace DevCoreHospital.ViewModels.Doctor
 
         public async Task LoadAsync()
         {
-            int myVersion = ++_loadVersion;
+            int capturedLoadVersion = ++loadVersion;
 
             if (!IsDoctor)
             {
@@ -221,7 +233,7 @@ namespace DevCoreHospital.ViewModels.Doctor
             try
             {
                 IsLoading = true;
-                ErrorMessage = "";
+                ErrorMessage = string.Empty;
 
                 if (SelectedDoctor is null)
                 {
@@ -236,10 +248,13 @@ namespace DevCoreHospital.ViewModels.Doctor
                 DateTime from = IsDaily ? SelectedDate.Date : StartOfWeek(SelectedDate);
                 DateTime to = IsDaily ? from.AddDays(1) : from.AddDays(7);
 
-                var rawAppointments = await _appointmentService.GetUpcomingAppointmentsAsync(doctorId, from, 0, 500);
-                var rawShifts = await Task.Run(() => _shiftRepository.GetShiftsForStaffInRange(doctorId, from, to));
+                var rawAppointments = await appointmentService.GetUpcomingAppointmentsAsync(doctorId, from, 0, MaxAppointmentsToLoad);
+                var rawShifts = await Task.Run(() => shiftRepository.GetShiftsForStaffInRange(doctorId, from, to));
 
-                if (myVersion != _loadVersion) return;
+                if (capturedLoadVersion != loadVersion)
+                {
+                    return;
+                }
 
                 var filteredAppointments = rawAppointments
                     .Where(appointment => appointment.DoctorId == doctorId)
@@ -247,7 +262,11 @@ namespace DevCoreHospital.ViewModels.Doctor
                     {
                         var start = appointment.Date.Date + appointment.StartTime;
                         var end = appointment.Date.Date + appointment.EndTime;
-                        if (end <= start) return false;
+                        if (end <= start)
+                        {
+                            return false;
+                        }
+
                         return start < to && end > from;
                     })
                     .OrderBy(appointment => appointment.Date)
@@ -260,21 +279,27 @@ namespace DevCoreHospital.ViewModels.Doctor
                     .ToList();
 
                 Appointments.Clear();
-                foreach (var item in filteredAppointments)
-                    Appointments.Add(new AppointmentItemViewModel(item));
+                foreach (var appointment in filteredAppointments)
+                {
+                    Appointments.Add(new AppointmentItemViewModel(appointment));
+                }
 
                 Shifts.Clear();
                 foreach (var shift in filteredShifts)
+                {
                     Shifts.Add(new DoctorShiftItemViewModel(shift));
+                }
             }
             catch (Exception ex)
             {
-                if (myVersion == _loadVersion)
+                if (capturedLoadVersion == loadVersion)
+                {
                     ErrorMessage = $"Failed to load schedule: {ex.Message}";
+                }
             }
             finally
             {
-                if (myVersion == _loadVersion)
+                if (capturedLoadVersion == loadVersion)
                 {
                     IsLoading = false;
                     RaisePropertyChanged(nameof(IsAccessDenied));
@@ -285,29 +310,32 @@ namespace DevCoreHospital.ViewModels.Doctor
 
         public async void OpenDetails(AppointmentItemViewModel? item)
         {
-            if (item is null) return;
+            if (item is null)
+            {
+                return;
+            }
 
             try
             {
-                var d = await _appointmentService.GetAppointmentDetailsAsync(item.Id);
-                if (d is null)
+                var appointmentDetails = await appointmentService.GetAppointmentDetailsAsync(item.Id);
+                if (appointmentDetails is null)
                 {
-                    await _dialogService.ShowMessageAsync("Details", "Appointment not found.");
+                    await dialogService.ShowMessageAsync("Details", "Appointment not found.");
                     return;
                 }
 
                 var text =
                     $"Patient: {(string.IsNullOrWhiteSpace(item.PatientName) ? "Patient hidden/unknown" : item.PatientName)}\n" +
-                    $"Type: {(string.IsNullOrWhiteSpace(d.Type) ? "N/A" : d.Type)}\n" +
-                    $"Location: {(string.IsNullOrWhiteSpace(d.Location) ? "Location TBD" : d.Location)}\n" +
-                    $"Time: {d.Date:yyyy-MM-dd} {d.StartTime:hh\\:mm}-{d.EndTime:hh\\:mm}\n" +
-                    $"Status: {(string.IsNullOrWhiteSpace(d.Status) ? "Unknown" : d.Status)}";
+                    $"Type: {(string.IsNullOrWhiteSpace(appointmentDetails.Type) ? "N/A" : appointmentDetails.Type)}\n" +
+                    $"Location: {(string.IsNullOrWhiteSpace(appointmentDetails.Location) ? "Location TBD" : appointmentDetails.Location)}\n" +
+                    $"Time: {appointmentDetails.Date:yyyy-MM-dd} {appointmentDetails.StartTime:hh\\:mm}-{appointmentDetails.EndTime:hh\\:mm}\n" +
+                    $"Status: {(string.IsNullOrWhiteSpace(appointmentDetails.Status) ? "Unknown" : appointmentDetails.Status)}";
 
-                await _dialogService.ShowMessageAsync("Appointment Details", text);
+                await dialogService.ShowMessageAsync("Appointment Details", text);
             }
             catch (Exception ex)
             {
-                await _dialogService.ShowMessageAsync("Details", $"Failed to load details: {ex.Message}");
+                await dialogService.ShowMessageAsync("Details", $"Failed to load details: {ex.Message}");
             }
         }
 
@@ -331,13 +359,17 @@ namespace DevCoreHospital.ViewModels.Doctor
             public static (string FirstName, string LastName) SplitFirstLast(string? fullName)
             {
                 if (string.IsNullOrWhiteSpace(fullName))
+                {
                     return (string.Empty, string.Empty);
+                }
 
                 var parts = fullName
                     .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
                 if (parts.Length == 1)
+                {
                     return (parts[0], string.Empty);
+                }
 
                 return (parts[0], parts[^1]);
             }

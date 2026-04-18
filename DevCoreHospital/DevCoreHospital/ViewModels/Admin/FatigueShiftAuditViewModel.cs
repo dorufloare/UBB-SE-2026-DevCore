@@ -1,29 +1,29 @@
-﻿using DevCoreHospital.Services;
-using DevCoreHospital.ViewModels.Base;
-using Microsoft.UI;
-using Microsoft.UI.Xaml.Media;
 using System;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
+using DevCoreHospital.Services;
+using DevCoreHospital.ViewModels.Base;
+using Microsoft.UI;
+using Microsoft.UI.Xaml.Media;
 
 namespace DevCoreHospital.ViewModels
 {
     public sealed class FatigueShiftAuditViewModel : ObservableObject
     {
-        private readonly IFatigueAuditService _auditService;
+        private readonly IFatigueAuditService auditService;
 
-        public ObservableCollection<AuditViolationRow> Violations { get; } = new();
-        public ObservableCollection<AutoSuggestRow> Suggestions { get; } = new();
+        public ObservableCollection<AuditViolationRow> Violations { get; } = new ObservableCollection<AuditViolationRow>();
+        public ObservableCollection<AutoSuggestRow> Suggestions { get; } = new ObservableCollection<AutoSuggestRow>();
 
-        private DateTimeOffset _selectedWeekStart = new DateTimeOffset(StartOfWeek(DateTime.Today));
+        private DateTimeOffset selectedWeekStart = new DateTimeOffset(StartOfWeek(DateTime.Today));
         public DateTimeOffset SelectedWeekStart
         {
-            get => _selectedWeekStart;
+            get => selectedWeekStart;
             set
             {
                 var normalized = new DateTimeOffset(StartOfWeek(value.Date));
-                if (SetProperty(ref _selectedWeekStart, normalized))
+                if (SetProperty(ref selectedWeekStart, normalized))
                 {
                     RaisePropertyChanged(nameof(WeekLabel));
                     RunAutoAuditCommand.RaiseCanExecuteChanged();
@@ -40,20 +40,20 @@ namespace DevCoreHospital.ViewModels
             }
         }
 
-        private string _statusMessage = "Run Auto-Audit to validate this roster.";
+        private string statusMessage = "Run Auto-Audit to validate this roster.";
         public string StatusMessage
         {
-            get => _statusMessage;
-            set => SetProperty(ref _statusMessage, value);
+            get => statusMessage;
+            set => SetProperty(ref statusMessage, value);
         }
 
-        private bool _canPublish = false;
+        private bool canPublish;
         public bool CanPublish
         {
-            get => _canPublish;
+            get => canPublish;
             private set
             {
-                if (SetProperty(ref _canPublish, value))
+                if (SetProperty(ref canPublish, value))
                 {
                     RaisePropertyChanged(nameof(PublishStatus));
                     RaisePropertyChanged(nameof(PublishStatusColor));
@@ -64,19 +64,19 @@ namespace DevCoreHospital.ViewModels
 
         public string PublishStatus => CanPublish ? "Publish status: READY" : "Publish status: BLOCKED";
 
-        public Brush PublishStatusColor => CanPublish 
-            ? new SolidColorBrush(Colors.Green) 
+        public Brush PublishStatusColor => CanPublish
+            ? new SolidColorBrush(Colors.Green)
             : new SolidColorBrush(Colors.Red);
 
         public string PublishStatusDescription => CanPublish
-            ? "✓ No violations detected. Roster is ready to publish."
+            ? "? No violations detected. Roster is ready to publish."
             : "Roster cannot be published while violations exist. Run audit and resolve all conflicts.";
 
         public RelayCommand RunAutoAuditCommand { get; }
 
         public FatigueShiftAuditViewModel(IFatigueAuditService auditService)
         {
-            _auditService = auditService;
+            this.auditService = auditService;
             RunAutoAuditCommand = new RelayCommand(RunAutoAudit);
 
             RunAutoAudit();
@@ -84,7 +84,7 @@ namespace DevCoreHospital.ViewModels
 
         public void RunAutoAudit()
         {
-            var result = _auditService.RunAutoAudit(SelectedWeekStart.Date);
+            var result = auditService.RunAutoAudit(SelectedWeekStart.Date);
             var englishCulture = CultureInfo.GetCultureInfo("en-US");
 
             Violations.Clear();
@@ -122,10 +122,6 @@ namespace DevCoreHospital.ViewModels
 
         public bool HasConflicts => Violations.Count > 0;
 
-        /// <summary>
-        /// Applies the audit-recommended reassignment for a shift and re-runs the audit.
-        /// Returns a human-readable result status used by the view.
-        /// </summary>
         public ReassignmentResult ApplyReassignment(int shiftId)
         {
             var suggestion = Suggestions.FirstOrDefault(auditSuggestion => auditSuggestion.ShiftId == shiftId);
@@ -137,8 +133,8 @@ namespace DevCoreHospital.ViewModels
                     "No valid reassignment candidate found for this shift.");
             }
 
-            bool success = _auditService.ReassignShift(shiftId, suggestion.SuggestedStaffId.Value);
-            if (!success)
+            bool isSuccess = auditService.ReassignShift(shiftId, suggestion.SuggestedStaffId.Value);
+            if (!isSuccess)
             {
                 return new ReassignmentResult(
                     false,
@@ -154,7 +150,7 @@ namespace DevCoreHospital.ViewModels
                 $"Shift #{shiftId} has been reassigned to {suggestion.SuggestedStaffName}.\n\nAudit was re-run to verify changes.");
         }
 
-        public sealed record ReassignmentResult(bool Success, string Title, string Message);
+        public sealed record ReassignmentResult(bool IsSuccess, string Title, string Message);
 
         private static DateTime StartOfWeek(DateTime date)
         {
@@ -182,4 +178,3 @@ namespace DevCoreHospital.ViewModels
         }
     }
 }
-

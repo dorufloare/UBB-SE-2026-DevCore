@@ -71,21 +71,21 @@ namespace DevCoreHospital.Services
                     }
                 }
 
-                for (var i = 1; i < staffAllShifts.Count; i++)
+                for (var shiftIndex = 1; shiftIndex < staffAllShifts.Count; shiftIndex++)
                 {
-                    var previous = staffAllShifts[i - 1];
-                    var current = staffAllShifts[i];
-                    var restGap = current.Start - previous.End;
+                    var previousShift = staffAllShifts[shiftIndex - 1];
+                    var currentShift = staffAllShifts[shiftIndex];
+                    var restGap = currentShift.Start - previousShift.End;
 
-                    if (restGap < MinRestGap && weeklyShiftIds.Contains(current.Id))
+                    if (restGap < MinRestGap && weeklyShiftIds.Contains(currentShift.Id))
                     {
                         violations.Add(new AuditViolation
                         {
-                            ShiftId = current.Id,
-                            StaffId = current.StaffId,
-                            StaffName = current.StaffName,
-                            ShiftStart = current.Start,
-                            ShiftEnd = current.End,
+                            ShiftId = currentShift.Id,
+                            StaffId = currentShift.StaffId,
+                            StaffName = currentShift.StaffName,
+                            ShiftStart = currentShift.Start,
+                            ShiftEnd = currentShift.End,
                             Rule = "MIN_12H_REST",
                             Message = $"Rest gap is {restGap.TotalHours:F1}h (minimum {MinRestGap.TotalHours:F0}h)."
                         });
@@ -120,19 +120,19 @@ namespace DevCoreHospital.Services
             IReadOnlyList<RosterShift> allShifts,
             IReadOnlyList<StaffProfile> staffProfiles)
         {
-            var weeklyById = weeklyShifts.ToDictionary(rosterShift => rosterShift.Id, rosterShift => rosterShift);
+            var weeklyShiftsById = weeklyShifts.ToDictionary(rosterShift => rosterShift.Id, rosterShift => rosterShift);
             var effectiveShifts = allShifts.Select(CloneShift).ToList();
-            var output = new List<AutoSuggestRecommendation>();
+            var recommendations = new List<AutoSuggestRecommendation>();
 
             foreach (var violation in violations)
             {
-                if (!weeklyById.TryGetValue(violation.ShiftId, out var violatingShift))
+                if (!weeklyShiftsById.TryGetValue(violation.ShiftId, out var violatingShift))
                 {
                     continue;
                 }
 
-                var violatingShiftInPlan = effectiveShifts.FirstOrDefault(s => s.Id == violatingShift.Id) ?? violatingShift;
-                var strictCandidates = staffProfiles
+                var violatingShiftInPlan = effectiveShifts.FirstOrDefault(existingShift => existingShift.Id == violatingShift.Id) ?? violatingShift;
+                var matchingSpecializationCandidates = staffProfiles
                     .Where(staffProfile => staffProfile.StaffId != violatingShiftInPlan.StaffId)
                     .Where(staffProfile => string.Equals(staffProfile.Role, violatingShiftInPlan.Role, StringComparison.OrdinalIgnoreCase))
                     .Where(staffProfile => string.Equals(staffProfile.Specialization, violatingShiftInPlan.Specialization, StringComparison.OrdinalIgnoreCase))
@@ -142,12 +142,12 @@ namespace DevCoreHospital.Services
                     .ThenBy(staffProfile => staffProfile.FullName)
                     .ToList();
 
-                var usedRoleOnlyFallback = false;
-                var candidates = strictCandidates;
-                if (candidates.Count == 0)
+                var isUsingRoleOnlyFallback = false;
+                var candidateStaff = matchingSpecializationCandidates;
+                if (candidateStaff.Count == 0)
                 {
-                    usedRoleOnlyFallback = true;
-                    candidates = staffProfiles
+                    isUsingRoleOnlyFallback = true;
+                    candidateStaff = staffProfiles
                         .Where(staffProfile => staffProfile.StaffId != violatingShiftInPlan.StaffId)
                         .Where(staffProfile => string.Equals(staffProfile.Role, violatingShiftInPlan.Role, StringComparison.OrdinalIgnoreCase))
                         .Where(IsAvailableForReassignment)
@@ -157,10 +157,10 @@ namespace DevCoreHospital.Services
                         .ToList();
                 }
 
-                var candidate = candidates.FirstOrDefault();
-                if (candidate is null)
+                var bestCandidate = candidateStaff.FirstOrDefault();
+                if (bestCandidate is null)
                 {
-                    output.Add(new AutoSuggestRecommendation
+                    recommendations.Add(new AutoSuggestRecommendation
                     {
                         ShiftId = violatingShift.Id,
                         OriginalStaffId = violatingShift.StaffId,
@@ -172,23 +172,23 @@ namespace DevCoreHospital.Services
                     continue;
                 }
 
-                var monthlyHours = GetMonthlyWorkedHoursFromShifts(candidate.StaffId, violatingShiftInPlan.Start.Year, violatingShiftInPlan.Start.Month, effectiveShifts);
-                output.Add(new AutoSuggestRecommendation
+                var monthlyHours = GetMonthlyWorkedHoursFromShifts(bestCandidate.StaffId, violatingShiftInPlan.Start.Year, violatingShiftInPlan.Start.Month, effectiveShifts);
+                recommendations.Add(new AutoSuggestRecommendation
                 {
                     ShiftId = violatingShiftInPlan.Id,
                     OriginalStaffId = violatingShiftInPlan.StaffId,
                     OriginalStaffName = violatingShiftInPlan.StaffName,
-                    SuggestedStaffId = candidate.StaffId,
-                    SuggestedStaffName = candidate.FullName,
-                    Reason = usedRoleOnlyFallback
+                    SuggestedStaffId = bestCandidate.StaffId,
+                    SuggestedStaffName = bestCandidate.FullName,
+                    Reason = isUsingRoleOnlyFallback
                         ? $"Fallback to same role; lowest monthly load in eligible pool ({monthlyHours:F1}h)."
                         : $"Lowest monthly load in matching specialization pool ({monthlyHours:F1}h)."
                 });
 
-                ApplyTentativeReassignment(effectiveShifts, violatingShiftInPlan.Id, candidate.StaffId, candidate.FullName);
+                ApplyTentativeReassignment(effectiveShifts, violatingShiftInPlan.Id, bestCandidate.StaffId, bestCandidate.FullName);
             }
 
-            return output;
+            return recommendations;
         }
 
         private static bool CanTakeShift(int candidateStaffId, RosterShift proposed, IReadOnlyList<RosterShift> allShifts, DateTime weekStart)
