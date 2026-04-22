@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using DevCoreHospital.Models;
 using DevCoreHospital.Services;
 
-namespace DevCoreHospital.Tests.TestDoubles;
+namespace DevCoreHospital.Tests.Fakes;
 
 public sealed class FakeShiftSwapService : IShiftSwapService
 {
@@ -14,7 +14,7 @@ public sealed class FakeShiftSwapService : IShiftSwapService
 
     public string RequestMessage { get; set; } = string.Empty;
 
-    public List<ShiftSwapRequest> IncomingRequests { get; } = new();
+    public List<ShiftSwapRequest> PendingInbox { get; } = new();
 
     public bool AcceptResult { get; set; }
 
@@ -23,6 +23,10 @@ public sealed class FakeShiftSwapService : IShiftSwapService
     public bool RejectResult { get; set; }
 
     public string RejectMessage { get; set; } = string.Empty;
+
+    public bool ReturningEmptyInboxOnSecondGetIncoming { get; set; }
+
+    private int getIncomingQueryCount;
 
     public List<IStaff> GetEligibleSwapColleaguesForShift(int requesterId, int shiftId, out string error)
     {
@@ -36,7 +40,16 @@ public sealed class FakeShiftSwapService : IShiftSwapService
         return RequestResult;
     }
 
-    public List<ShiftSwapRequest> GetIncomingSwapRequests(int colleagueId) => new(IncomingRequests);
+    public List<ShiftSwapRequest> GetIncomingSwapRequests(int colleagueId)
+    {
+        getIncomingQueryCount++;
+        if (ReturningEmptyInboxOnSecondGetIncoming && getIncomingQueryCount >= 2)
+        {
+            return new List<ShiftSwapRequest>();
+        }
+
+        return new List<ShiftSwapRequest>(PendingInbox);
+    }
 
     public bool AcceptSwapRequest(int swapId, int colleagueId, out string message)
     {

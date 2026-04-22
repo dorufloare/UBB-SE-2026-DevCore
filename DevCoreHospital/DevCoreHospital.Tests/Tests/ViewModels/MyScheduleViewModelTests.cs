@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using DevCoreHospital.Models;
 using DevCoreHospital.Repositories;
+using DevCoreHospital.Tests.Fakes;
 using DevCoreHospital.ViewModels;
 using DevCoreHospital.ViewModels.Doctor;
 using Moq;
@@ -29,7 +30,7 @@ public class MyScheduleViewModelTests
             s1a,
             new Shift(11, b, "ER", t.AddDays(1), t.AddDays(1).AddHours(4), ShiftStatus.SCHEDULED)
         });
-        var service = new TestDoubles.FakeShiftSwapService();
+        var service = new FakeShiftSwapService();
         var vm = new MyScheduleViewModel(service, sh.Object, staff.Object);
 
         vm.SelectedDoctor = vm.Doctors[1];
@@ -48,7 +49,7 @@ public class MyScheduleViewModelTests
         staff.Setup(staffRepository => staffRepository.LoadAllStaff()).Returns(new List<IStaff> { a, c });
         var sh = new Mock<IShiftRepository>();
         sh.Setup(shiftRepository => shiftRepository.GetShiftsByStaffID(1)).Returns(new List<Shift> { shift1 });
-        var service = new TestDoubles.FakeShiftSwapService
+        var service = new FakeShiftSwapService
         {
             EligibleError = string.Empty
         };
@@ -70,7 +71,7 @@ public class MyScheduleViewModelTests
         staff.Setup(staffRepository => staffRepository.LoadAllStaff()).Returns(new List<IStaff> { a });
         var sh = new Mock<IShiftRepository>();
         sh.Setup(shiftRepository => shiftRepository.GetShiftsByStaffID(1)).Returns(new List<Shift> { sh1 });
-        var service = new TestDoubles.FakeShiftSwapService { EligibleError = string.Empty };
+        var service = new FakeShiftSwapService { EligibleError = string.Empty };
         var vm = new MyScheduleViewModel(service, sh.Object, staff.Object);
         vm.SelectedColleague = null;
         vm.SelectedShift = vm.FutureShifts[0];
@@ -90,7 +91,7 @@ public class MyScheduleViewModelTests
         staff.Setup(staffRepository => staffRepository.LoadAllStaff()).Returns(new List<IStaff> { a });
         var sh = new Mock<IShiftRepository>();
         sh.Setup(shiftRepository => shiftRepository.GetShiftsByStaffID(1)).Returns(new List<Shift> { sh1 });
-        var service = new TestDoubles.FakeShiftSwapService
+        var service = new FakeShiftSwapService
         {
             RequestResult = true,
             RequestMessage = "Shift swap request sent successfully."
