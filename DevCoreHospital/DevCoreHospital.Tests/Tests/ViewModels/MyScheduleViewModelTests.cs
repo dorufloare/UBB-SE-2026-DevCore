@@ -21,10 +21,10 @@ public class MyScheduleViewModelTests
         var t = DateTime.UtcNow.AddDays(3);
         var s1a = new Shift(10, a, "ER", t, t.AddHours(4), ShiftStatus.SCHEDULED);
         var staff = new Mock<IStaffRepository>();
-        staff.Setup(r => r.LoadAllStaff()).Returns(new List<IStaff> { a, b });
+        staff.Setup(staffRepository => staffRepository.LoadAllStaff()).Returns(new List<IStaff> { a, b });
         var sh = new Mock<IShiftRepository>();
-        sh.Setup(r => r.GetShiftsByStaffID(1)).Returns(new List<Shift> { s1a });
-        sh.Setup(r => r.GetShiftsByStaffID(2)).Returns(new List<Shift>
+        sh.Setup(shiftRepository => shiftRepository.GetShiftsByStaffID(1)).Returns(new List<Shift> { s1a });
+        sh.Setup(shiftRepository => shiftRepository.GetShiftsByStaffID(2)).Returns(new List<Shift>
         {
             s1a,
             new Shift(11, b, "ER", t.AddDays(1), t.AddDays(1).AddHours(4), ShiftStatus.SCHEDULED)
@@ -45,9 +45,9 @@ public class MyScheduleViewModelTests
         var t = DateTime.UtcNow.AddDays(4);
         var shift1 = new Shift(10, a, "W", t, t.AddHours(5), ShiftStatus.SCHEDULED);
         var staff = new Mock<IStaffRepository>();
-        staff.Setup(s => s.LoadAllStaff()).Returns(new List<IStaff> { a, c });
+        staff.Setup(staffRepository => staffRepository.LoadAllStaff()).Returns(new List<IStaff> { a, c });
         var sh = new Mock<IShiftRepository>();
-        sh.Setup(s => s.GetShiftsByStaffID(1)).Returns(new List<Shift> { shift1 });
+        sh.Setup(shiftRepository => shiftRepository.GetShiftsByStaffID(1)).Returns(new List<Shift> { shift1 });
         var service = new TestDoubles.FakeShiftSwapService
         {
             EligibleError = string.Empty
@@ -67,9 +67,9 @@ public class MyScheduleViewModelTests
         var t = DateTime.UtcNow.AddDays(5);
         var sh1 = new Shift(10, a, "W", t, t.AddHours(3), ShiftStatus.SCHEDULED);
         var staff = new Mock<IStaffRepository>();
-        staff.Setup(s => s.LoadAllStaff()).Returns(new List<IStaff> { a });
+        staff.Setup(staffRepository => staffRepository.LoadAllStaff()).Returns(new List<IStaff> { a });
         var sh = new Mock<IShiftRepository>();
-        sh.Setup(s => s.GetShiftsByStaffID(1)).Returns(new List<Shift> { sh1 });
+        sh.Setup(shiftRepository => shiftRepository.GetShiftsByStaffID(1)).Returns(new List<Shift> { sh1 });
         var service = new TestDoubles.FakeShiftSwapService { EligibleError = string.Empty };
         var vm = new MyScheduleViewModel(service, sh.Object, staff.Object);
         vm.SelectedColleague = null;
@@ -87,9 +87,9 @@ public class MyScheduleViewModelTests
         var t = DateTime.UtcNow.AddDays(6);
         var sh1 = new Shift(10, a, "W", t, t.AddHours(2), ShiftStatus.SCHEDULED);
         var staff = new Mock<IStaffRepository>();
-        staff.Setup(s => s.LoadAllStaff()).Returns(new List<IStaff> { a });
+        staff.Setup(staffRepository => staffRepository.LoadAllStaff()).Returns(new List<IStaff> { a });
         var sh = new Mock<IShiftRepository>();
-        sh.Setup(s => s.GetShiftsByStaffID(1)).Returns(new List<Shift> { sh1 });
+        sh.Setup(shiftRepository => shiftRepository.GetShiftsByStaffID(1)).Returns(new List<Shift> { sh1 });
         var service = new TestDoubles.FakeShiftSwapService
         {
             RequestResult = true,

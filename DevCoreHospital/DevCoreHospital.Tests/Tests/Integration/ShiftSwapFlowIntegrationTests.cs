@@ -16,19 +16,19 @@ public class ShiftSwapFlowIntegrationTests
     [Fact]
     public void Pipeline_FromRepositoryThroughService_MyScheduleShowsSuccessMessage()
     {
-        var d1 = new MDoctor(1, "A", "A", string.Empty, string.Empty, true, "Sp", "L", DoctorStatus.AVAILABLE, 1);
-        var d2 = new MDoctor(2, "B", "B", string.Empty, string.Empty, true, "Sp", "L", DoctorStatus.AVAILABLE, 1);
-        var t = DateTime.UtcNow.AddDays(7);
-        var sh = new Shift(50, d1, "ER", t, t.AddHours(6), ShiftStatus.SCHEDULED);
+        var requesterDoctor = new MDoctor(1, "A", "A", string.Empty, string.Empty, true, "Sp", "L", DoctorStatus.AVAILABLE, 1);
+        var colleagueDoctor = new MDoctor(2, "B", "B", string.Empty, string.Empty, true, "Sp", "L", DoctorStatus.AVAILABLE, 1);
+        var shiftStart = DateTime.UtcNow.AddDays(7);
+        var requesterShift = new Shift(50, requesterDoctor, "ER", shiftStart, shiftStart.AddHours(6), ShiftStatus.SCHEDULED);
         var staff = new Mock<IStaffRepository>();
-        staff.Setup(r => r.LoadAllStaff()).Returns(new List<IStaff> { d1, d2 });
-        staff.Setup(r => r.GetStaffById(1)).Returns(d1);
+        staff.Setup(staffRepository => staffRepository.LoadAllStaff()).Returns(new List<IStaff> { requesterDoctor, colleagueDoctor });
+        staff.Setup(staffRepository => staffRepository.GetStaffById(1)).Returns(requesterDoctor);
         var shift = new Mock<IShiftRepository>();
-        shift.Setup(r => r.GetShiftsByStaffID(1)).Returns(new List<Shift> { sh });
-        shift.Setup(r => r.GetShiftById(50)).Returns(sh);
-        shift.Setup(r => r.IsStaffWorkingDuring(2, t, t.AddHours(6))).Returns(false);
+        shift.Setup(shiftRepository => shiftRepository.GetShiftsByStaffID(1)).Returns(new List<Shift> { requesterShift });
+        shift.Setup(shiftRepository => shiftRepository.GetShiftById(50)).Returns(requesterShift);
+        shift.Setup(shiftRepository => shiftRepository.IsStaffWorkingDuring(2, shiftStart, shiftStart.AddHours(6))).Returns(false);
         var swap = new Mock<IShiftSwapRepository>();
-        swap.Setup(r => r.CreateShiftSwapRequest(It.IsAny<ShiftSwapRequest>())).Returns(1);
+        swap.Setup(shiftSwapRepository => shiftSwapRepository.CreateShiftSwapRequest(It.IsAny<ShiftSwapRequest>())).Returns(1);
         var service = new ShiftSwapService(staff.Object, shift.Object, swap.Object);
         var vm = new MyScheduleViewModel(service, shift.Object, staff.Object);
         vm.SelectedColleague = new StaffOptionViewModel { StaffId = 2, DisplayName = "B" };
@@ -43,7 +43,7 @@ public class ShiftSwapFlowIntegrationTests
     public void Pipeline_SwapServiceExposesRepositoryRequests_OnIncomingViewModel()
     {
         var swap = new Mock<IShiftSwapRepository>();
-        swap.Setup(r => r.GetPendingSwapRequestsForColleague(1))
+        swap.Setup(shiftSwapRepository => shiftSwapRepository.GetPendingSwapRequestsForColleague(1))
             .Returns(
                 new List<ShiftSwapRequest>
                 {

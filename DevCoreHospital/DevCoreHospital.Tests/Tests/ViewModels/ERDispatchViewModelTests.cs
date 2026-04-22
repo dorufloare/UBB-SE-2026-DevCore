@@ -28,7 +28,7 @@ public class ERDispatchViewModelTests
     public async Task SimulateIncomingAsync_SetsStatusMessageMentioningSimulated()
     {
         var service = new Mock<IERDispatchService>();
-        service.Setup(s => s.SimulateIncomingRequestsAsync(2)).ReturnsAsync((IReadOnlyList<int>)new[] { 1, 2 });
+        service.Setup(dispatchService => dispatchService.SimulateIncomingRequestsAsync(2)).ReturnsAsync((IReadOnlyList<int>)new[] { 1, 2 });
         var vm = new ERDispatchViewModel(service.Object);
 
         await vm.SimulateIncomingAsync(2);
@@ -40,10 +40,10 @@ public class ERDispatchViewModelTests
     public async Task RunDispatchAsync_AddsRowWhenServiceMatches()
     {
         var service = new Mock<IERDispatchService>();
-        var req = new ERRequest { Id = 1, Specialization = "A", Location = "L" };
-        service.Setup(s => s.GetPendingRequestIdsAsync()).ReturnsAsync((IReadOnlyList<int>)new[] { 1 });
-        service.Setup(s => s.DispatchERRequestAsync(1))
-            .ReturnsAsync(new ERDispatchResult { IsSuccess = true, Request = req, MatchedDoctorName = "Doc" });
+        var erRequest = new ERRequest { Id = 1, Specialization = "A", Location = "L" };
+        service.Setup(dispatchService => dispatchService.GetPendingRequestIdsAsync()).ReturnsAsync((IReadOnlyList<int>)new[] { 1 });
+        service.Setup(dispatchService => dispatchService.DispatchERRequestAsync(1))
+            .ReturnsAsync(new ERDispatchResult { IsSuccess = true, Request = erRequest, MatchedDoctorName = "Doc" });
         var vm = new ERDispatchViewModel(service.Object);
 
         await vm.RunDispatchAsync();
@@ -55,11 +55,11 @@ public class ERDispatchViewModelTests
     public async Task RunDispatchAsync_AddsUnmatchedWhenServiceDoesNotMatch()
     {
         var service = new Mock<IERDispatchService>();
-        var req = new ERRequest { Id = 1, Specialization = "A", Location = "L" };
-        service.Setup(s => s.GetPendingRequestIdsAsync()).ReturnsAsync((IReadOnlyList<int>)new[] { 1 });
-        service.Setup(s => s.DispatchERRequestAsync(1))
-            .ReturnsAsync(new ERDispatchResult { IsSuccess = false, Request = req, Message = "no one" });
-        service.Setup(s => s.GetManualOverrideCandidatesAsync(1, 30))
+        var erRequest = new ERRequest { Id = 1, Specialization = "A", Location = "L" };
+        service.Setup(dispatchService => dispatchService.GetPendingRequestIdsAsync()).ReturnsAsync((IReadOnlyList<int>)new[] { 1 });
+        service.Setup(dispatchService => dispatchService.DispatchERRequestAsync(1))
+            .ReturnsAsync(new ERDispatchResult { IsSuccess = false, Request = erRequest, Message = "no one" });
+        service.Setup(dispatchService => dispatchService.GetManualOverrideCandidatesAsync(1, 30))
             .ReturnsAsync((IReadOnlyList<DoctorProfile>)new List<DoctorProfile>());
         var vm = new ERDispatchViewModel(service.Object);
 
@@ -72,7 +72,7 @@ public class ERDispatchViewModelTests
     public async Task LoadOverrideCandidatesAsync_UsesNoEligibleHintWhenListEmpty()
     {
         var service = new Mock<IERDispatchService>();
-        service.Setup(s => s.GetManualOverrideCandidatesAsync(1, 30))
+        service.Setup(dispatchService => dispatchService.GetManualOverrideCandidatesAsync(1, 30))
             .ReturnsAsync((IReadOnlyList<DoctorProfile>)new List<DoctorProfile>());
         var vm = new ERDispatchViewModel(service.Object);
 
@@ -88,9 +88,9 @@ public class ERDispatchViewModelTests
         var vm = new ERDispatchViewModel(service.Object);
         vm.OverrideCandidates.Add(new ERDispatchViewModel.OverrideCandidateRow { DoctorId = 1 });
 
-        var result = await vm.ApplyOverrideAsync(5, 1);
+        var isOverrideAccepted = await vm.ApplyOverrideAsync(5, 1);
 
-        Assert.False(result);
+        Assert.False(isOverrideAccepted);
     }
 
     [Fact]
@@ -101,22 +101,22 @@ public class ERDispatchViewModelTests
         vm.UnmatchedRequests.Add(new ERDispatchViewModel.UnmatchedRequestRow { RequestId = 1 });
         vm.OverrideCandidates.Clear();
 
-        var ok = await vm.ApplyOverrideAsync(1, 1);
+        var isOverrideAccepted = await vm.ApplyOverrideAsync(1, 1);
 
-        Assert.False(ok);
+        Assert.False(isOverrideAccepted);
     }
 
     [Fact]
     public async Task ApplyOverrideAsync_WhenServiceSucceeds_ReturnsTrue()
     {
         var service = new Mock<IERDispatchService>();
-        var request = new ERRequest { Id = 1, Specialization = "S", Location = "L" };
-        service.Setup(s => s.ManualOverrideAsync(1, 2, 30))
+        var manualOverrideErRequest = new ERRequest { Id = 1, Specialization = "S", Location = "L" };
+        service.Setup(dispatchService => dispatchService.ManualOverrideAsync(1, 2, 30))
             .ReturnsAsync(
                 new ERDispatchResult
                 {
                     IsSuccess = true,
-                    Request = request,
+                    Request = manualOverrideErRequest,
                     MatchedDoctorName = "Dr Z",
                     MatchReason = "override"
                 });
@@ -124,8 +124,8 @@ public class ERDispatchViewModelTests
         vm.UnmatchedRequests.Add(new ERDispatchViewModel.UnmatchedRequestRow { RequestId = 1, RequestSpecialization = "S", RequestLocation = "L" });
         vm.OverrideCandidates.Add(new ERDispatchViewModel.OverrideCandidateRow { DoctorId = 2, FullName = "Dr Z" });
 
-        var ok = await vm.ApplyOverrideAsync(1, 2);
+        var isOverrideAccepted = await vm.ApplyOverrideAsync(1, 2);
 
-        Assert.True(ok);
+        Assert.True(isOverrideAccepted);
     }
 }

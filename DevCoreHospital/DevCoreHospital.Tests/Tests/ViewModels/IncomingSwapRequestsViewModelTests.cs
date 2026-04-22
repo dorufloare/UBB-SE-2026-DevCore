@@ -15,7 +15,7 @@ public class IncomingSwapRequestsViewModelTests
     public void LoadRequests_WhenDoctorCleared_ExplainsSelectDoctor()
     {
         var service = new Mock<IShiftSwapService>();
-        service.Setup(s => s.GetIncomingSwapRequests(1)).Returns(new List<ShiftSwapRequest>());
+        service.Setup(shiftSwapService => shiftSwapService.GetIncomingSwapRequests(1)).Returns(new List<ShiftSwapRequest>());
         var vm = new IncomingSwapRequestsViewModel(service.Object, new[] { new DoctorOptionViewModel { StaffId = 1, DisplayName = "D" } });
 
         vm.SelectedDoctor = null;
@@ -27,7 +27,7 @@ public class IncomingSwapRequestsViewModelTests
     public void Constructor_WhenNoRequests_LoadStatusShowsNoPending()
     {
         var service = new Mock<IShiftSwapService>();
-        service.Setup(s => s.GetIncomingSwapRequests(1)).Returns(new List<ShiftSwapRequest>());
+        service.Setup(shiftSwapService => shiftSwapService.GetIncomingSwapRequests(1)).Returns(new List<ShiftSwapRequest>());
         var vm = new IncomingSwapRequestsViewModel(service.Object, new[] { new DoctorOptionViewModel { StaffId = 1, DisplayName = "D" } });
 
         Assert.Equal("No pending requests.", vm.StatusMessage);
@@ -41,7 +41,7 @@ public class IncomingSwapRequestsViewModelTests
         {
             new() { SwapId = 1, ShiftId = 2, RequesterId = 3, ColleagueId = 1, RequestedAt = DateTime.UtcNow, Status = ShiftSwapRequestStatus.PENDING }
         };
-        service.Setup(s => s.GetIncomingSwapRequests(1)).Returns(list);
+        service.Setup(shiftSwapService => shiftSwapService.GetIncomingSwapRequests(1)).Returns(list);
         var vm = new IncomingSwapRequestsViewModel(service.Object, new[] { new DoctorOptionViewModel { StaffId = 1, DisplayName = "D" } });
 
         Assert.Equal("1 pending request(s).", vm.StatusMessage);
@@ -51,7 +51,7 @@ public class IncomingSwapRequestsViewModelTests
     public void AcceptCommand_WhenSelectedRequestNull_DoesNotInvokeServiceUnderStrictMock()
     {
         var service = new Mock<IShiftSwapService>(MockBehavior.Strict);
-        service.Setup(s => s.GetIncomingSwapRequests(1)).Returns(new List<ShiftSwapRequest>());
+        service.Setup(shiftSwapService => shiftSwapService.GetIncomingSwapRequests(1)).Returns(new List<ShiftSwapRequest>());
         var vm = new IncomingSwapRequestsViewModel(service.Object, new[] { new DoctorOptionViewModel { StaffId = 1, DisplayName = "D" } });
         vm.Requests.Add(new IncomingSwapRequestItemViewModel { SwapId = 9, ShiftId = 1, RequesterId = 1 });
         vm.SelectedRequest = null;
