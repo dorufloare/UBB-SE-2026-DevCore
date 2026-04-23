@@ -2,25 +2,37 @@
 
   <PropertyGroup>
     <TargetFramework>net8.0-windows10.0.26100.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
-	  <RuntimeIdentifiers>win-x86;win-x64;win-arm64</RuntimeIdentifiers>
-	  <PlatformTarget>x64</PlatformTarget>
+    <UseWinUI>true</UseWinUI>
+    <!-- Disable MSIX packaging and PRI generation — test projects do not produce app packages -->
+    <EnableMsixTooling>false</EnableMsixTooling>
+    <GenerateAppxManifest>false</GenerateAppxManifest>
+    <AppxPackage>false</AppxPackage>
+    <AppxGeneratePriEnabled>false</AppxGeneratePriEnabled>
+    <EnableCoreMrtTooling>false</EnableCoreMrtTooling>
+    <Platforms>x86;x64;ARM64</Platforms>
+    <RuntimeIdentifiers>win-x86;win-x64;win-arm64</RuntimeIdentifiers>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="6.0.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
-    <PackageReference Include="Moq" Version="4.20.70" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.5.240311000" />
+    <PackageReference Include="Moq" Version="4.20.72" />
     <PackageReference Include="xunit" Version="2.5.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.5.3" />
-    <PackageReference Include="Microsoft.Data.SqlClient" version="5.2.2" /> 
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DevCoreHospital\DevCoreHospital.csproj" />
+    <!-- Disable MSIX packaging and PRI generation in the referenced app project when building for tests -->
+    <ProjectReference Include="..\DevCoreHospital\DevCoreHospital.csproj">
+      <Properties>EnableMsixTooling=false;AppxPackage=false;GenerateAppxManifest=false;AppxGeneratePriEnabled=false;EnableCoreMrtTooling=false</Properties>
+    </ProjectReference>
   </ItemGroup>
 
   <ItemGroup>
