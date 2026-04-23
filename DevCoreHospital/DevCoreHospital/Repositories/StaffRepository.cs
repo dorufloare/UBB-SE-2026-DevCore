@@ -8,7 +8,7 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace DevCoreHospital.Repositories
 {
-    public class StaffRepository : IPharmacyStaffRepository
+    public class StaffRepository : IShiftManagementStaffRepository, IStaffRepository, IPharmacyStaffRepository
     {
         private List<IStaff> cachedStaff;
         private readonly string connectionString;

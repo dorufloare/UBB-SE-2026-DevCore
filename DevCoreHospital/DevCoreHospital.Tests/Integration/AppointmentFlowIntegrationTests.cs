@@ -128,6 +128,19 @@ namespace DevCoreHospital.Tests.Integration
                         && s.StartTime < to
                         && s.EndTime > from)
                     .ToList();
+
+            public Shift? GetShiftById(int shiftId) =>
+                shifts.FirstOrDefault(s => s.Id == shiftId);
+
+            public List<Shift> GetShiftsByStaffID(int staffId) =>
+                shifts.Where(s => s.AppointedStaff.StaffID == staffId).ToList();
+
+            public bool IsStaffWorkingDuring(int staffId, DateTime startTime, DateTime endTime) =>
+                shifts.Any(s => s.AppointedStaff.StaffID == staffId
+                    && s.StartTime < endTime
+                    && s.EndTime > startTime);
+
+            public void Refresh() { }
         }
 
 
