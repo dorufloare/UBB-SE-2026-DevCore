@@ -8,6 +8,7 @@ using DevCoreHospital.Models;
 using DevCoreHospital.Repositories;
 using DevCoreHospital.Services;
 using DevCoreHospital.ViewModels;
+using DevCoreHospital.ViewModels.Base;
 using DoctorModel = DevCoreHospital.Models.Doctor;
 
 namespace DevCoreHospital.ViewModels.Doctor

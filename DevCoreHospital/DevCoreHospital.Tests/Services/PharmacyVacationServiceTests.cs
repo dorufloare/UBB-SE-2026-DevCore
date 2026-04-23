@@ -125,5 +125,65 @@ namespace DevCoreHospital.Tests.Services
             Assert.Throws<InvalidOperationException>(() =>
                 service.RegisterVacation(pharmacist.StaffID, new DateTime(2025, 7, 28), new DateTime(2025, 7, 31)));
         }
+
+        [Fact]
+        public void RegisterVacation_Succeeds_WhenStartDateEqualsEndDate()
+        {
+            mockStaffRepository.Setup(r => r.GetPharmacists()).Returns(new List<Pharmacyst> { pharmacist });
+            mockShiftRepository.Setup(r => r.GetShiftsByStaffID(pharmacist.StaffID)).Returns(new List<Shift>());
+            mockShiftRepository.Setup(r => r.GetShifts()).Returns(new List<Shift>());
+
+            service.RegisterVacation(pharmacist.StaffID, new DateTime(2025, 7, 10), new DateTime(2025, 7, 10));
+
+            mockShiftRepository.Verify(r => r.AddShift(It.IsAny<Shift>()), Times.Once);
+        }
+
+        [Fact]
+        public void RegisterVacation_Succeeds_WhenVacationSpansTwoMonthsButNeitherExceedsLimit()
+        {
+            mockStaffRepository.Setup(r => r.GetPharmacists()).Returns(new List<Pharmacyst> { pharmacist });
+            mockShiftRepository.Setup(r => r.GetShiftsByStaffID(pharmacist.StaffID)).Returns(new List<Shift>());
+            mockShiftRepository.Setup(r => r.GetShifts()).Returns(new List<Shift>());
+
+            // June 30 to July 2: June gets 1 day, July gets 2 days — both within the 4-day limit
+            service.RegisterVacation(pharmacist.StaffID, new DateTime(2025, 6, 30), new DateTime(2025, 7, 2));
+
+            mockShiftRepository.Verify(r => r.AddShift(It.IsAny<Shift>()), Times.Once);
+        }
+
+        [Fact]
+        public void GetPharmacists_ReturnsPharmacistsOrderedByFirstNameThenLastName()
+        {
+            var pharmacists = new List<Pharmacyst>
+            {
+                new Pharmacyst(3, "Zoe", "Adams", string.Empty, true, "Sterile", 2),
+                new Pharmacyst(1, "Ana", "Brown", string.Empty, true, "General", 1),
+                new Pharmacyst(2, "Ana", "Adams", string.Empty, true, "IV", 3),
+            };
+            mockStaffRepository.Setup(r => r.GetPharmacists()).Returns(pharmacists);
+
+            var result = service.GetPharmacists();
+
+            Assert.Equal(3, result.Count);
+            Assert.Equal("Ana", result[0].FirstName);
+            Assert.Equal("Adams", result[0].LastName);
+            Assert.Equal("Ana", result[1].FirstName);
+            Assert.Equal("Brown", result[1].LastName);
+            Assert.Equal("Zoe", result[2].FirstName);
+        }
+
+        [Fact]
+        public void RegisterVacation_ThrowsInvalidOperationException_WhenNewVacationExceedsLimitInSecondMonth()
+        {
+            var existingVacation = new Shift(10, pharmacist, "Vacation",
+                new DateTime(2025, 7, 1), new DateTime(2025, 7, 4), ShiftStatus.VACATION);
+
+            mockStaffRepository.Setup(r => r.GetPharmacists()).Returns(new List<Pharmacyst> { pharmacist });
+            mockShiftRepository.Setup(r => r.GetShiftsByStaffID(pharmacist.StaffID)).Returns(new List<Shift> { existingVacation });
+
+            // June 30 to July 2 adds 2 days to July — combined with existing 3 days = 5, exceeds limit
+            Assert.Throws<InvalidOperationException>(() =>
+                service.RegisterVacation(pharmacist.StaffID, new DateTime(2025, 6, 30), new DateTime(2025, 7, 3)));
+        }
     }
 }

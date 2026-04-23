@@ -6,6 +6,7 @@ using System.Windows.Input;
 using DevCoreHospital.Models;
 using DevCoreHospital.Services;
 using DevCoreHospital.ViewModels;
+using DevCoreHospital.ViewModels.Base;
 
 namespace DevCoreHospital.ViewModels.Doctor
 {

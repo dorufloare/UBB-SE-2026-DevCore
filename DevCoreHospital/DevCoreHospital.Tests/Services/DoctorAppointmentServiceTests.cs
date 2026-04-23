@@ -114,5 +114,43 @@ namespace DevCoreHospital.Tests.Services
 
             mockDataSource.Verify(x => x.UpdateAppointmentStatusAsync(It.IsAny<int>(), It.IsAny<string>()), Times.Never);
         }
+
+        [Fact]
+        public async Task GetAllDoctorsAsync_ReturnsResultFromDataSource()
+        {
+            IReadOnlyList<(int DoctorId, string DoctorName)> expected = new List<(int, string)>
+            {
+                (1, "Dr. Smith"),
+                (2, "Dr. Jones")
+            };
+            mockDataSource.Setup(x => x.GetAllDoctorsAsync()).ReturnsAsync(expected);
+
+            var result = await service.GetAllDoctorsAsync();
+
+            Assert.Same(expected, result);
+            mockDataSource.Verify(x => x.GetAllDoctorsAsync(), Times.Once);
+        }
+
+        [Fact]
+        public async Task GetAppointmentDetailsAsync_CallsDataSourceWithCorrectId()
+        {
+            var expected = new Appointment { Id = 42, DoctorId = 5, PatientName = "Jane Doe" };
+            mockDataSource.Setup(x => x.GetAppointmentDetailsAsync(42)).ReturnsAsync(expected);
+
+            var result = await service.GetAppointmentDetailsAsync(42);
+
+            Assert.Same(expected, result);
+            mockDataSource.Verify(x => x.GetAppointmentDetailsAsync(42), Times.Once);
+        }
+
+        [Fact]
+        public async Task GetAppointmentDetailsAsync_ReturnsNull_WhenNotFound()
+        {
+            mockDataSource.Setup(x => x.GetAppointmentDetailsAsync(99)).ReturnsAsync((Appointment?)null);
+
+            var result = await service.GetAppointmentDetailsAsync(99);
+
+            Assert.Null(result);
+        }
     }
 }

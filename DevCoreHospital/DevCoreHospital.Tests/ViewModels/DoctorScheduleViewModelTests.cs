@@ -361,5 +361,53 @@ namespace DevCoreHospital.Tests.ViewModels
 
             Assert.False(viewModel.IsEmpty);
         }
+
+        [Theory]
+        [InlineData("Ana Pop", "Ana", "Pop")]
+        [InlineData("John", "John", "")]
+        [InlineData("Mary Jane Watson", "Mary", "Watson")]
+        public void DoctorOption_SplitFirstLast_ExtractsCorrectParts(string fullName, string expectedFirst, string expectedLast)
+        {
+            var (first, last) = DoctorScheduleViewModel.DoctorOption.SplitFirstLast(fullName);
+
+            Assert.Equal(expectedFirst, first);
+            Assert.Equal(expectedLast, last);
+        }
+
+        [Fact]
+        public void DoctorOption_SplitFirstLast_ReturnsEmpty_WhenInputIsNullOrWhitespace()
+        {
+            var (first1, last1) = DoctorScheduleViewModel.DoctorOption.SplitFirstLast(null);
+            var (first2, last2) = DoctorScheduleViewModel.DoctorOption.SplitFirstLast("   ");
+
+            Assert.Equal(string.Empty, first1);
+            Assert.Equal(string.Empty, last1);
+            Assert.Equal(string.Empty, first2);
+            Assert.Equal(string.Empty, last2);
+        }
+
+        [Fact]
+        public void DoctorOption_DisplayName_CombinesFirstAndLastName()
+        {
+            var option = new DoctorScheduleViewModel.DoctorOption
+            {
+                FirstName = "Ana",
+                LastName = "Pop"
+            };
+
+            Assert.Equal("Ana Pop", option.DisplayName);
+        }
+
+        [Fact]
+        public void DoctorOption_DisplayName_SkipsEmptyParts()
+        {
+            var option = new DoctorScheduleViewModel.DoctorOption
+            {
+                FirstName = "John",
+                LastName = string.Empty
+            };
+
+            Assert.Equal("John", option.DisplayName);
+        }
     }
 }

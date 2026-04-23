@@ -297,6 +297,32 @@ namespace DevCoreHospital.Tests.Services
             hangoutRepository.Verify(r => r.AddParticipant(5, 2), Times.Once);
         }
 
+        [Fact]
+        public void GetAllHangouts_ReturnsHangoutsFromRepository()
+        {
+            var expected = new List<Hangout>
+            {
+                new Hangout(1, "Team Lunch", "desc", DateTime.Now.AddDays(10), 5),
+                new Hangout(2, "Coffee Chat", "desc2", DateTime.Now.AddDays(14), 3),
+            };
+            hangoutRepository.Setup(r => r.GetAllHangouts()).Returns(expected);
+
+            var result = service.GetAllHangouts();
+
+            Assert.Same(expected, result);
+            hangoutRepository.Verify(r => r.GetAllHangouts(), Times.Once);
+        }
+
+        [Fact]
+        public void GetAllHangouts_WhenRepositoryReturnsEmpty_ReturnsEmptyList()
+        {
+            hangoutRepository.Setup(r => r.GetAllHangouts()).Returns(new List<Hangout>());
+
+            var result = service.GetAllHangouts();
+
+            Assert.Empty(result);
+        }
+
         private static Doctor BuildDoctor(int staffId)
             => new Doctor(staffId, "First", "Last", "email@example.com", string.Empty, true, "Cardiology", "LIC-1", DoctorStatus.AVAILABLE, 3);
     }

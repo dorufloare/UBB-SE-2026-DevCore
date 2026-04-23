@@ -109,6 +109,14 @@ namespace DevCoreHospital.ViewModels.Doctor
             _ = LoadDoctorsAsync();
         }
 
+        public HangoutViewModel(IHangoutService hangoutService)
+        {
+            this.hangoutService = hangoutService;
+            this.staffRepository = null!;
+            CreateCommand = new RelayCommand(CreateHangout, CanCreateHangout);
+            LoadHangouts();
+        }
+
         private async Task LoadDoctorsAsync()
         {
             Doctors.Clear();
