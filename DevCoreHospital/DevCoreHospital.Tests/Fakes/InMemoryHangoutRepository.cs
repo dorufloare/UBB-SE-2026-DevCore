@@ -12,14 +12,16 @@ namespace DevCoreHospital.Tests.Fakes
         private readonly HashSet<(int staffId, DateTime date)> conflicts = new();
         private int nextId = 1;
 
-        public void AddHangout(Hangout hangout)
+        public int AddHangout(Hangout hangout)
         {
-            var stored = new Hangout(nextId++, hangout.Title, hangout.Description, hangout.Date, hangout.MaxParticipants);
+            int assignedId = nextId++;
+            var stored = new Hangout(assignedId, hangout.Title, hangout.Description, hangout.Date, hangout.MaxParticipants);
             foreach (var participant in hangout.ParticipantList)
             {
                 stored.ParticipantList.Add(participant);
             }
             hangouts.Add(stored);
+            return assignedId;
         }
 
         public void AddParticipant(int hangoutId, int staffId)

@@ -20,7 +20,7 @@ namespace DevCoreHospital.Services
             this.hangoutRepository = hangoutRepository;
         }
 
-        public void CreateHangout(string title, string description, DateTime date, int maxParticipants, IStaff creator)
+        public int CreateHangout(string title, string description, DateTime date, int maxParticipants, IStaff creator)
         {
             if (string.IsNullOrWhiteSpace(title) || title.Length < MinHangoutTitleLength || title.Length > MaxHangoutTitleLength)
             {
@@ -45,7 +45,7 @@ namespace DevCoreHospital.Services
             Hangout newHangout = new Hangout(0, title, description ?? string.Empty, date, maxParticipants);
             newHangout.ParticipantList.Add(creator);
 
-            hangoutRepository.AddHangout(newHangout);
+            return hangoutRepository.AddHangout(newHangout);
         }
 
         public void JoinHangout(int hangoutId, IStaff staff)

@@ -16,6 +16,11 @@ namespace DevCoreHospital.Repositories
             connectionString = AppSettings.ConnectionString;
         }
 
+        public HangoutRepository(string connectionString)
+        {
+            this.connectionString = connectionString;
+        }
+
         private SqlConnection GetConnection() => new SqlConnection(connectionString);
 
         private static void AddParameter(SqlCommand command, string name, object? value)
@@ -23,13 +28,14 @@ namespace DevCoreHospital.Repositories
             command.Parameters.Add(new SqlParameter(name, value ?? DBNull.Value));
         }
 
-        public void AddHangout(Hangout hangout)
+        public int AddHangout(Hangout hangout)
         {
             int newId = InsertHangout(hangout.Title, hangout.Description, hangout.Date, hangout.MaxParticipants);
             foreach (var participant in hangout.ParticipantList)
             {
                 InsertHangoutParticipant(newId, participant.StaffID);
             }
+            return newId;
         }
 
         public void AddParticipant(int hangoutId, int staffId)

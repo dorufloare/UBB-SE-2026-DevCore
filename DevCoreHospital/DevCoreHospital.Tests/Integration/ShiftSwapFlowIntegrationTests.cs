@@ -1,117 +1,175 @@
 using System;
-using System.Collections.Generic;
+using System.Linq;
 using DevCoreHospital.Models;
 using DevCoreHospital.Repositories;
 using DevCoreHospital.Services;
-using DevCoreHospital.ViewModels;
+using DevCoreHospital.Tests.Repositories;
 using DevCoreHospital.ViewModels.Base;
 using DevCoreHospital.ViewModels.Doctor;
-using Moq;
+using Microsoft.Data.SqlClient;
 using Xunit;
-using MDoctor = DevCoreHospital.Models.Doctor;
 
 namespace DevCoreHospital.Tests.Integration;
 
-public class ShiftSwapFlowIntegrationTests
+public class ShiftSwapFlowIntegrationTests : IClassFixture<SqlTestFixture>
 {
-    [Fact]
-    public void When_the_swap_repository_has_nothing_for_that_colleague_incoming_inbox_stays_empty()
-    {
-        var shiftSwap = new Mock<IShiftSwapRepository>();
-        shiftSwap
-            .Setup(shiftSwapRepository => shiftSwapRepository.GetPendingSwapRequestsForColleague(3))
-            .Returns(new List<ShiftSwapRequest>());
-        var staff = new Mock<IStaffRepository>();
-        var shifts = new Mock<IShiftRepository>();
-        var throughService = new ShiftSwapService(staff.Object, shifts.Object, shiftSwap.Object);
-        var incoming = new IncomingSwapRequestsViewModel(
-            throughService,
-            new[] { new DoctorOptionViewModel { StaffId = 3, DisplayName = "On-call" } });
+    private readonly SqlTestFixture db;
 
-        Assert.Empty(incoming.Requests);
-    }
+    public ShiftSwapFlowIntegrationTests(SqlTestFixture db) => this.db = db;
 
+    // -----------------------------------------------------------------------
+    // Test 1: no pending requests → inbox is empty
+    // -----------------------------------------------------------------------
     [Fact]
-    public void When_the_swap_repository_returns_a_pending_row_incoming_binds_a_single_list_item()
+    public void IncomingRequests_WhenNoSwapRequestsExistForColleague_InboxIsEmpty()
     {
-        var pending = new ShiftSwapRequest
+        using var conn = db.OpenConnection();
+        var colleagueId = db.InsertStaff(conn, "Doctor", "InbEmpty", "Colleague", "Cardiology");
+        try
         {
-            SwapId = 1,
-            ShiftId = 2,
-            ColleagueId = 1,
-            RequesterId = 3,
-            RequestedAt = DateTime.UtcNow,
-            Status = ShiftSwapRequestStatus.PENDING
-        };
-        var shiftSwap = new Mock<IShiftSwapRepository>();
-        shiftSwap
-            .Setup(shiftSwapRepository => shiftSwapRepository.GetPendingSwapRequestsForColleague(1))
-            .Returns(new List<ShiftSwapRequest> { pending });
-        var staff = new Mock<IStaffRepository>();
-        var shifts = new Mock<IShiftRepository>();
-        var throughService = new ShiftSwapService(staff.Object, shifts.Object, shiftSwap.Object);
-        var incoming = new IncomingSwapRequestsViewModel(
-            throughService,
-            new[] { new DoctorOptionViewModel { StaffId = 1, DisplayName = "A" } });
+            var staffRepo = new StaffRepository(db.ConnectionString);
+            var shiftRepo = new ShiftRepository(db.ConnectionString, staffRepo);
+            var swapRepo  = new ShiftSwapRepository(db.ConnectionString);
+            var service   = new ShiftSwapService(staffRepo, shiftRepo, swapRepo);
 
-        Assert.Single(incoming.Requests);
+            // Use the IEnumerable overload so we control exactly which doctor is selected,
+            // without relying on alphabetical position across the whole DB.
+            var incoming = new IncomingSwapRequestsViewModel(
+                service,
+                new[] { new DoctorOptionViewModel { StaffId = colleagueId, DisplayName = "InbEmpty Colleague" } });
+
+            Assert.Empty(incoming.Requests);
+        }
+        finally
+        {
+            db.DeleteStaff(conn, colleagueId);
+        }
     }
 
+    // -----------------------------------------------------------------------
+    // Test 2: one real pending row in the DB → inbox shows exactly one item
+    // -----------------------------------------------------------------------
     [Fact]
-    public void Submitting_a_request_swap_uses_create_on_the_configured_shift_swap_repository()
+    public void IncomingRequests_WhenOnePendingRequestExists_InboxHasSingleItem()
     {
-        var requester = new MDoctor(1, "A", "A", string.Empty, string.Empty, true, "Sp", "L", DoctorStatus.AVAILABLE, 1);
-        var peer = new MDoctor(2, "B", "B", string.Empty, string.Empty, true, "Sp", "L", DoctorStatus.AVAILABLE, 1);
-        var windowStart = DateTime.UtcNow.AddDays(5);
-        var future = new Shift(50, requester, "ER", windowStart, windowStart.AddHours(4), ShiftStatus.SCHEDULED);
-        var createCalls = 0;
-        var staff = new Mock<IStaffRepository>();
-        staff.Setup(staffRepository => staffRepository.LoadAllStaff()).Returns(new List<IStaff> { requester, peer });
-        staff.Setup(staffRepository => staffRepository.GetStaffById(1)).Returns(requester);
-        var shiftRepository = new Mock<IShiftRepository>();
-        shiftRepository.Setup(mockedShifts => mockedShifts.GetShiftsByStaffID(1)).Returns(new List<Shift> { future });
-        shiftRepository.Setup(mockedShifts => mockedShifts.GetShiftById(50)).Returns(future);
-        shiftRepository.Setup(mockedShifts => mockedShifts.IsStaffWorkingDuring(2, windowStart, windowStart.AddHours(4))).Returns(false);
-        var shiftSwap = new Mock<IShiftSwapRepository>();
-        shiftSwap
-            .Setup(shiftSwapRepository => shiftSwapRepository.CreateShiftSwapRequest(It.IsAny<ShiftSwapRequest>()))
-            .Callback(() => createCalls++)
-            .Returns(1);
-        var throughService = new ShiftSwapService(staff.Object, shiftRepository.Object, shiftSwap.Object);
-        var mySchedule = new MyScheduleViewModel(throughService, shiftRepository.Object, staff.Object);
-        mySchedule.SelectedColleague = new StaffOptionViewModel { StaffId = 2, DisplayName = "B" };
-        mySchedule.SelectedShift = mySchedule.FutureShifts[0];
+        using var conn = db.OpenConnection();
+        var requesterId = db.InsertStaff(conn, "Doctor", "InbOne", "Requester", "Cardiology");
+        var colleagueId = db.InsertStaff(conn, "Doctor", "InbOne", "Colleague", "Cardiology");
+        var start   = DateTime.Today.AddDays(30).AddHours(9);
+        var shiftId = db.InsertShift(conn, requesterId, "ER", start, start.AddHours(8));
+        var swapId  = 0;
+        try
+        {
+            swapId = InsertSwapRequest(conn, shiftId, requesterId, colleagueId);
 
-        ((RelayCommand)mySchedule.RequestSwapCommand).Execute(null!);
+            var staffRepo = new StaffRepository(db.ConnectionString);
+            var shiftRepo = new ShiftRepository(db.ConnectionString, staffRepo);
+            var swapRepo  = new ShiftSwapRepository(db.ConnectionString);
+            var service   = new ShiftSwapService(staffRepo, shiftRepo, swapRepo);
 
-        Assert.Equal(1, createCalls);
+            var incoming = new IncomingSwapRequestsViewModel(
+                service,
+                new[] { new DoctorOptionViewModel { StaffId = colleagueId, DisplayName = "InbOne Colleague" } });
+
+            Assert.Single(incoming.Requests);
+        }
+        finally
+        {
+            if (swapId > 0) db.DeleteSwapRequest(conn, swapId);
+            db.DeleteShift(conn, shiftId);
+            db.DeleteStaff(conn, requesterId);
+            db.DeleteStaff(conn, colleagueId);
+        }
     }
 
+    // -----------------------------------------------------------------------
+    // Test 3: executing RequestSwapCommand writes a real row to ShiftSwapRequests
+    // -----------------------------------------------------------------------
     [Fact]
-    public void A_successful_submitted_request_swap_drops_the_user_on_the_familiar_confirmation_in_status()
+    public void RequestSwapCommand_WhenAllConditionsMet_CreatesSwapRequestInDatabase()
     {
-        var requester = new MDoctor(1, "A", "A", string.Empty, string.Empty, true, "Sp", "L", DoctorStatus.AVAILABLE, 1);
-        var peer = new MDoctor(2, "B", "B", string.Empty, string.Empty, true, "Sp", "L", DoctorStatus.AVAILABLE, 1);
-        var windowStart = DateTime.UtcNow.AddDays(5);
-        var future = new Shift(50, requester, "ER", windowStart, windowStart.AddHours(4), ShiftStatus.SCHEDULED);
-        var staff = new Mock<IStaffRepository>();
-        staff.Setup(staffRepository => staffRepository.LoadAllStaff()).Returns(new List<IStaff> { requester, peer });
-        staff.Setup(staffRepository => staffRepository.GetStaffById(1)).Returns(requester);
-        var shiftRepository = new Mock<IShiftRepository>();
-        shiftRepository.Setup(mockedShifts => mockedShifts.GetShiftsByStaffID(1)).Returns(new List<Shift> { future });
-        shiftRepository.Setup(mockedShifts => mockedShifts.GetShiftById(50)).Returns(future);
-        shiftRepository.Setup(mockedShifts => mockedShifts.IsStaffWorkingDuring(2, windowStart, windowStart.AddHours(4))).Returns(false);
-        var shiftSwap = new Mock<IShiftSwapRepository>();
-        shiftSwap
-            .Setup(shiftSwapRepository => shiftSwapRepository.CreateShiftSwapRequest(It.IsAny<ShiftSwapRequest>()))
-            .Returns(1);
-        var throughService = new ShiftSwapService(staff.Object, shiftRepository.Object, shiftSwap.Object);
-        var mySchedule = new MyScheduleViewModel(throughService, shiftRepository.Object, staff.Object);
-        mySchedule.SelectedColleague = new StaffOptionViewModel { StaffId = 2, DisplayName = "B" };
-        mySchedule.SelectedShift = mySchedule.FutureShifts[0];
+        using var conn = db.OpenConnection();
+        var requesterId = db.InsertStaff(conn, "Doctor", "SwapReq",  "Requester", "SwapTestSpec");
+        var colleagueId = db.InsertStaff(conn, "Doctor", "SwapReq",  "Colleague", "SwapTestSpec");
+        var start   = DateTime.Today.AddDays(35).AddHours(9);
+        var shiftId = db.InsertShift(conn, requesterId, "ER", start, start.AddHours(8));
+        try
+        {
+            var staffRepo = new StaffRepository(db.ConnectionString);
+            var shiftRepo = new ShiftRepository(db.ConnectionString, staffRepo);
+            var swapRepo  = new ShiftSwapRepository(db.ConnectionString);
+            var service   = new ShiftSwapService(staffRepo, shiftRepo, swapRepo);
+            var viewModel = new MyScheduleViewModel(service, shiftRepo, staffRepo);
 
-        ((RelayCommand)mySchedule.RequestSwapCommand).Execute(null!);
+            viewModel.SelectedDoctor   = viewModel.Doctors.First(d => d.StaffId == requesterId);
+            viewModel.SelectedShift    = viewModel.FutureShifts.First(s => s.Id == shiftId);
+            viewModel.SelectedColleague = viewModel.EligibleColleagues.First(c => c.StaffId == colleagueId);
 
-        Assert.Contains("successfully", mySchedule.StatusMessage, StringComparison.OrdinalIgnoreCase);
+            ((RelayCommand)viewModel.RequestSwapCommand).Execute(null!);
+
+            var pending = swapRepo.GetPendingSwapRequestsForColleague(colleagueId);
+            Assert.Contains(pending, r => r.ShiftId == shiftId && r.RequesterId == requesterId);
+        }
+        finally
+        {
+            db.DeleteSwapRequestsByShift(conn, shiftId);
+            db.DeleteNotificationsByStaff(conn, colleagueId);
+            db.DeleteShift(conn, shiftId);
+            db.DeleteStaff(conn, requesterId);
+            db.DeleteStaff(conn, colleagueId);
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // Test 4: after a successful submit the status message contains "successfully"
+    // -----------------------------------------------------------------------
+    [Fact]
+    public void RequestSwapCommand_WhenAllConditionsMet_SetsSuccessStatusMessage()
+    {
+        using var conn = db.OpenConnection();
+        var requesterId = db.InsertStaff(conn, "Doctor", "SwapMsg",  "Requester", "SwapMsgSpec");
+        var colleagueId = db.InsertStaff(conn, "Doctor", "SwapMsg",  "Colleague", "SwapMsgSpec");
+        var start   = DateTime.Today.AddDays(36).AddHours(9);
+        var shiftId = db.InsertShift(conn, requesterId, "ER", start, start.AddHours(8));
+        try
+        {
+            var staffRepo = new StaffRepository(db.ConnectionString);
+            var shiftRepo = new ShiftRepository(db.ConnectionString, staffRepo);
+            var swapRepo  = new ShiftSwapRepository(db.ConnectionString);
+            var service   = new ShiftSwapService(staffRepo, shiftRepo, swapRepo);
+            var viewModel = new MyScheduleViewModel(service, shiftRepo, staffRepo);
+
+            viewModel.SelectedDoctor    = viewModel.Doctors.First(d => d.StaffId == requesterId);
+            viewModel.SelectedShift     = viewModel.FutureShifts.First(s => s.Id == shiftId);
+            viewModel.SelectedColleague = viewModel.EligibleColleagues.First(c => c.StaffId == colleagueId);
+
+            ((RelayCommand)viewModel.RequestSwapCommand).Execute(null!);
+
+            Assert.Contains("successfully", viewModel.StatusMessage, StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            db.DeleteSwapRequestsByShift(conn, shiftId);
+            db.DeleteNotificationsByStaff(conn, colleagueId);
+            db.DeleteShift(conn, shiftId);
+            db.DeleteStaff(conn, requesterId);
+            db.DeleteStaff(conn, colleagueId);
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // Helper: insert a PENDING swap request directly (no service layer)
+    // -----------------------------------------------------------------------
+    private static int InsertSwapRequest(SqlConnection conn, int shiftId, int requesterId, int colleagueId)
+    {
+        using var cmd = new SqlCommand(@"
+            INSERT INTO ShiftSwapRequests (shift_id, requester_id, colleague_id, requested_at, status)
+            VALUES (@ShiftId, @RequesterId, @ColleagueId, @RequestedAt, 'PENDING');
+            SELECT CAST(SCOPE_IDENTITY() AS INT);", conn);
+        cmd.Parameters.AddWithValue("@ShiftId",     shiftId);
+        cmd.Parameters.AddWithValue("@RequesterId", requesterId);
+        cmd.Parameters.AddWithValue("@ColleagueId", colleagueId);
+        cmd.Parameters.AddWithValue("@RequestedAt", DateTime.UtcNow);
+        return (int)cmd.ExecuteScalar()!;
     }
 }
