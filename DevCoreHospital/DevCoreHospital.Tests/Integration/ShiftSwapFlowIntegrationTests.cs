@@ -75,7 +75,7 @@ public class ShiftSwapFlowIntegrationTests : IClassFixture<SqlTestFixture>
         }
         finally
         {
-            if (swapId > 0) db.DeleteSwapRequest(conn, swapId);
+            db.DeleteSwapRequest(conn, swapId);
             db.DeleteShift(conn, shiftId);
             db.DeleteStaff(conn, requesterId);
             db.DeleteStaff(conn, colleagueId);
