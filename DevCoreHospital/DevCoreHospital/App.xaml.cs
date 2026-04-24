@@ -44,7 +44,8 @@ namespace DevCoreHospital
         private static void RegisterInfrastructure(IServiceCollection services)
         {
             services.AddSingleton<ICurrentUserService, CurrentUserService>();
-            services.AddSingleton<IDialogService, DialogService>();
+            services.AddSingleton<DialogService>();
+            services.AddSingleton<IDialogService>(serviceProvider => serviceProvider.GetRequiredService<DialogService>());
         }
 
         private static void RegisterRepositories(IServiceCollection services)
