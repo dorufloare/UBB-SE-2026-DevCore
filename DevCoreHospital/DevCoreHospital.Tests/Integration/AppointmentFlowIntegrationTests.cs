@@ -37,12 +37,7 @@ namespace DevCoreHospital.Tests.Integration
 
             public Task UpdateAppointmentStatusAsync(int id, string status)
             {
-                var appointment = appointments.FirstOrDefault(a => a.Id == id);
-                if (appointment != null)
-                {
-                    appointment.Status = status;
-                }
-
+                appointments.First(a => a.Id == id).Status = status;
                 return Task.CompletedTask;
             }
 
