@@ -11,17 +11,39 @@ namespace DevCoreHospital.Tests.ViewModels;
 public class ERDispatchViewModelTests
 {
     [Fact]
-    public void Refresh_ClearsUnmatchedAndSuccessfulCollections()
+    public void Refresh_ClearsUnmatchedRequests()
     {
         var service = new Mock<IERDispatchService>(MockBehavior.Loose);
         var vm = new ERDispatchViewModel(service.Object);
         vm.UnmatchedRequests.Add(new ERDispatchViewModel.UnmatchedRequestRow { RequestId = 1 });
+
+        vm.Refresh();
+
+        Assert.Empty(vm.UnmatchedRequests);
+    }
+
+    [Fact]
+    public void Refresh_ClearsSuccessfulMatches()
+    {
+        var service = new Mock<IERDispatchService>(MockBehavior.Loose);
+        var vm = new ERDispatchViewModel(service.Object);
         vm.SuccessfulMatches.Add(new ERDispatchViewModel.SuccessfulMatchRow { RequestId = 2 });
+
+        vm.Refresh();
+
+        Assert.Empty(vm.SuccessfulMatches);
+    }
+
+    [Fact]
+    public void Refresh_ClearsOverrideCandidates()
+    {
+        var service = new Mock<IERDispatchService>(MockBehavior.Loose);
+        var vm = new ERDispatchViewModel(service.Object);
         vm.OverrideCandidates.Add(new ERDispatchViewModel.OverrideCandidateRow { DoctorId = 3 });
 
         vm.Refresh();
 
-        Assert.Equal(0, vm.UnmatchedRequests.Count + vm.SuccessfulMatches.Count + vm.OverrideCandidates.Count);
+        Assert.Empty(vm.OverrideCandidates);
     }
 
     [Fact]
