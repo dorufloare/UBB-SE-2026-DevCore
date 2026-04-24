@@ -58,15 +58,42 @@ namespace DevCoreHospital.Tests.Services
             };
 
         [Fact]
-        public void RunAutoAudit_ReturnsNoViolations_WhenRosterIsEmpty()
+        public void RunAutoAudit_HasNoConflicts_WhenRosterIsEmpty()
         {
             SetupRepo(Array.Empty<RosterShift>(), Array.Empty<StaffProfile>());
 
             var result = sut.RunAutoAudit(WeekStart);
 
             Assert.False(result.HasConflicts);
+        }
+
+        [Fact]
+        public void RunAutoAudit_AllowsPublish_WhenRosterIsEmpty()
+        {
+            SetupRepo(Array.Empty<RosterShift>(), Array.Empty<StaffProfile>());
+
+            var result = sut.RunAutoAudit(WeekStart);
+
             Assert.True(result.CanPublish);
+        }
+
+        [Fact]
+        public void RunAutoAudit_ReturnsNoViolations_WhenRosterIsEmpty()
+        {
+            SetupRepo(Array.Empty<RosterShift>(), Array.Empty<StaffProfile>());
+
+            var result = sut.RunAutoAudit(WeekStart);
+
             Assert.Empty(result.Violations);
+        }
+
+        [Fact]
+        public void RunAutoAudit_ReturnsNoSuggestions_WhenRosterIsEmpty()
+        {
+            SetupRepo(Array.Empty<RosterShift>(), Array.Empty<StaffProfile>());
+
+            var result = sut.RunAutoAudit(WeekStart);
+
             Assert.Empty(result.Suggestions);
         }
 
@@ -92,7 +119,7 @@ namespace DevCoreHospital.Tests.Services
         }
 
         [Fact]
-        public void RunAutoAudit_DetectsMaxWeeklyHoursViolation_WhenStaffExceeds60Hours()
+        public void RunAutoAudit_FlagsConflicts_WhenStaffExceeds60Hours()
         {
             var shifts = new List<RosterShift>
             {
@@ -105,6 +132,21 @@ namespace DevCoreHospital.Tests.Services
             var result = sut.RunAutoAudit(WeekStart);
 
             Assert.True(result.HasConflicts);
+        }
+
+        [Fact]
+        public void RunAutoAudit_ReportsMax60HourViolationPerShift_WhenStaffExceeds60Hours()
+        {
+            var shifts = new List<RosterShift>
+            {
+                MakeShift(1, 1, "Alice", "Doctor", "Cardiology", WeekStart, WeekStart.AddHours(21)),
+                MakeShift(2, 1, "Alice", "Doctor", "Cardiology", WeekStart.AddDays(2), WeekStart.AddDays(2).AddHours(21)),
+                MakeShift(3, 1, "Alice", "Doctor", "Cardiology", WeekStart.AddDays(4), WeekStart.AddDays(4).AddHours(21)),
+            };
+            SetupRepo(shifts, Array.Empty<StaffProfile>());
+
+            var result = sut.RunAutoAudit(WeekStart);
+
             Assert.Equal(3, result.Violations.Count);
             Assert.All(result.Violations, v => Assert.Equal("MAX_60H_PER_WEEK", v.Rule));
         }
