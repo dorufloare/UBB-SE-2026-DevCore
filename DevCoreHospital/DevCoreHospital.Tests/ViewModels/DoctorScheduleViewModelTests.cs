@@ -375,16 +375,24 @@ namespace DevCoreHospital.Tests.ViewModels
             Assert.Equal(expectedLast, last);
         }
 
-        [Fact]
-        public void DoctorOption_SplitFirstLast_ReturnsEmpty_WhenInputIsNullOrWhitespace()
+        [Theory]
+        [InlineData(null)]
+        [InlineData("   ")]
+        public void DoctorOption_SplitFirstLast_ReturnsEmptyFirstName_WhenInputIsNullOrWhitespace(string? input)
         {
-            var (first1, last1) = DoctorScheduleViewModel.DoctorOption.SplitFirstLast(null);
-            var (first2, last2) = DoctorScheduleViewModel.DoctorOption.SplitFirstLast("   ");
+            var (first, _) = DoctorScheduleViewModel.DoctorOption.SplitFirstLast(input);
 
-            Assert.Equal(string.Empty, first1);
-            Assert.Equal(string.Empty, last1);
-            Assert.Equal(string.Empty, first2);
-            Assert.Equal(string.Empty, last2);
+            Assert.Equal(string.Empty, first);
+        }
+
+        [Theory]
+        [InlineData(null)]
+        [InlineData("   ")]
+        public void DoctorOption_SplitFirstLast_ReturnsEmptyLastName_WhenInputIsNullOrWhitespace(string? input)
+        {
+            var (_, last) = DoctorScheduleViewModel.DoctorOption.SplitFirstLast(input);
+
+            Assert.Equal(string.Empty, last);
         }
 
         [Fact]
