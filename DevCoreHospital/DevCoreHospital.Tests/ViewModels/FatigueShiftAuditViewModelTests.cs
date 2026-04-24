@@ -88,7 +88,7 @@ namespace DevCoreHospital.Tests.ViewModels
         }
 
         [Fact]
-        public void RunAutoAudit_PopulatesViolations_WhenServiceReturnsViolations()
+        public void RunAutoAudit_PopulatesSingleViolation_WhenServiceReturnsOneViolation()
         {
             var violation = MakeViolation(shiftId: 1);
             auditServiceMock
@@ -97,8 +97,38 @@ namespace DevCoreHospital.Tests.ViewModels
             var vm = CreateViewModel();
 
             Assert.Single(vm.Violations);
+        }
+
+        [Fact]
+        public void RunAutoAudit_CopiesViolationShiftId_FromServiceResult()
+        {
+            auditServiceMock
+                .Setup(s => s.RunAutoAudit(It.IsAny<DateTime>()))
+                .Returns(ResultWithViolations(MakeViolation(shiftId: 1)));
+            var vm = CreateViewModel();
+
             Assert.Equal(1, vm.Violations[0].ShiftId);
+        }
+
+        [Fact]
+        public void RunAutoAudit_CopiesViolationStaffName_FromServiceResult()
+        {
+            auditServiceMock
+                .Setup(s => s.RunAutoAudit(It.IsAny<DateTime>()))
+                .Returns(ResultWithViolations(MakeViolation(shiftId: 1)));
+            var vm = CreateViewModel();
+
             Assert.Equal("Alice", vm.Violations[0].Staff);
+        }
+
+        [Fact]
+        public void RunAutoAudit_CopiesViolationRule_FromServiceResult()
+        {
+            auditServiceMock
+                .Setup(s => s.RunAutoAudit(It.IsAny<DateTime>()))
+                .Returns(ResultWithViolations(MakeViolation(shiftId: 1)));
+            var vm = CreateViewModel();
+
             Assert.Equal("MAX_60H_PER_WEEK", vm.Violations[0].Rule);
         }
 
@@ -281,14 +311,13 @@ namespace DevCoreHospital.Tests.ViewModels
         }
 
         [Fact]
-        public void ApplyReassignment_ReturnsSuccess_WhenReassignmentSucceeds()
+        public void ApplyReassignment_ReturnsSuccessFlag_WhenReassignmentSucceeds()
         {
-            var violation = MakeViolation(shiftId: 3);
             var suggestion = MakeSuggestion(shiftId: 3, suggestedStaffId: 50, suggestedName: "Bob");
             auditServiceMock
                 .Setup(s => s.RunAutoAudit(It.IsAny<DateTime>()))
                 .Returns(ResultWithViolationsAndSuggestions(
-                    new[] { violation },
+                    new[] { MakeViolation(shiftId: 3) },
                     new[] { suggestion }));
             auditServiceMock.Setup(s => s.ReassignShift(3, 50)).Returns(true);
             var vm = CreateViewModel();
@@ -296,7 +325,39 @@ namespace DevCoreHospital.Tests.ViewModels
             var result = vm.ApplyReassignment(shiftId: 3);
 
             Assert.True(result.isSuccess);
+        }
+
+        [Fact]
+        public void ApplyReassignment_ReturnsAppliedTitle_WhenReassignmentSucceeds()
+        {
+            var suggestion = MakeSuggestion(shiftId: 3, suggestedStaffId: 50, suggestedName: "Bob");
+            auditServiceMock
+                .Setup(s => s.RunAutoAudit(It.IsAny<DateTime>()))
+                .Returns(ResultWithViolationsAndSuggestions(
+                    new[] { MakeViolation(shiftId: 3) },
+                    new[] { suggestion }));
+            auditServiceMock.Setup(s => s.ReassignShift(3, 50)).Returns(true);
+            var vm = CreateViewModel();
+
+            var result = vm.ApplyReassignment(shiftId: 3);
+
             Assert.Equal("Reassignment Applied", result.title);
+        }
+
+        [Fact]
+        public void ApplyReassignment_ReturnsMessageContainingCandidateName_WhenReassignmentSucceeds()
+        {
+            var suggestion = MakeSuggestion(shiftId: 3, suggestedStaffId: 50, suggestedName: "Bob");
+            auditServiceMock
+                .Setup(s => s.RunAutoAudit(It.IsAny<DateTime>()))
+                .Returns(ResultWithViolationsAndSuggestions(
+                    new[] { MakeViolation(shiftId: 3) },
+                    new[] { suggestion }));
+            auditServiceMock.Setup(s => s.ReassignShift(3, 50)).Returns(true);
+            var vm = CreateViewModel();
+
+            var result = vm.ApplyReassignment(shiftId: 3);
+
             Assert.Contains("Bob", result.message);
         }
 
