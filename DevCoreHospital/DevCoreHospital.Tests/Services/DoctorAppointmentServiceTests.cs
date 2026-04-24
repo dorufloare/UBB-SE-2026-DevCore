@@ -1,7 +1,7 @@
 using System;
 using System.Threading.Tasks;
-using DevCoreHospital.Data;
 using DevCoreHospital.Models;
+using DevCoreHospital.Repositories;
 using DevCoreHospital.Services;
 using Moq;
 
@@ -9,12 +9,12 @@ namespace DevCoreHospital.Tests.Services
 {
     public class DoctorAppointmentServiceTests
     {
-        private readonly Mock<IDoctorAppointmentDataSource> mockDataSource;
+        private readonly Mock<IAppointmentRepository> mockDataSource;
         private readonly DoctorAppointmentService service;
 
         public DoctorAppointmentServiceTests()
         {
-            mockDataSource = new Mock<IDoctorAppointmentDataSource>();
+            mockDataSource = new Mock<IAppointmentRepository>();
             service = new DoctorAppointmentService(mockDataSource.Object);
         }
 

@@ -1,11 +1,11 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using System;
 using DevCoreHospital.Models;
 
-namespace DevCoreHospital.Data
+namespace DevCoreHospital.Repositories
 {
-    public interface IDoctorAppointmentDataSource
+    public interface IAppointmentRepository
     {
         Task<IReadOnlyList<Appointment>> GetUpcomingAppointmentsAsync(int doctorUserId, DateTime fromDate, int skip, int take);
         Task<IReadOnlyList<(int DoctorId, string DoctorName)>> GetAllDoctorsAsync();
@@ -17,4 +17,3 @@ namespace DevCoreHospital.Data
         Task UpdateDoctorStatusAsync(int doctorId, string status);
     }
 }
-

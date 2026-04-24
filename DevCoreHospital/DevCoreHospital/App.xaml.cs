@@ -1,6 +1,5 @@
 using System;
 using DevCoreHospital.Configuration;
-using DevCoreHospital.Data;
 using DevCoreHospital.Repositories;
 using DevCoreHospital.Services;
 using DevCoreHospital.ViewModels;
@@ -69,18 +68,14 @@ namespace DevCoreHospital
             services.AddSingleton<IShiftSwapRepository>(sp => sp.GetRequiredService<ShiftSwapRepository>());
 
             services.AddSingleton<AppointmentRepository>(_ => new AppointmentRepository(AppSettings.ConnectionString));
-            services.AddSingleton<IDoctorAppointmentDataSource>(sp => sp.GetRequiredService<AppointmentRepository>());
+            services.AddSingleton<IAppointmentRepository>(sp => sp.GetRequiredService<AppointmentRepository>());
 
             services.AddSingleton<IHangoutRepository, HangoutRepository>();
 
             services.AddSingleton<IEvaluationsRepository>(_ => new EvaluationsRepository(AppSettings.ConnectionString));
 
-            // Data sources for ER dispatch and fatigue audit
-            services.AddSingleton<IERDispatchDataSource>(_ => new SqlERDispatchDataSource(AppSettings.ConnectionString));
-            services.AddSingleton<IFatigueShiftDataSource>(_ => new SqlFatigueShiftDataSource(AppSettings.ConnectionString));
-
-            services.AddSingleton<IERDispatchRepository, ERDispatchRepository>();
-            services.AddSingleton<IFatigueAuditRepository, FatigueAuditRepository>();
+            services.AddSingleton<IERDispatchRepository>(_ => new ERDispatchRepository(AppSettings.ConnectionString));
+            services.AddSingleton<IFatigueAuditRepository>(_ => new FatigueAuditRepository(AppSettings.ConnectionString));
         }
 
         private static void RegisterServices(IServiceCollection services)

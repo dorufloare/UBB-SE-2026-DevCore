@@ -1,13 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using DevCoreHospital.Data;
 using DevCoreHospital.Models;
 using Microsoft.Data.SqlClient;
 
 namespace DevCoreHospital.Repositories
 {
-    public class AppointmentRepository : IDoctorAppointmentDataSource
+    public class AppointmentRepository : IAppointmentRepository
     {
         private readonly string connectionString;
 

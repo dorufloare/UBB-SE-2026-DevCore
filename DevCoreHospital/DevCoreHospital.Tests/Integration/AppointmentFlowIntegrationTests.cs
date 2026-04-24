@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using DevCoreHospital.Data;
 using DevCoreHospital.Models;
 using DevCoreHospital.Repositories;
 using DevCoreHospital.Services;
@@ -15,7 +14,7 @@ namespace DevCoreHospital.Tests.Integration
 {
     public class AppointmentFlowIntegrationTests
     {
-        private sealed class InMemoryAppointmentDataSource : IDoctorAppointmentDataSource
+        private sealed class InMemoryAppointmentDataSource : IAppointmentRepository
         {
             private readonly List<Appointment> appointments = new();
             private readonly Dictionary<int, string> doctorStatuses = new();

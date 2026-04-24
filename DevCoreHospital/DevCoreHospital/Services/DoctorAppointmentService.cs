@@ -2,16 +2,16 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using DevCoreHospital.Data;
 using DevCoreHospital.Models;
+using DevCoreHospital.Repositories;
 
 namespace DevCoreHospital.Services
 {
     public sealed class DoctorAppointmentService : IDoctorAppointmentService
     {
-        private readonly IDoctorAppointmentDataSource dataSource;
+        private readonly IAppointmentRepository dataSource;
 
-        public DoctorAppointmentService(IDoctorAppointmentDataSource dataSource)
+        public DoctorAppointmentService(IAppointmentRepository dataSource)
         {
             this.dataSource = dataSource;
         }

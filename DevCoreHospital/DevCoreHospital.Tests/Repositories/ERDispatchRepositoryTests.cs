@@ -1,32 +1,75 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using DevCoreHospital.Data;
 using DevCoreHospital.Models;
 using DevCoreHospital.Repositories;
-using Moq;
 
 namespace DevCoreHospital.Tests.Repositories;
 
 public class ERDispatchRepositoryTests
 {
-    private readonly Mock<IERDispatchDataSource> dataSource;
-    private readonly ERDispatchRepository repository;
+    // -----------------------------------------------------------------------
+    // Testable subclass: overrides the protected virtual data-fetch methods
+    // so tests can supply in-memory data without a real SQL connection.
+    // -----------------------------------------------------------------------
+    private sealed class TestableERDispatchRepository : ERDispatchRepository
+    {
+        private IReadOnlyList<DoctorRosterEntry> rosterEntries = Array.Empty<DoctorRosterEntry>();
+        private readonly Dictionary<int, IReadOnlyList<DoctorRosterEntry>> rosterEntriesById = new();
+        private IReadOnlyList<ERRequest> requests = Array.Empty<ERRequest>();
+        private readonly Dictionary<int, ERRequest?> requestsById = new();
+        private readonly Dictionary<(string Spec, string Location), int> createResults = new();
+
+        public (int RequestId, string Status, int? DoctorId, string? DoctorName)? LastUpdateRequestStatus { get; private set; }
+        public (int DoctorId, DoctorStatus Status)? LastUpdateDoctorStatus { get; private set; }
+
+        // Pass null so the base constructor skips the real schema-detection SQL.
+        public TestableERDispatchRepository() : base(connectionString: null) { }
+
+        public void SetRosterEntries(IReadOnlyList<DoctorRosterEntry> entries) => rosterEntries = entries;
+        public void SetRosterEntriesById(int staffId, IReadOnlyList<DoctorRosterEntry> entries) => rosterEntriesById[staffId] = entries;
+        public void SetRequests(IReadOnlyList<ERRequest> reqs) => requests = reqs;
+        public void SetRequestById(int id, ERRequest? req) => requestsById[id] = req;
+        public void SetCreateRequestResult(string spec, string location, int id) => createResults[(spec, location)] = id;
+
+        protected override IReadOnlyList<DoctorRosterEntry> FetchRosterEntries() => rosterEntries;
+
+        protected override IReadOnlyList<DoctorRosterEntry> FetchRosterEntriesByStaffId(int staffId) =>
+            rosterEntriesById.TryGetValue(staffId, out var entries) ? entries : Array.Empty<DoctorRosterEntry>();
+
+        protected override IReadOnlyList<ERRequest> FetchRequests() => requests;
+
+        protected override int ExecuteCreateRequest(string specialization, string location, string status) =>
+            createResults.TryGetValue((specialization, location), out var id) ? id : 0;
+
+        protected override ERRequest? ExecuteGetRequestById(int requestId) =>
+            requestsById.TryGetValue(requestId, out var req) ? req : null;
+
+        protected override void ExecuteUpdateRequestStatus(int requestId, string status, int? assignedDoctorId, string? assignedDoctorName) =>
+            LastUpdateRequestStatus = (requestId, status, assignedDoctorId, assignedDoctorName);
+
+        protected override void ExecuteUpdateDoctorStatus(int doctorId, DoctorStatus status) =>
+            LastUpdateDoctorStatus = (doctorId, status);
+    }
+
+    // -----------------------------------------------------------------------
+    // Shared fixtures
+    // -----------------------------------------------------------------------
 
     private static readonly DateTime Now = DateTime.Now;
     private static readonly DateTime ShiftStart = Now.AddHours(-1);
     private static readonly DateTime ShiftEnd = Now.AddHours(1);
 
-    public ERDispatchRepositoryTests()
-    {
-        dataSource = new Mock<IERDispatchDataSource>();
-        repository = new ERDispatchRepository(dataSource.Object);
-    }
+    private readonly TestableERDispatchRepository repository = new();
+
+    // -----------------------------------------------------------------------
+    // GetDoctorRoster — role filtering
+    // -----------------------------------------------------------------------
 
     [Fact]
     public void GetDoctorRoster_ExcludesEntriesWhereRoleIsNotDoctor()
     {
-        dataSource.Setup(d => d.GetRosterEntries()).Returns(new List<DoctorRosterEntry>
+        repository.SetRosterEntries(new List<DoctorRosterEntry>
         {
             BuildEntry(1, "Nurse", ShiftStart, ShiftEnd),
             BuildEntry(2, "pharmacist", ShiftStart, ShiftEnd),
@@ -38,7 +81,7 @@ public class ERDispatchRepositoryTests
     [Fact]
     public void GetDoctorRoster_IncludesEntriesWhereRoleIsDoctor()
     {
-        dataSource.Setup(d => d.GetRosterEntries()).Returns(new List<DoctorRosterEntry>
+        repository.SetRosterEntries(new List<DoctorRosterEntry>
         {
             BuildEntry(1, "Doctor", ShiftStart, ShiftEnd),
         });
@@ -49,10 +92,14 @@ public class ERDispatchRepositoryTests
         Assert.Equal(1, result[0].DoctorId);
     }
 
+    // -----------------------------------------------------------------------
+    // GetDoctorRoster — shift-window filtering
+    // -----------------------------------------------------------------------
+
     [Fact]
     public void GetDoctorRoster_ExcludesEntriesWithNoSchedule()
     {
-        dataSource.Setup(d => d.GetRosterEntries()).Returns(new List<DoctorRosterEntry>
+        repository.SetRosterEntries(new List<DoctorRosterEntry>
         {
             BuildEntry(1, "Doctor", null, null),
         });
@@ -63,7 +110,7 @@ public class ERDispatchRepositoryTests
     [Fact]
     public void GetDoctorRoster_ExcludesEntriesWhereScheduleIsInTheFuture()
     {
-        dataSource.Setup(d => d.GetRosterEntries()).Returns(new List<DoctorRosterEntry>
+        repository.SetRosterEntries(new List<DoctorRosterEntry>
         {
             BuildEntry(1, "Doctor", Now.AddHours(2), Now.AddHours(4)),
         });
@@ -74,7 +121,7 @@ public class ERDispatchRepositoryTests
     [Fact]
     public void GetDoctorRoster_ExcludesEntriesWhereScheduleIsInThePast()
     {
-        dataSource.Setup(d => d.GetRosterEntries()).Returns(new List<DoctorRosterEntry>
+        repository.SetRosterEntries(new List<DoctorRosterEntry>
         {
             BuildEntry(1, "Doctor", Now.AddHours(-4), Now.AddHours(-2)),
         });
@@ -85,7 +132,7 @@ public class ERDispatchRepositoryTests
     [Fact]
     public void GetDoctorRoster_ExcludesEntriesWhereIsShiftActiveIsFalse()
     {
-        dataSource.Setup(d => d.GetRosterEntries()).Returns(new List<DoctorRosterEntry>
+        repository.SetRosterEntries(new List<DoctorRosterEntry>
         {
             BuildEntry(1, "Doctor", ShiftStart, ShiftEnd, isShiftActive: false),
         });
@@ -96,7 +143,7 @@ public class ERDispatchRepositoryTests
     [Fact]
     public void GetDoctorRoster_IncludesEntriesWhereIsShiftActiveIsNull()
     {
-        dataSource.Setup(d => d.GetRosterEntries()).Returns(new List<DoctorRosterEntry>
+        repository.SetRosterEntries(new List<DoctorRosterEntry>
         {
             BuildEntry(1, "Doctor", ShiftStart, ShiftEnd, isShiftActive: null),
         });
@@ -110,7 +157,7 @@ public class ERDispatchRepositoryTests
     [InlineData("VACATION")]
     public void GetDoctorRoster_ExcludesEntriesWithTerminalShiftStatus(string shiftStatus)
     {
-        dataSource.Setup(d => d.GetRosterEntries()).Returns(new List<DoctorRosterEntry>
+        repository.SetRosterEntries(new List<DoctorRosterEntry>
         {
             BuildEntry(1, "Doctor", ShiftStart, ShiftEnd, shiftStatusRaw: shiftStatus),
         });
@@ -118,10 +165,14 @@ public class ERDispatchRepositoryTests
         Assert.Empty(repository.GetDoctorRoster());
     }
 
+    // -----------------------------------------------------------------------
+    // GetDoctorRoster — normalization
+    // -----------------------------------------------------------------------
+
     [Fact]
     public void GetDoctorRoster_NormalizesSpecialization_WhenEmpty()
     {
-        dataSource.Setup(d => d.GetRosterEntries()).Returns(new List<DoctorRosterEntry>
+        repository.SetRosterEntries(new List<DoctorRosterEntry>
         {
             BuildEntry(1, "Doctor", ShiftStart, ShiftEnd, specialization: string.Empty),
         });
@@ -132,7 +183,7 @@ public class ERDispatchRepositoryTests
     [Fact]
     public void GetDoctorRoster_NormalizesStatusRaw_WhenEmpty()
     {
-        dataSource.Setup(d => d.GetRosterEntries()).Returns(new List<DoctorRosterEntry>
+        repository.SetRosterEntries(new List<DoctorRosterEntry>
         {
             BuildEntry(1, "Doctor", ShiftStart, ShiftEnd, statusRaw: string.Empty),
         });
@@ -143,7 +194,7 @@ public class ERDispatchRepositoryTests
     [Fact]
     public void GetDoctorRoster_TrimsWhitespaceFromFullName()
     {
-        dataSource.Setup(d => d.GetRosterEntries()).Returns(new List<DoctorRosterEntry>
+        repository.SetRosterEntries(new List<DoctorRosterEntry>
         {
             BuildEntry(1, "Doctor", ShiftStart, ShiftEnd, fullName: "  Dr. Smith  "),
         });
@@ -151,10 +202,14 @@ public class ERDispatchRepositoryTests
         Assert.Equal("Dr. Smith", repository.GetDoctorRoster()[0].FullName);
     }
 
+    // -----------------------------------------------------------------------
+    // GetDoctorRoster — deduplication
+    // -----------------------------------------------------------------------
+
     [Fact]
     public void GetDoctorRoster_DeduplicatesByDoctorId_KeepsEntryWithEarliestScheduleEnd()
     {
-        dataSource.Setup(d => d.GetRosterEntries()).Returns(new List<DoctorRosterEntry>
+        repository.SetRosterEntries(new List<DoctorRosterEntry>
         {
             BuildEntry(5, "Doctor", ShiftStart, Now.AddHours(3)),
             BuildEntry(5, "Doctor", ShiftStart, Now.AddHours(1)),
@@ -169,7 +224,7 @@ public class ERDispatchRepositoryTests
     [Fact]
     public void GetDoctorRoster_ReturnsMultipleDoctors_WhenDistinctIds()
     {
-        dataSource.Setup(d => d.GetRosterEntries()).Returns(new List<DoctorRosterEntry>
+        repository.SetRosterEntries(new List<DoctorRosterEntry>
         {
             BuildEntry(1, "Doctor", ShiftStart, ShiftEnd),
             BuildEntry(2, "Doctor", ShiftStart, ShiftEnd),
@@ -178,10 +233,14 @@ public class ERDispatchRepositoryTests
         Assert.Equal(2, repository.GetDoctorRoster().Count);
     }
 
+    // -----------------------------------------------------------------------
+    // GetPendingRequests
+    // -----------------------------------------------------------------------
+
     [Fact]
     public void GetPendingRequests_ReturnsOnlyPendingStatus()
     {
-        dataSource.Setup(d => d.GetRequests()).Returns(new List<ERRequest>
+        repository.SetRequests(new List<ERRequest>
         {
             new ERRequest { Id = 1, Status = "PENDING", CreatedAt = Now },
             new ERRequest { Id = 2, Status = "ASSIGNED", CreatedAt = Now },
@@ -197,7 +256,7 @@ public class ERDispatchRepositoryTests
     [Fact]
     public void GetPendingRequests_OrdersByCreatedAtAscending()
     {
-        dataSource.Setup(d => d.GetRequests()).Returns(new List<ERRequest>
+        repository.SetRequests(new List<ERRequest>
         {
             new ERRequest { Id = 3, Status = "PENDING", CreatedAt = Now.AddMinutes(10) },
             new ERRequest { Id = 1, Status = "PENDING", CreatedAt = Now.AddMinutes(-10) },
@@ -212,7 +271,7 @@ public class ERDispatchRepositoryTests
     [Fact]
     public void GetPendingRequests_IsCaseInsensitiveForStatus()
     {
-        dataSource.Setup(d => d.GetRequests()).Returns(new List<ERRequest>
+        repository.SetRequests(new List<ERRequest>
         {
             new ERRequest { Id = 1, Status = "pending", CreatedAt = Now },
             new ERRequest { Id = 2, Status = "Pending", CreatedAt = Now },
@@ -224,27 +283,30 @@ public class ERDispatchRepositoryTests
     [Fact]
     public void GetPendingRequests_WhenNoRequests_ReturnsEmpty()
     {
-        dataSource.Setup(d => d.GetRequests()).Returns(new List<ERRequest>());
+        repository.SetRequests(new List<ERRequest>());
 
         Assert.Empty(repository.GetPendingRequests());
     }
 
+    // -----------------------------------------------------------------------
+    // CreateIncomingRequest / GetRequestById
+    // -----------------------------------------------------------------------
+
     [Fact]
-    public void CreateIncomingRequest_CallsDataSourceWithPendingStatus()
+    public void CreateIncomingRequest_ReturnsIdFromUnderlyingExecute()
     {
-        dataSource.Setup(d => d.CreateRequest("Cardiology", "ER", "PENDING")).Returns(42);
+        repository.SetCreateRequestResult("Cardiology", "ER", 42);
 
         var id = repository.CreateIncomingRequest("Cardiology", "ER");
 
         Assert.Equal(42, id);
-        dataSource.Verify(d => d.CreateRequest("Cardiology", "ER", "PENDING"), Times.Once);
     }
 
     [Fact]
-    public void GetRequestById_DelegatesToDataSource()
+    public void GetRequestById_ReturnsExpectedRequest()
     {
         var expected = new ERRequest { Id = 7, Status = "PENDING" };
-        dataSource.Setup(d => d.GetRequestById(7)).Returns(expected);
+        repository.SetRequestById(7, expected);
 
         Assert.Same(expected, repository.GetRequestById(7));
     }
@@ -252,15 +314,17 @@ public class ERDispatchRepositoryTests
     [Fact]
     public void GetRequestById_ReturnsNull_WhenNotFound()
     {
-        dataSource.Setup(d => d.GetRequestById(99)).Returns((ERRequest?)null);
-
         Assert.Null(repository.GetRequestById(99));
     }
+
+    // -----------------------------------------------------------------------
+    // GetDoctorById
+    // -----------------------------------------------------------------------
 
     [Fact]
     public void GetDoctorById_ReturnsNull_WhenNoMatchingEntryOnCurrentShift()
     {
-        dataSource.Setup(d => d.GetRosterEntriesByStaffId(1)).Returns(new List<DoctorRosterEntry>
+        repository.SetRosterEntriesById(1, new List<DoctorRosterEntry>
         {
             BuildEntry(1, "Doctor", Now.AddHours(2), Now.AddHours(4)),
         });
@@ -271,7 +335,7 @@ public class ERDispatchRepositoryTests
     [Fact]
     public void GetDoctorById_ReturnsNull_WhenEntryIsNotDoctor()
     {
-        dataSource.Setup(d => d.GetRosterEntriesByStaffId(1)).Returns(new List<DoctorRosterEntry>
+        repository.SetRosterEntriesById(1, new List<DoctorRosterEntry>
         {
             BuildEntry(1, "Nurse", ShiftStart, ShiftEnd),
         });
@@ -282,7 +346,7 @@ public class ERDispatchRepositoryTests
     [Fact]
     public void GetDoctorById_ReturnsEntry_WhenOnCurrentShift()
     {
-        dataSource.Setup(d => d.GetRosterEntriesByStaffId(1)).Returns(new List<DoctorRosterEntry>
+        repository.SetRosterEntriesById(1, new List<DoctorRosterEntry>
         {
             BuildEntry(1, "Doctor", ShiftStart, ShiftEnd),
         });
@@ -293,21 +357,29 @@ public class ERDispatchRepositoryTests
         Assert.Equal(1, result!.DoctorId);
     }
 
+    // -----------------------------------------------------------------------
+    // UpdateRequestStatus / UpdateDoctorStatus
+    // -----------------------------------------------------------------------
+
     [Fact]
-    public void UpdateRequestStatus_DelegatesToDataSource()
+    public void UpdateRequestStatus_PassesCorrectArguments()
     {
         repository.UpdateRequestStatus(5, "ASSIGNED", 10, "Dr. Smith");
 
-        dataSource.Verify(d => d.UpdateRequestStatus(5, "ASSIGNED", 10, "Dr. Smith"), Times.Once);
+        Assert.Equal((5, "ASSIGNED", (int?)10, "Dr. Smith"), repository.LastUpdateRequestStatus);
     }
 
     [Fact]
-    public void UpdateDoctorStatus_DelegatesToDataSource()
+    public void UpdateDoctorStatus_PassesCorrectArguments()
     {
         repository.UpdateDoctorStatus(3, DoctorStatus.IN_EXAMINATION);
 
-        dataSource.Verify(d => d.UpdateDoctorStatus(3, DoctorStatus.IN_EXAMINATION), Times.Once);
+        Assert.Equal((3, DoctorStatus.IN_EXAMINATION), repository.LastUpdateDoctorStatus);
     }
+
+    // -----------------------------------------------------------------------
+    // Builder helper
+    // -----------------------------------------------------------------------
 
     private static DoctorRosterEntry BuildEntry(
         int doctorId, string role, DateTime? scheduleStart, DateTime? scheduleEnd,

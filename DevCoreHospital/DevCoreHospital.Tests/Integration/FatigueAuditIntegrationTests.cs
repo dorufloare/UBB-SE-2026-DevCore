@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using DevCoreHospital.Data;
 using DevCoreHospital.Models;
 using DevCoreHospital.Repositories;
 using DevCoreHospital.Services;
@@ -21,23 +20,21 @@ namespace DevCoreHospital.Tests.Integration
             return today.Date.AddDays(-daysFromMonday);
         }
 
-        private readonly Mock<IFatigueShiftDataSource> dataSourceMock;
-        private readonly FatigueAuditRepository repository;
+        private readonly Mock<IFatigueAuditRepository> repositoryMock;
         private readonly FatigueAuditService service;
 
         public FatigueAuditIntegrationTests()
         {
-            dataSourceMock = new Mock<IFatigueShiftDataSource>();
-            repository = new FatigueAuditRepository(dataSourceMock.Object);
-            service = new FatigueAuditService(repository);
+            repositoryMock = new Mock<IFatigueAuditRepository>();
+            service = new FatigueAuditService(repositoryMock.Object);
         }
 
         private FatigueShiftAuditViewModel CreateViewModel() => new FatigueShiftAuditViewModel(service);
 
         private void SetupDataSource(IReadOnlyList<RosterShift> shifts, IReadOnlyList<StaffProfile> profiles)
         {
-            dataSourceMock.Setup(d => d.GetAllShifts()).Returns(shifts);
-            dataSourceMock.Setup(d => d.GetStaffProfiles()).Returns(profiles);
+            repositoryMock.Setup(r => r.GetAllShifts()).Returns(shifts);
+            repositoryMock.Setup(r => r.GetStaffProfiles()).Returns(profiles);
         }
 
         private static RosterShift MakeShift(
@@ -173,7 +170,7 @@ namespace DevCoreHospital.Tests.Integration
             };
             SetupDataSource(shifts, profiles);
             // After reassignment, the data source returns a clean roster
-            dataSourceMock.Setup(d => d.ReassignShift(It.IsAny<int>(), It.IsAny<int>())).Returns(true);
+            repositoryMock.Setup(r => r.ReassignShift(It.IsAny<int>(), It.IsAny<int>())).Returns(true);
 
             var vm = CreateViewModel();
             Assert.True(vm.HasConflicts);
@@ -200,32 +197,5 @@ namespace DevCoreHospital.Tests.Integration
             Assert.False(result.isSuccess);
         }
 
-        [Fact]
-        public void Integration_Repository_DelegatesToDataSource_ForGetAllShifts()
-        {
-            var shifts = new List<RosterShift>
-            {
-                MakeShift(1, 1, "Alice", "Doctor", "Cardiology", WeekStart, WeekStart.AddHours(8)),
-            };
-            dataSourceMock.Setup(d => d.GetAllShifts()).Returns(shifts);
-            dataSourceMock.Setup(d => d.GetStaffProfiles()).Returns(Array.Empty<StaffProfile>());
-
-            var repoResult = repository.GetAllShifts();
-
-            Assert.Single(repoResult);
-            Assert.Equal(1, repoResult[0].Id);
-            dataSourceMock.Verify(d => d.GetAllShifts(), Times.AtLeastOnce);
-        }
-
-        [Fact]
-        public void Integration_Repository_DelegatesToDataSource_ForReassignShift()
-        {
-            dataSourceMock.Setup(d => d.ReassignShift(5, 10)).Returns(true);
-
-            var result = repository.ReassignShift(5, 10);
-
-            Assert.True(result);
-            dataSourceMock.Verify(d => d.ReassignShift(5, 10), Times.Once);
-        }
     }
 }
