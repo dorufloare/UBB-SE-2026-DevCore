@@ -46,8 +46,8 @@ namespace DevCoreHospital.Tests.Integration
             }
             finally
             {
-                if (hangoutId > 0) db.DeleteHangoutParticipants(conn, hangoutId);
-                if (hangoutId > 0) db.DeleteHangout(conn, hangoutId);
+                db.DeleteHangoutParticipants(conn, hangoutId);
+                db.DeleteHangout(conn, hangoutId);
                 db.DeleteStaff(conn, creatorId);
                 db.DeleteStaff(conn, joinerId);
             }
@@ -117,9 +117,9 @@ namespace DevCoreHospital.Tests.Integration
             }
             finally
             {
-                if (apptId    > 0) db.DeleteAppointment(conn, apptId);
-                if (hangoutId > 0) db.DeleteHangoutParticipants(conn, hangoutId);
-                if (hangoutId > 0) db.DeleteHangout(conn, hangoutId);
+                db.DeleteAppointment(conn, apptId);
+                db.DeleteHangoutParticipants(conn, hangoutId);
+                db.DeleteHangout(conn, hangoutId);
                 db.DeleteStaff(conn, creatorId);
                 db.DeleteStaff(conn, joinerId);
             }
@@ -154,8 +154,8 @@ namespace DevCoreHospital.Tests.Integration
             }
             finally
             {
-                if (hangoutId > 0) db.DeleteHangoutParticipants(conn, hangoutId);
-                if (hangoutId > 0) db.DeleteHangout(conn, hangoutId);
+                db.DeleteHangoutParticipants(conn, hangoutId);
+                db.DeleteHangout(conn, hangoutId);
                 db.DeleteStaff(conn, creatorId);
                 db.DeleteStaff(conn, doctor2Id);
                 db.DeleteStaff(conn, doctor3Id);
