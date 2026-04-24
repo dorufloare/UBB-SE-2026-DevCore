@@ -25,7 +25,6 @@ namespace DevCoreHospital.Tests.Services
         [Fact]
         public void SetShiftActive_WhenShiftExists_UpdatesShiftStatusToActive()
         {
-            // Arrange
             var shiftId = 100;
             var doctor = BuildDoctor(10, "Cardiology");
             shiftRepository
@@ -35,31 +34,14 @@ namespace DevCoreHospital.Tests.Services
                     BuildShift(shiftId, doctor, new DateTime(2026, 4, 21, 8, 0, 0), new DateTime(2026, 4, 21, 16, 0, 0))
                 });
 
-            int updateCount = 0;
-            int updatedShiftId = -1;
-            ShiftStatus updatedStatus = ShiftStatus.CANCELLED;
-            shiftRepository
-                .Setup(repo => repo.UpdateShiftStatus(It.IsAny<int>(), It.IsAny<ShiftStatus>()))
-                .Callback<int, ShiftStatus>((id, status) =>
-                {
-                    updateCount++;
-                    updatedShiftId = id;
-                    updatedStatus = status;
-                });
-
-            // Act
             service.SetShiftActive(shiftId);
 
-            // Assert
-            Assert.Equal(1, updateCount);
-            Assert.Equal(shiftId, updatedShiftId);
-            Assert.Equal(ShiftStatus.ACTIVE, updatedStatus);
+            shiftRepository.Verify(repo => repo.UpdateShiftStatus(shiftId, ShiftStatus.ACTIVE), Times.Once);
         }
 
         [Fact]
         public void SetShiftActive_WhenShiftExists_UpdatesStaffAvailabilityToAvailable()
         {
-            // Arrange
             var shiftId = 101;
             var doctor = BuildDoctor(11, "Neurology");
             shiftRepository
@@ -69,28 +51,11 @@ namespace DevCoreHospital.Tests.Services
                     BuildShift(shiftId, doctor, new DateTime(2026, 4, 21, 9, 0, 0), new DateTime(2026, 4, 21, 17, 0, 0))
                 });
 
-            int updateCount = 0;
-            int updatedStaffId = -1;
-            bool updatedAvailability = false;
-            DoctorStatus updatedDoctorStatus = DoctorStatus.IN_EXAMINATION;
-            staffRepository
-                .Setup(repo => repo.UpdateStaffAvailability(It.IsAny<int>(), It.IsAny<bool>(), It.IsAny<DoctorStatus>()))
-                .Callback<int, bool, DoctorStatus>((staffId, isAvailable, status) =>
-                {
-                    updateCount++;
-                    updatedStaffId = staffId;
-                    updatedAvailability = isAvailable;
-                    updatedDoctorStatus = status;
-                });
-
-            // Act
             service.SetShiftActive(shiftId);
 
-            // Assert
-            Assert.Equal(1, updateCount);
-            Assert.Equal(doctor.StaffID, updatedStaffId);
-            Assert.True(updatedAvailability);
-            Assert.Equal(DoctorStatus.AVAILABLE, updatedDoctorStatus);
+            staffRepository.Verify(
+                repo => repo.UpdateStaffAvailability(doctor.StaffID, true, DoctorStatus.AVAILABLE),
+                Times.Once);
         }
 
         [Fact]
@@ -132,7 +97,6 @@ namespace DevCoreHospital.Tests.Services
         [Fact]
         public void CancelShift_WhenShiftExists_UpdatesStaffAvailabilityToOffDuty()
         {
-            // Arrange
             var shiftId = 200;
             var doctor = BuildDoctor(20, "Oncology");
             shiftRepository
@@ -142,34 +106,16 @@ namespace DevCoreHospital.Tests.Services
                     BuildShift(shiftId, doctor, new DateTime(2026, 4, 21, 8, 0, 0), new DateTime(2026, 4, 21, 16, 0, 0))
                 });
 
-            int updateCount = 0;
-            int updatedStaffId = -1;
-            bool updatedAvailability = true;
-            DoctorStatus updatedDoctorStatus = DoctorStatus.AVAILABLE;
-            staffRepository
-                .Setup(repo => repo.UpdateStaffAvailability(It.IsAny<int>(), It.IsAny<bool>(), It.IsAny<DoctorStatus>()))
-                .Callback<int, bool, DoctorStatus>((staffId, isAvailable, status) =>
-                {
-                    updateCount++;
-                    updatedStaffId = staffId;
-                    updatedAvailability = isAvailable;
-                    updatedDoctorStatus = status;
-                });
-
-            // Act
             service.CancelShift(shiftId);
 
-            // Assert
-            Assert.Equal(1, updateCount);
-            Assert.Equal(doctor.StaffID, updatedStaffId);
-            Assert.False(updatedAvailability);
-            Assert.Equal(DoctorStatus.OFF_DUTY, updatedDoctorStatus);
+            staffRepository.Verify(
+                repo => repo.UpdateStaffAvailability(doctor.StaffID, false, DoctorStatus.OFF_DUTY),
+                Times.Once);
         }
 
         [Fact]
         public void CancelShift_WhenShiftExists_UpdatesShiftStatusToCompleted()
         {
-            // Arrange
             var shiftId = 201;
             var doctor = BuildDoctor(21, "Cardiology");
             shiftRepository
@@ -179,25 +125,9 @@ namespace DevCoreHospital.Tests.Services
                     BuildShift(shiftId, doctor, new DateTime(2026, 4, 21, 10, 0, 0), new DateTime(2026, 4, 21, 18, 0, 0))
                 });
 
-            int updateCount = 0;
-            int updatedShiftId = -1;
-            ShiftStatus updatedStatus = ShiftStatus.SCHEDULED;
-            shiftRepository
-                .Setup(repo => repo.UpdateShiftStatus(It.IsAny<int>(), It.IsAny<ShiftStatus>()))
-                .Callback<int, ShiftStatus>((id, status) =>
-                {
-                    updateCount++;
-                    updatedShiftId = id;
-                    updatedStatus = status;
-                });
-
-            // Act
             service.CancelShift(shiftId);
 
-            // Assert
-            Assert.Equal(1, updateCount);
-            Assert.Equal(shiftId, updatedShiftId);
-            Assert.Equal(ShiftStatus.COMPLETED, updatedStatus);
+            shiftRepository.Verify(repo => repo.UpdateShiftStatus(shiftId, ShiftStatus.COMPLETED), Times.Once);
         }
 
         [Fact]
