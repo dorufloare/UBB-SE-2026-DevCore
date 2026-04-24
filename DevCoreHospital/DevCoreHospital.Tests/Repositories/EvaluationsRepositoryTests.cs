@@ -107,7 +107,7 @@ public class EvaluationsRepositoryTests : IClassFixture<SqlTestFixture>
 
         public CapturingSaveRepository() : base("fake") { }
 
-        protected override void ExecuteSaveEvaluation(
+        public override void ExecuteSaveEvaluation(
             int doctorId, int patientId, string diagnosis, string notes, string meds, bool assumedRisk)
         {
             CapturedDoctorId = doctorId;
