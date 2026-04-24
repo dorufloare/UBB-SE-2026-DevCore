@@ -8,7 +8,7 @@ using DevCoreHospital.ViewModels.Admin;
 using Microsoft.Data.SqlClient;
 using Xunit;
 
-namespace DevCoreHospital.Tests.ViewModels
+namespace DevCoreHospital.Tests.Integration
 {
     public class AdminShiftViewModelIntegrationTests : IClassFixture<SqlTestFixture>
     {
