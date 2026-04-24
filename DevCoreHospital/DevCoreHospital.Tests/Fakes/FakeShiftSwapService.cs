@@ -24,10 +24,6 @@ public sealed class FakeShiftSwapService : IShiftSwapService
 
     public string RejectMessage { get; set; } = string.Empty;
 
-    public bool ReturningEmptyInboxOnSecondGetIncoming { get; set; }
-
-    private int getIncomingQueryCount;
-
     public List<IStaff> GetEligibleSwapColleaguesForShift(int requesterId, int shiftId, out string error)
     {
         error = EligibleError;
@@ -41,25 +37,19 @@ public sealed class FakeShiftSwapService : IShiftSwapService
     }
 
     public List<ShiftSwapRequest> GetIncomingSwapRequests(int colleagueId)
-    {
-        getIncomingQueryCount++;
-        if (ReturningEmptyInboxOnSecondGetIncoming && getIncomingQueryCount >= 2)
-        {
-            return new List<ShiftSwapRequest>();
-        }
-
-        return new List<ShiftSwapRequest>(PendingInbox);
-    }
+        => new List<ShiftSwapRequest>(PendingInbox);
 
     public bool AcceptSwapRequest(int swapId, int colleagueId, out string message)
     {
         message = AcceptMessage;
+        PendingInbox.RemoveAll(request => AcceptResult && request.SwapId == swapId);
         return AcceptResult;
     }
 
     public bool RejectSwapRequest(int swapId, int colleagueId, out string message)
     {
         message = RejectMessage;
+        PendingInbox.RemoveAll(request => RejectResult && request.SwapId == swapId);
         return RejectResult;
     }
 }

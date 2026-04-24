@@ -93,7 +93,6 @@ public class IncomingSwapRequestsViewModelTests
             });
         service.AcceptResult = true;
         service.AcceptMessage = "Swap accepted.";
-        service.ReturningEmptyInboxOnSecondGetIncoming = true;
         var viewModel = new IncomingSwapRequestsViewModel(
             service,
             new[] { new DoctorOptionViewModel { StaffId = 1, DisplayName = "D" } });
@@ -146,7 +145,6 @@ public class IncomingSwapRequestsViewModelTests
             });
         service.RejectResult = true;
         service.RejectMessage = "Swap rejected.";
-        service.ReturningEmptyInboxOnSecondGetIncoming = true;
         var viewModel = new IncomingSwapRequestsViewModel(
             service,
             new[] { new DoctorOptionViewModel { StaffId = 1, DisplayName = "D" } });
