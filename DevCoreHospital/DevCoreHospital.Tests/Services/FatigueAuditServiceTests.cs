@@ -254,7 +254,6 @@ namespace DevCoreHospital.Tests.Services
         [Fact]
         public void RunAutoAudit_SuggestionUsesFallback_WhenNoSpecializationMatch()
         {
-            // Bob matches role "Doctor" but not specialization "Cardiology"
             var shifts = new List<RosterShift>
             {
                 MakeShift(1, 1, "Alice", "Doctor", "Cardiology", WeekStart, WeekStart.AddHours(21)),
@@ -373,8 +372,6 @@ namespace DevCoreHospital.Tests.Services
         [Fact]
         public void RunAutoAudit_DoesNotFlagRestViolation_WhenViolatingShiftIsOutsideWeekWindow()
         {
-            // Shift 1 ends at the edge of the week; shift 2 starts 2 h later but is outside the window.
-            // The rest gap is < 12 h but shift 2 is not in weeklyShiftIds → no violation recorded.
             var shift1 = MakeShift(1, 1, "Alice", "Doctor", "Cardiology",
                 WeekStart.AddDays(6).AddHours(20), WeekStart.AddDays(7));
             var shift2 = MakeShift(2, 1, "Alice", "Doctor", "Cardiology",

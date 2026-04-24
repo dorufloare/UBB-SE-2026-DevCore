@@ -20,21 +20,17 @@ public class SalaryComputationIntegrationTests : IClassFixture<SqlTestFixture>
     {
         using var conn = db.OpenConnection();
 
-        // Insert a real doctor (Emergency medicine, 6 years) so the DB has the row
         var doctorId = db.InsertStaff(conn, "Doctor", "SalaryDoc", "Integration",
             specialization: "Emergency medicine", yearsExp: 6);
 
-        // Insert a real 8-hour shift in May 2026 so GetShiftHoursFromDb returns 8
         var shiftStart = new DateTime(2026, 5, 1, 8, 0, 0);
         var shiftId    = db.InsertShift(conn, doctorId, "Ward A", shiftStart, shiftStart.AddHours(8));
 
-        // Insert a hangout in May 2026 + participant so DidStaffParticipateInHangout returns true
         var hangoutId = db.InsertHangout(conn, "May Integration Hangout", new DateTime(2026, 5, 10));
         db.InsertHangoutParticipant(conn, hangoutId, doctorId);
 
         try
         {
-            // Build model objects using the DB-assigned IDs so the repo queries match
             var doctor = new Doctor { StaffID = doctorId, Specialization = "Emergency medicine", YearsOfExperience = 6 };
             var shift  = new Shift(shiftId, doctor, "Ward A", shiftStart, shiftStart.AddHours(8), ShiftStatus.SCHEDULED);
 

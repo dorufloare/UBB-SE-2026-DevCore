@@ -8,10 +8,6 @@ namespace DevCoreHospital.Tests.Repositories;
 
 public class ERDispatchRepositoryTests
 {
-    // -----------------------------------------------------------------------
-    // Testable subclass: overrides the protected virtual data-fetch methods
-    // so tests can supply in-memory data without a real SQL connection.
-    // -----------------------------------------------------------------------
     private sealed class TestableERDispatchRepository : ERDispatchRepository
     {
         private IReadOnlyList<DoctorRosterEntry> rosterEntries = Array.Empty<DoctorRosterEntry>();
@@ -23,7 +19,6 @@ public class ERDispatchRepositoryTests
         public (int RequestId, string Status, int? DoctorId, string? DoctorName)? LastUpdateRequestStatus { get; private set; }
         public (int DoctorId, DoctorStatus Status)? LastUpdateDoctorStatus { get; private set; }
 
-        // Pass null so the base constructor skips the real schema-detection SQL.
         public TestableERDispatchRepository() : base(connectionString: null) { }
 
         public void SetRosterEntries(IReadOnlyList<DoctorRosterEntry> entries) => rosterEntries = entries;
@@ -52,19 +47,12 @@ public class ERDispatchRepositoryTests
             LastUpdateDoctorStatus = (doctorId, status);
     }
 
-    // -----------------------------------------------------------------------
-    // Shared fixtures
-    // -----------------------------------------------------------------------
 
     private static readonly DateTime Now = DateTime.Now;
     private static readonly DateTime ShiftStart = Now.AddHours(-1);
     private static readonly DateTime ShiftEnd = Now.AddHours(1);
 
     private readonly TestableERDispatchRepository repository = new();
-
-    // -----------------------------------------------------------------------
-    // GetDoctorRoster — role filtering
-    // -----------------------------------------------------------------------
 
     [Fact]
     public void GetDoctorRoster_ExcludesEntriesWhereRoleIsNotDoctor()
@@ -92,9 +80,6 @@ public class ERDispatchRepositoryTests
         Assert.Equal(1, result[0].DoctorId);
     }
 
-    // -----------------------------------------------------------------------
-    // GetDoctorRoster — shift-window filtering
-    // -----------------------------------------------------------------------
 
     [Fact]
     public void GetDoctorRoster_ExcludesEntriesWithNoSchedule()
@@ -165,9 +150,6 @@ public class ERDispatchRepositoryTests
         Assert.Empty(repository.GetDoctorRoster());
     }
 
-    // -----------------------------------------------------------------------
-    // GetDoctorRoster — normalization
-    // -----------------------------------------------------------------------
 
     [Fact]
     public void GetDoctorRoster_NormalizesSpecialization_WhenEmpty()
@@ -202,9 +184,6 @@ public class ERDispatchRepositoryTests
         Assert.Equal("Dr. Smith", repository.GetDoctorRoster()[0].FullName);
     }
 
-    // -----------------------------------------------------------------------
-    // GetDoctorRoster — deduplication
-    // -----------------------------------------------------------------------
 
     [Fact]
     public void GetDoctorRoster_DeduplicatesByDoctorId_KeepsEntryWithEarliestScheduleEnd()
@@ -232,10 +211,6 @@ public class ERDispatchRepositoryTests
 
         Assert.Equal(2, repository.GetDoctorRoster().Count);
     }
-
-    // -----------------------------------------------------------------------
-    // GetPendingRequests
-    // -----------------------------------------------------------------------
 
     [Fact]
     public void GetPendingRequests_ReturnsOnlyPendingStatus()
@@ -288,9 +263,6 @@ public class ERDispatchRepositoryTests
         Assert.Empty(repository.GetPendingRequests());
     }
 
-    // -----------------------------------------------------------------------
-    // CreateIncomingRequest / GetRequestById
-    // -----------------------------------------------------------------------
 
     [Fact]
     public void CreateIncomingRequest_ReturnsIdFromUnderlyingExecute()
@@ -317,9 +289,6 @@ public class ERDispatchRepositoryTests
         Assert.Null(repository.GetRequestById(99));
     }
 
-    // -----------------------------------------------------------------------
-    // GetDoctorById
-    // -----------------------------------------------------------------------
 
     [Fact]
     public void GetDoctorById_ReturnsNull_WhenNoMatchingEntryOnCurrentShift()
@@ -357,9 +326,6 @@ public class ERDispatchRepositoryTests
         Assert.Equal(1, result!.DoctorId);
     }
 
-    // -----------------------------------------------------------------------
-    // UpdateRequestStatus / UpdateDoctorStatus
-    // -----------------------------------------------------------------------
 
     [Fact]
     public void UpdateRequestStatus_PassesCorrectArguments()
@@ -377,9 +343,6 @@ public class ERDispatchRepositoryTests
         Assert.Equal((3, DoctorStatus.IN_EXAMINATION), repository.LastUpdateDoctorStatus);
     }
 
-    // -----------------------------------------------------------------------
-    // Builder helper
-    // -----------------------------------------------------------------------
 
     private static DoctorRosterEntry BuildEntry(
         int doctorId, string role, DateTime? scheduleStart, DateTime? scheduleEnd,

@@ -165,9 +165,6 @@ public class SqlTestFixture : IDisposable
     public void DeleteStaff(SqlConnection conn, int staffId)
         => Execute(conn, "DELETE FROM Staff WHERE staff_id = @Id", staffId);
 
-    // -----------------------------------------------------------------------
-    // Medical_Evaluations helpers
-    // -----------------------------------------------------------------------
 
     public int InsertMedicalEvaluation(
         SqlConnection conn,
@@ -198,10 +195,6 @@ public class SqlTestFixture : IDisposable
 
     public void DeleteMedicalEvaluationsByDoctor(SqlConnection conn, int doctorId)
         => Execute(conn, "DELETE FROM Medical_Evaluations WHERE doctor_id = @Id", doctorId);
-
-    // -----------------------------------------------------------------------
-    // Appointments helper (with explicit status)
-    // -----------------------------------------------------------------------
 
     public int InsertAppointmentWithStatus(SqlConnection conn, int patientId, int doctorId, DateTime start, DateTime end, string status)
         => InsertAppointment(conn, patientId, doctorId, start, end, status);

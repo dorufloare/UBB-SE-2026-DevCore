@@ -169,7 +169,6 @@ namespace DevCoreHospital.Tests.Integration
                 MakeProfile(2, "Bob", "Doctor", "Cardiology"),
             };
             SetupDataSource(shifts, profiles);
-            // After reassignment, the data source returns a clean roster
             repositoryMock.Setup(r => r.ReassignShift(It.IsAny<int>(), It.IsAny<int>())).Returns(true);
 
             var vm = CreateViewModel();
@@ -181,7 +180,6 @@ namespace DevCoreHospital.Tests.Integration
             var result = vm.ApplyReassignment(firstSuggestionShiftId);
 
             Assert.True(result.isSuccess);
-            // The re-audit ran on the now-empty roster → no conflicts
             Assert.False(vm.HasConflicts);
             Assert.True(vm.CanPublish);
         }

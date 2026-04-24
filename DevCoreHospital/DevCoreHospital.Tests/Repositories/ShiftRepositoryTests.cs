@@ -13,7 +13,6 @@ public class ShiftRepositoryTests : IClassFixture<SqlTestFixture>
 
     public ShiftRepositoryTests(SqlTestFixture db) => this.db = db;
 
-    // ── Graceful degradation ─────────────────────────────────────────────────
 
     [Fact]
     public void GetShifts_WhenConnectionFails_ReturnsEmptyList()
@@ -71,7 +70,6 @@ public class ShiftRepositoryTests : IClassFixture<SqlTestFixture>
         Assert.Null(ex);
     }
 
-    // ── Real database tests ──────────────────────────────────────────────────
 
     [Fact]
     public void GetShifts_ReturnsShiftFromDatabase()

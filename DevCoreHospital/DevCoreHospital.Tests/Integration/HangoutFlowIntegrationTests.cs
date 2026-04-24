@@ -7,10 +7,6 @@ using Xunit;
 
 namespace DevCoreHospital.Tests.Integration
 {
-    // HangoutRepository.HasConflictsOnDate queries the real Appointments table.
-    // Using InMemoryHangoutRepository with AddConflictForStaff would bypass that
-    // SQL entirely. These tests use a real DB so the conflict detection is exercised
-    // end-to-end, not just the service branching logic.
     public class HangoutFlowIntegrationTests : IClassFixture<SqlTestFixture>
     {
         private readonly SqlTestFixture db;
@@ -18,9 +14,6 @@ namespace DevCoreHospital.Tests.Integration
 
         public HangoutFlowIntegrationTests(SqlTestFixture db) => this.db = db;
 
-        // -------------------------------------------------------------------
-        // Test 1: creator + joiner, no conflicts → both end up in participant list
-        // -------------------------------------------------------------------
         [Fact]
         public void CreateThenJoin_WhenNoConflicts_StoresHangoutWithBothParticipants()
         {
@@ -53,16 +46,11 @@ namespace DevCoreHospital.Tests.Integration
             }
         }
 
-        // -------------------------------------------------------------------
-        // Test 2: creator has a real appointment on hangout day → creation blocked
-        // The conflict is detected via a real SQL query on the Appointments table.
-        // -------------------------------------------------------------------
         [Fact]
         public void CreateHangout_WhenCreatorHasRealAppointmentOnHangoutDay_ThrowsAndPersistsNothing()
         {
             using var conn = db.OpenConnection();
             var creatorId = db.InsertStaff(conn, "Doctor", "HgConflict", "Creator", "Cardiology");
-            // A "Scheduled" appointment on the same calendar day as the hangout
             var apptId = db.InsertAppointment(conn, 0, creatorId,
                 HangoutDate.AddHours(9), HangoutDate.AddHours(10));
             try
@@ -74,7 +62,6 @@ namespace DevCoreHospital.Tests.Integration
                 Assert.Throws<InvalidOperationException>(
                     () => service.CreateHangout("Team hangout", "Desc", HangoutDate, 5, creator));
 
-                // Nothing should have been written to Hangouts
                 Assert.DoesNotContain(repo.GetAllHangouts(),
                     h => h.Date.Date == HangoutDate.Date);
             }
@@ -85,10 +72,6 @@ namespace DevCoreHospital.Tests.Integration
             }
         }
 
-        // -------------------------------------------------------------------
-        // Test 3: joiner has a real appointment on hangout day → join blocked,
-        //         creator remains the only participant
-        // -------------------------------------------------------------------
         [Fact]
         public void JoinHangout_WhenJoinerHasRealAppointmentOnHangoutDay_ThrowsAndParticipantListUnchanged()
         {
@@ -106,7 +89,6 @@ namespace DevCoreHospital.Tests.Integration
 
                 hangoutId = service.CreateHangout("Team hangout", "Desc", HangoutDate, 5, creator);
 
-                // Give the joiner an appointment on hangout day after the hangout is created
                 apptId = db.InsertAppointment(conn, 0, joinerId,
                     HangoutDate.AddHours(11), HangoutDate.AddHours(12));
 
@@ -125,9 +107,6 @@ namespace DevCoreHospital.Tests.Integration
             }
         }
 
-        // -------------------------------------------------------------------
-        // Test 4: hangout fills up → late-comer is rejected with the right message
-        // -------------------------------------------------------------------
         [Fact]
         public void JoinHangout_WhenHangoutReachesCapacity_LaterJoinerIsRejected()
         {

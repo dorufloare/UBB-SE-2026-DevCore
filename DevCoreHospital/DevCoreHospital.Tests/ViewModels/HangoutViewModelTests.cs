@@ -247,7 +247,6 @@ namespace DevCoreHospital.Tests.ViewModels
         [Fact]
         public void CreateHangout_ReloadsHangouts_AfterSuccess()
         {
-            // Arrange
             var hangout = new Hangout(1, "My Hangout", "desc", DateTime.Now.AddDays(10), 5);
             int getHangoutsCalls = 0;
             mockService.Setup(s => s.GetAllHangouts()).Returns(() =>
@@ -260,17 +259,14 @@ namespace DevCoreHospital.Tests.ViewModels
             vm.Title = "My Hangout";
             vm.SelectedDoctor = TestDoctor;
 
-            // Act
             vm.CreateCommand.Execute(null);
 
-            // Assert
             Assert.Single(vm.Hangouts);
         }
 
         [Fact]
         public void JoinHangoutById_ReloadsHangouts_AfterSuccess()
         {
-            // Arrange
             var hangout = new Hangout(1, "Team Lunch", "desc", DateTime.Now.AddDays(10), 5);
             int getHangoutsCalls = 0;
             mockService.Setup(s => s.GetAllHangouts()).Returns(() =>
@@ -282,10 +278,8 @@ namespace DevCoreHospital.Tests.ViewModels
             var vm = new HangoutViewModel(mockService.Object);
             vm.SelectedDoctor = TestDoctor;
 
-            // Act
             vm.JoinHangoutById(1);
 
-            // Assert
             Assert.Single(vm.Hangouts);
         }
     }

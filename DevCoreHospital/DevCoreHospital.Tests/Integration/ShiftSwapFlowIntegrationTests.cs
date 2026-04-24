@@ -17,9 +17,6 @@ public class ShiftSwapFlowIntegrationTests : IClassFixture<SqlTestFixture>
 
     public ShiftSwapFlowIntegrationTests(SqlTestFixture db) => this.db = db;
 
-    // -----------------------------------------------------------------------
-    // Test 1: no pending requests → inbox is empty
-    // -----------------------------------------------------------------------
     [Fact]
     public void IncomingRequests_WhenNoSwapRequestsExistForColleague_InboxIsEmpty()
     {
@@ -32,8 +29,6 @@ public class ShiftSwapFlowIntegrationTests : IClassFixture<SqlTestFixture>
             var swapRepo  = new ShiftSwapRepository(db.ConnectionString);
             var service   = new ShiftSwapService(staffRepo, shiftRepo, swapRepo);
 
-            // Use the IEnumerable overload so we control exactly which doctor is selected,
-            // without relying on alphabetical position across the whole DB.
             var incoming = new IncomingSwapRequestsViewModel(
                 service,
                 new[] { new DoctorOptionViewModel { StaffId = colleagueId, DisplayName = "InbEmpty Colleague" } });
@@ -46,9 +41,6 @@ public class ShiftSwapFlowIntegrationTests : IClassFixture<SqlTestFixture>
         }
     }
 
-    // -----------------------------------------------------------------------
-    // Test 2: one real pending row in the DB → inbox shows exactly one item
-    // -----------------------------------------------------------------------
     [Fact]
     public void IncomingRequests_WhenOnePendingRequestExists_InboxHasSingleItem()
     {
@@ -82,9 +74,6 @@ public class ShiftSwapFlowIntegrationTests : IClassFixture<SqlTestFixture>
         }
     }
 
-    // -----------------------------------------------------------------------
-    // Test 3: executing RequestSwapCommand writes a real row to ShiftSwapRequests
-    // -----------------------------------------------------------------------
     [Fact]
     public void RequestSwapCommand_WhenAllConditionsMet_CreatesSwapRequestInDatabase()
     {
@@ -120,9 +109,7 @@ public class ShiftSwapFlowIntegrationTests : IClassFixture<SqlTestFixture>
         }
     }
 
-    // -----------------------------------------------------------------------
-    // Test 4: after a successful submit the status message contains "successfully"
-    // -----------------------------------------------------------------------
+
     [Fact]
     public void RequestSwapCommand_WhenAllConditionsMet_SetsSuccessStatusMessage()
     {
@@ -157,9 +144,6 @@ public class ShiftSwapFlowIntegrationTests : IClassFixture<SqlTestFixture>
         }
     }
 
-    // -----------------------------------------------------------------------
-    // Helper: insert a PENDING swap request directly (no service layer)
-    // -----------------------------------------------------------------------
     private static int InsertSwapRequest(SqlConnection conn, int shiftId, int requesterId, int colleagueId)
     {
         using var cmd = new SqlCommand(@"

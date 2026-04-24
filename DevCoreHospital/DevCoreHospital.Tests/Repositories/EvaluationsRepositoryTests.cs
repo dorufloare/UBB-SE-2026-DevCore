@@ -13,9 +13,6 @@ public class EvaluationsRepositoryTests : IClassFixture<SqlTestFixture>
 
     public EvaluationsRepositoryTests(SqlTestFixture db) => this.db = db;
 
-    // -----------------------------------------------------------------------
-    // Guard-clause tests — no DB needed
-    // -----------------------------------------------------------------------
 
     [Fact]
     public void GetEvaluationsByDoctor_WhenDoctorIdIsNotNumeric_ReturnsEmptyList()
@@ -65,9 +62,6 @@ public class EvaluationsRepositoryTests : IClassFixture<SqlTestFixture>
         Assert.Null(repo.CheckMedicineConflict("   ", "Aspirin"));
     }
 
-    // -----------------------------------------------------------------------
-    // IsDoctorFatigued — uses testable subclass (pure logic, threshold = 12h)
-    // -----------------------------------------------------------------------
 
     private sealed class TestableEvaluationsRepository : EvaluationsRepository
     {
@@ -103,9 +97,6 @@ public class EvaluationsRepositoryTests : IClassFixture<SqlTestFixture>
         Assert.True(repo.IsDoctorFatigued("1"));
     }
 
-    // -----------------------------------------------------------------------
-    // SaveEvaluation — uses testable subclass to verify parsed arguments
-    // -----------------------------------------------------------------------
 
     private sealed class CapturingSaveRepository : EvaluationsRepository
     {
@@ -193,9 +184,6 @@ public class EvaluationsRepositoryTests : IClassFixture<SqlTestFixture>
         Assert.Equal(77, repo.CapturedDoctorId);
     }
 
-    // -----------------------------------------------------------------------
-    // DB integration: GetAllDoctors / GetDoctorById
-    // -----------------------------------------------------------------------
 
     [Fact]
     public void GetAllDoctors_ReturnsInsertedDoctor()
@@ -247,9 +235,6 @@ public class EvaluationsRepositoryTests : IClassFixture<SqlTestFixture>
         Assert.Null(result);
     }
 
-    // -----------------------------------------------------------------------
-    // DB integration: SaveEvaluation + GetEvaluationsByDoctor + DeleteEvaluation
-    // -----------------------------------------------------------------------
 
     [Fact]
     public void SaveEvaluation_ThenGetByDoctor_ReturnsInsertedEvaluation()
@@ -325,9 +310,6 @@ public class EvaluationsRepositoryTests : IClassFixture<SqlTestFixture>
         }
     }
 
-    // -----------------------------------------------------------------------
-    // DB integration: GetAppointmentsByDoctor
-    // -----------------------------------------------------------------------
 
     [Fact]
     public void GetAppointmentsByDoctor_ReturnsEmpty_WhenNoneExistForDoctor()
@@ -375,9 +357,6 @@ public class EvaluationsRepositoryTests : IClassFixture<SqlTestFixture>
         }
     }
 
-    // -----------------------------------------------------------------------
-    // DB integration: CheckMedicineConflict / CheckPatientHistoryForRisk
-    // -----------------------------------------------------------------------
 
     [Fact]
     public void CheckMedicineConflict_ReturnsNull_WhenNoHighRiskAndNoHistory()
