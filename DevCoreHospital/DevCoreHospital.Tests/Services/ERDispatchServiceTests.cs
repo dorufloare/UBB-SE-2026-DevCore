@@ -125,7 +125,7 @@ public class ERDispatchServiceTests
 
         var createdIds = await service.SimulateIncomingRequestsAsync(0);
 
-        Assert.Equal(1, createdIds.Count);
+        Assert.Single(createdIds);
     }
 
     [Fact]

@@ -89,7 +89,7 @@ namespace DevCoreHospital.Tests.Services
             // Assert
             Assert.Equal(1, updateCount);
             Assert.Equal(doctor.StaffID, updatedStaffId);
-            Assert.Equal(true, updatedAvailability);
+            Assert.True(updatedAvailability);
             Assert.Equal(DoctorStatus.AVAILABLE, updatedDoctorStatus);
         }
 
@@ -162,7 +162,7 @@ namespace DevCoreHospital.Tests.Services
             // Assert
             Assert.Equal(1, updateCount);
             Assert.Equal(doctor.StaffID, updatedStaffId);
-            Assert.Equal(false, updatedAvailability);
+            Assert.False(updatedAvailability);
             Assert.Equal(DoctorStatus.OFF_DUTY, updatedDoctorStatus);
         }
 
@@ -273,7 +273,7 @@ namespace DevCoreHospital.Tests.Services
             var result = service.ValidateNoOverlap(201, day.AddHours(10), day.AddHours(12));
 
             // Assert
-            Assert.Equal(true, result);
+            Assert.True(result);
         }
 
         [Theory]
