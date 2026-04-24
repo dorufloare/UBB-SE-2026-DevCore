@@ -11,6 +11,8 @@ namespace DevCoreHospital.Repositories
         void SaveEvaluation(MedicalEvaluation record);
         void DeleteEvaluation(int evaluationId);
         double GetDoctorFatigueHours(string doctorId);
+        bool IsDoctorFatigued(string doctorId);
+        string? CheckMedicineConflict(string patientId, string meds);
         Doctor? GetDoctorById(int id);
         string? GetHighRiskMedicineWarning(string medicineName);
         string? CheckPatientHistoryForRisk(string patientId, string currentMeds);

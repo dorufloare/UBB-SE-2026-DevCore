@@ -37,7 +37,7 @@ namespace DevCoreHospital.Services
                 throw new ArgumentException("The hangout date must be at least 1 week away from today.");
             }
 
-            if (hangoutRepository.HasConflictsOnDate(creator.StaffID, date))
+            if (HasConflictsOnDate(creator.StaffID, date))
             {
                 throw new InvalidOperationException("You cannot create a hangout on a day where you have active scheduled appointments.");
             }
@@ -66,7 +66,7 @@ namespace DevCoreHospital.Services
                 throw new InvalidOperationException("You have already joined this hangout.");
             }
 
-            if (hangoutRepository.HasConflictsOnDate(staff.StaffID, hangout.Date))
+            if (HasConflictsOnDate(staff.StaffID, hangout.Date))
             {
                 throw new InvalidOperationException("You cannot join a hangout on a day where you have active scheduled appointments.");
             }
@@ -77,6 +77,15 @@ namespace DevCoreHospital.Services
         public List<Hangout> GetAllHangouts()
         {
             return hangoutRepository.GetAllHangouts();
+        }
+
+        private bool HasConflictsOnDate(int staffId, DateTime date)
+        {
+            var statuses = hangoutRepository.GetAppointmentStatusesForStaffOnDate(staffId, date);
+            return statuses.Any(s =>
+                !string.Equals(s, "Finished", StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(s, "Canceled", StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(s, "Cancelled", StringComparison.OrdinalIgnoreCase));
         }
     }
 }

@@ -633,7 +633,162 @@ namespace DevCoreHospital.Tests.Services
         private static Doctor BuildDoctor(int staffId, string specialization)
             => new Doctor(staffId, "John", "Doe", "john.doe@example.com", string.Empty, false, specialization, "LIC-1", DoctorStatus.OFF_DUTY, 5);
 
+        [Fact]
+        public void GetActiveShifts_ReturnsOnlyActiveShifts()
+        {
+            var day = new DateTime(2026, 4, 21);
+            var doctor = BuildDoctor(70, "Cardiology");
+            var activeShift = BuildShift(800, doctor, day.AddHours(8), day.AddHours(16), ShiftStatus.ACTIVE);
+            var scheduledShift = BuildShift(801, doctor, day.AddHours(16), day.AddHours(20), ShiftStatus.SCHEDULED);
+            var cancelledShift = BuildShift(802, doctor, day.AddDays(1).AddHours(8), day.AddDays(1).AddHours(16), ShiftStatus.CANCELLED);
+            shiftRepository.Setup(r => r.GetShifts()).Returns(new List<Shift> { activeShift, scheduledShift, cancelledShift });
+
+            var result = service.GetActiveShifts();
+
+            Assert.Single(result);
+            Assert.Equal(800, result[0].Id);
+        }
+
+        [Fact]
+        public void GetActiveShifts_WhenNoActiveShifts_ReturnsEmptyList()
+        {
+            var day = new DateTime(2026, 4, 21);
+            var doctor = BuildDoctor(71, "Cardiology");
+            var scheduledShift = BuildShift(803, doctor, day.AddHours(8), day.AddHours(16), ShiftStatus.SCHEDULED);
+            shiftRepository.Setup(r => r.GetShifts()).Returns(new List<Shift> { scheduledShift });
+
+            var result = service.GetActiveShifts();
+
+            Assert.Empty(result);
+        }
+
+        [Fact]
+        public void GetWeeklyHours_WhenShiftsAreInCurrentWeek_ReturnsTotalHours()
+        {
+            var now = DateTime.Now;
+            int daysFromMonday = (7 + (int)(now.DayOfWeek - DayOfWeek.Monday)) % 7;
+            var weekMonday = now.Date.AddDays(-daysFromMonday);
+            var doctor = BuildDoctor(72, "Cardiology");
+            var shiftOne = BuildShift(810, doctor, weekMonday.AddHours(8), weekMonday.AddHours(16));
+            var shiftTwo = BuildShift(811, doctor, weekMonday.AddDays(1).AddHours(8), weekMonday.AddDays(1).AddHours(12));
+            shiftRepository.Setup(r => r.GetShifts()).Returns(new List<Shift> { shiftOne, shiftTwo });
+
+            var result = service.GetWeeklyHours(doctor.StaffID);
+
+            Assert.Equal(12f, result);
+        }
+
+        [Fact]
+        public void GetWeeklyHours_WhenShiftsAreOutsideCurrentWeek_ReturnsZero()
+        {
+            var doctor = BuildDoctor(73, "Cardiology");
+            var pastShift = BuildShift(812, doctor, DateTime.Now.AddDays(-14).AddHours(8), DateTime.Now.AddDays(-14).AddHours(16));
+            shiftRepository.Setup(r => r.GetShifts()).Returns(new List<Shift> { pastShift });
+
+            var result = service.GetWeeklyHours(doctor.StaffID);
+
+            Assert.Equal(0f, result);
+        }
+
+        [Fact]
+        public void IsStaffWorkingDuring_WhenScheduledShiftOverlaps_ReturnsTrue()
+        {
+            var day = DateTime.Now.AddDays(1);
+            var doctor = BuildDoctor(74, "Cardiology");
+            var shift = BuildShift(820, doctor, day.AddHours(8), day.AddHours(16), ShiftStatus.SCHEDULED);
+            shiftRepository.Setup(r => r.GetShifts()).Returns(new List<Shift> { shift });
+
+            var result = service.IsStaffWorkingDuring(doctor.StaffID, day.AddHours(10), day.AddHours(12));
+
+            Assert.True(result);
+        }
+
+        [Fact]
+        public void IsStaffWorkingDuring_WhenNoOverlap_ReturnsFalse()
+        {
+            var day = DateTime.Now.AddDays(1);
+            var doctor = BuildDoctor(75, "Cardiology");
+            var shift = BuildShift(821, doctor, day.AddHours(8), day.AddHours(16), ShiftStatus.SCHEDULED);
+            shiftRepository.Setup(r => r.GetShifts()).Returns(new List<Shift> { shift });
+
+            var result = service.IsStaffWorkingDuring(doctor.StaffID, day.AddHours(17), day.AddHours(19));
+
+            Assert.False(result);
+        }
+
+        [Fact]
+        public void IsStaffWorkingDuring_WhenShiftIsFinished_ReturnsFalse()
+        {
+            var day = DateTime.Now.AddDays(1);
+            var doctor = BuildDoctor(76, "Cardiology");
+            var shift = BuildShift(822, doctor, day.AddHours(8), day.AddHours(16), ShiftStatus.COMPLETED);
+            shiftRepository.Setup(r => r.GetShifts()).Returns(new List<Shift> { shift });
+
+            var result = service.IsStaffWorkingDuring(doctor.StaffID, day.AddHours(10), day.AddHours(12));
+
+            Assert.False(result);
+        }
+
         private static Pharmacyst BuildPharmacyst(int staffId, string certification)
             => new Pharmacyst(staffId, "Pharma", "Cist", "pharma@example.com", true, certification, 4);
+
+
+        [Fact]
+        public void TryAddShift_WhenNoOverlap_AddsShiftAndReturnsTrue()
+        {
+            var doctor = BuildDoctor(90, "Cardiology");
+            var start = new DateTime(2030, 7, 1, 8, 0, 0);
+            var end = new DateTime(2030, 7, 1, 16, 0, 0);
+            shiftRepository.Setup(r => r.GetShifts()).Returns(new List<Shift>());
+            Shift? added = null;
+            shiftRepository.Setup(r => r.AddShift(It.IsAny<Shift>())).Callback<Shift>(s => added = s);
+
+            bool result = service.TryAddShift(doctor, start, end, "ER");
+
+            Assert.True(result);
+            Assert.NotNull(added);
+            Assert.Equal(doctor.StaffID, added!.AppointedStaff.StaffID);
+            Assert.Equal("ER", added.Location);
+            Assert.Equal(ShiftStatus.SCHEDULED, added.Status);
+        }
+
+        [Fact]
+        public void TryAddShift_WhenOverlapExists_DoesNotAddShiftAndReturnsFalse()
+        {
+            var doctor = BuildDoctor(91, "Cardiology");
+            var existing = BuildShift(900, doctor, new DateTime(2030, 7, 2, 8, 0, 0), new DateTime(2030, 7, 2, 16, 0, 0));
+            shiftRepository.Setup(r => r.GetShifts()).Returns(new List<Shift> { existing });
+            int addCalls = 0;
+            shiftRepository.Setup(r => r.AddShift(It.IsAny<Shift>())).Callback(() => addCalls++);
+
+            bool result = service.TryAddShift(doctor, new DateTime(2030, 7, 2, 10, 0, 0), new DateTime(2030, 7, 2, 14, 0, 0), "ER");
+
+            Assert.False(result);
+            Assert.Equal(0, addCalls);
+        }
+
+        [Fact]
+        public void ValidateShiftTimes_ReturnsTrue_WhenEndIsAfterStart()
+        {
+            var result = service.ValidateShiftTimes(new TimeSpan(8, 0, 0), new TimeSpan(16, 0, 0));
+
+            Assert.True(result);
+        }
+
+        [Fact]
+        public void ValidateShiftTimes_ReturnsFalse_WhenEndEqualsStart()
+        {
+            var result = service.ValidateShiftTimes(new TimeSpan(8, 0, 0), new TimeSpan(8, 0, 0));
+
+            Assert.False(result);
+        }
+
+        [Fact]
+        public void ValidateShiftTimes_ReturnsFalse_WhenEndIsBeforeStart()
+        {
+            var result = service.ValidateShiftTimes(new TimeSpan(16, 0, 0), new TimeSpan(8, 0, 0));
+
+            Assert.False(result);
+        }
     }
 }

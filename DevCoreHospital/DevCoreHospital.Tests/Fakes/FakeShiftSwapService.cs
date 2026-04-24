@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using DevCoreHospital.Models;
 using DevCoreHospital.Services;
 
@@ -6,6 +8,8 @@ namespace DevCoreHospital.Tests.Fakes;
 
 public sealed class FakeShiftSwapService : IShiftSwapService
 {
+    public Dictionary<int, List<Shift>> FutureShiftsByStaffId { get; } = new();
+
     public List<IStaff> EligibleColleagues { get; } = new();
 
     public string EligibleError { get; set; } = string.Empty;
@@ -27,6 +31,16 @@ public sealed class FakeShiftSwapService : IShiftSwapService
     public bool ReturningEmptyInboxOnSecondGetIncoming { get; set; }
 
     private int getIncomingQueryCount;
+
+    public List<Shift> GetFutureShiftsForStaff(int staffId)
+    {
+        if (FutureShiftsByStaffId.TryGetValue(staffId, out var shifts))
+        {
+            return shifts.Where(s => s.StartTime > DateTime.Now).ToList();
+        }
+
+        return new List<Shift>();
+    }
 
     public List<IStaff> GetEligibleSwapColleaguesForShift(int requesterId, int shiftId, out string error)
     {

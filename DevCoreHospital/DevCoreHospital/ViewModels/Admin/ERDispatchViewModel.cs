@@ -118,15 +118,11 @@ namespace DevCoreHospital.ViewModels
 
             foreach (var candidate in candidates)
             {
-                var minutesToEnd = candidate.ScheduleEnd.HasValue
-                    ? Math.Max(0, (int)Math.Round((candidate.ScheduleEnd.Value - DateTime.Now).TotalMinutes))
-                    : -1;
-
                 OverrideCandidates.Add(new OverrideCandidateRow
                 {
                     DoctorId = candidate.DoctorId,
                     FullName = candidate.FullName,
-                    MinutesToEnd = minutesToEnd
+                    MinutesToEnd = candidate.MinutesToEnd
                 });
             }
 

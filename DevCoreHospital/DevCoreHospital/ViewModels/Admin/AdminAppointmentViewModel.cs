@@ -46,17 +46,7 @@ namespace DevCoreHospital.ViewModels
 
         public async Task BookAppointmentAsync(string patientId, int doctorId, DateTime date, TimeSpan time)
         {
-            var newAppointment = new Appointment
-            {
-                PatientName = patientId,
-                DoctorId = doctorId,
-                Date = date.Date,
-                StartTime = time,
-                EndTime = time.Add(TimeSpan.FromMinutes(30)),
-                Status = "Scheduled",
-            };
-
-            await appointmentService.BookAppointmentAsync(newAppointment);
+            await appointmentService.CreateAppointmentAsync(patientId, doctorId, date, time);
         }
 
         public async Task FinishAppointmentAsync(Appointment appointment)

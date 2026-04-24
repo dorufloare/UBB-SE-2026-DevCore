@@ -48,7 +48,7 @@ namespace DevCoreHospital.Repositories
             }
         }
 
-        public List<ShiftSwapRequest> GetPendingSwapRequestsForColleague(int colleagueId)
+        public List<ShiftSwapRequest> GetSwapRequestsForColleague(int colleagueId)
         {
             var swapRequests = new List<ShiftSwapRequest>();
             try
@@ -58,7 +58,7 @@ namespace DevCoreHospital.Repositories
                 using var command = new SqlCommand(@"
                     SELECT swap_id, shift_id, requester_id, colleague_id, requested_at, status
                     FROM ShiftSwapRequests
-                    WHERE colleague_id = @ColleagueId AND status = 'PENDING'
+                    WHERE colleague_id = @ColleagueId
                     ORDER BY requested_at DESC", connection);
                 AddParameter(command, "@ColleagueId", colleagueId);
 
@@ -79,7 +79,7 @@ namespace DevCoreHospital.Repositories
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error GetPendingSwapRequestsForColleague: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Error GetSwapRequestsForColleague: {ex.Message}");
             }
             return swapRequests;
         }

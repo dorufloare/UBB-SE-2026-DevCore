@@ -30,11 +30,11 @@ namespace DevCoreHospital.Tests.ViewModels
                 var staff = staffRepo.GetStaffById(staffId)!;
                 var start = DateTime.Today.AddHours(8);
                 var end = DateTime.Today.AddHours(12);
-                var initialCount = shiftRepo.GetShifts().Count;
+                var initialCountForStaff = shiftRepo.GetShiftsByStaffID(staffId).Count;
 
                 viewModel.CreateNewShift(staff, start, end, "ER");
 
-                Assert.Equal(initialCount + 1, shiftRepo.GetShifts().Count);
+                Assert.Equal(initialCountForStaff + 1, shiftRepo.GetShiftsByStaffID(staffId).Count);
                 var staffShift = Assert.Single(shiftRepo.GetShifts().Where(s => s.AppointedStaff.StaffID == staffId));
                 Assert.Equal("ER", staffShift.Location);
                 Assert.Equal(ShiftStatus.SCHEDULED, staffShift.Status);

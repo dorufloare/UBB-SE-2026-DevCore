@@ -120,8 +120,6 @@ namespace DevCoreHospital.Tests.Integration
 
             public InMemoryShiftRepository(List<Shift> shifts) => this.shifts = shifts;
 
-            public float GetWeeklyHours(int staffId) => 0f;
-
             public IReadOnlyList<Shift> GetShiftsForStaffInRange(int staffId, DateTime from, DateTime to) =>
                 shifts
                     .Where(s => s.AppointedStaff.StaffID == staffId
@@ -134,13 +132,6 @@ namespace DevCoreHospital.Tests.Integration
 
             public List<Shift> GetShiftsByStaffID(int staffId) =>
                 shifts.Where(s => s.AppointedStaff.StaffID == staffId).ToList();
-
-            public bool IsStaffWorkingDuring(int staffId, DateTime startTime, DateTime endTime) =>
-                shifts.Any(s => s.AppointedStaff.StaffID == staffId
-                    && s.StartTime < endTime
-                    && s.EndTime > startTime);
-
-            public void Refresh() { }
         }
 
 

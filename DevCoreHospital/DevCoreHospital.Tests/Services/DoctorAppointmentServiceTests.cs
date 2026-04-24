@@ -152,5 +152,160 @@ namespace DevCoreHospital.Tests.Services
 
             Assert.Null(result);
         }
+
+
+        [Fact]
+        public async Task CreateAppointmentAsync_AddsAppointment_WithScheduledStatusAndThirtyMinuteDuration()
+        {
+            var date = new DateTime(2025, 8, 1);
+            var startTime = new TimeSpan(10, 0, 0);
+            Appointment? captured = null;
+
+            mockDataSource
+                .Setup(x => x.AddAppointmentAsync(It.IsAny<Appointment>()))
+                .Callback<Appointment>(a => captured = a);
+            mockDataSource
+                .Setup(x => x.GetActiveAppointmentsCountForDoctorAsync(It.IsAny<int>()))
+                .ReturnsAsync(1);
+
+            await service.CreateAppointmentAsync("PAT-1", 5, date, startTime);
+
+            Assert.NotNull(captured);
+            Assert.Equal("PAT-1", captured!.PatientName);
+            Assert.Equal(5, captured.DoctorId);
+            Assert.Equal(date.Date, captured.Date);
+            Assert.Equal(startTime, captured.StartTime);
+            Assert.Equal(startTime.Add(TimeSpan.FromMinutes(30)), captured.EndTime);
+            Assert.Equal("Scheduled", captured.Status);
+        }
+
+        [Fact]
+        public async Task CreateAppointmentAsync_SetsDoctorStatus_ToInExamination()
+        {
+            mockDataSource
+                .Setup(x => x.GetActiveAppointmentsCountForDoctorAsync(It.IsAny<int>()))
+                .ReturnsAsync(1);
+
+            await service.CreateAppointmentAsync("PAT-1", 7, DateTime.Today, TimeSpan.Zero);
+
+            mockDataSource.Verify(x => x.UpdateDoctorStatusAsync(7, "IN_EXAMINATION"), Times.Once);
+        }
+
+
+        [Fact]
+        public async Task FinishAppointmentAsync_ThrowsInvalidOperationException_WhenAppointmentIsAlreadyFinished()
+        {
+            var finishedAppointment = new Appointment { Id = 5, DoctorId = 10, Status = "Finished" };
+
+            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                service.FinishAppointmentAsync(finishedAppointment));
+
+            Assert.Equal("This appointment is already finished.", ex.Message);
+        }
+
+        [Fact]
+        public async Task FinishAppointmentAsync_ThrowsInvalidOperationException_WhenFinishedStatus_IsCaseDifferent()
+        {
+            var finishedAppointment = new Appointment { Id = 5, DoctorId = 10, Status = "FINISHED" };
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                service.FinishAppointmentAsync(finishedAppointment));
+        }
+
+        [Fact]
+        public async Task FinishAppointmentAsync_DoesNotUpdateStatus_WhenAppointmentIsAlreadyFinished()
+        {
+            var finishedAppointment = new Appointment { Id = 5, DoctorId = 10, Status = "Finished" };
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                service.FinishAppointmentAsync(finishedAppointment));
+
+            mockDataSource.Verify(x => x.UpdateAppointmentStatusAsync(It.IsAny<int>(), It.IsAny<string>()), Times.Never);
+        }
+
+
+        [Fact]
+        public async Task GetAppointmentsInRangeAsync_ExcludesAppointment_WhenEndTimeEqualsStartTime()
+        {
+            var from = new DateTime(2025, 6, 11);
+            var to = from.AddDays(1);
+            var appointment = new Appointment
+            {
+                DoctorId = 1,
+                Date = from,
+                StartTime = new TimeSpan(10, 0, 0),
+                EndTime = new TimeSpan(10, 0, 0),
+            };
+            mockDataSource
+                .Setup(x => x.GetUpcomingAppointmentsAsync(1, from, 0, It.IsAny<int>()))
+                .ReturnsAsync(new List<Appointment> { appointment });
+
+            var result = await service.GetAppointmentsInRangeAsync(1, from, to);
+
+            Assert.Empty(result);
+        }
+
+        [Fact]
+        public async Task GetAppointmentsInRangeAsync_ExcludesAppointment_WhenEndTimeIsBeforeStartTime()
+        {
+            var from = new DateTime(2025, 6, 11);
+            var to = from.AddDays(1);
+            var appointment = new Appointment
+            {
+                DoctorId = 1,
+                Date = from,
+                StartTime = new TimeSpan(14, 0, 0),
+                EndTime = new TimeSpan(9, 0, 0),
+            };
+            mockDataSource
+                .Setup(x => x.GetUpcomingAppointmentsAsync(1, from, 0, It.IsAny<int>()))
+                .ReturnsAsync(new List<Appointment> { appointment });
+
+            var result = await service.GetAppointmentsInRangeAsync(1, from, to);
+
+            Assert.Empty(result);
+        }
+
+        [Fact]
+        public async Task GetAppointmentsInRangeAsync_IncludesAppointment_WhenItFallsWithinRange()
+        {
+            var from = new DateTime(2025, 6, 11);
+            var to = from.AddDays(1);
+            var appointment = new Appointment
+            {
+                DoctorId = 1,
+                Date = from,
+                StartTime = new TimeSpan(10, 0, 0),
+                EndTime = new TimeSpan(11, 0, 0),
+            };
+            mockDataSource
+                .Setup(x => x.GetUpcomingAppointmentsAsync(1, from, 0, It.IsAny<int>()))
+                .ReturnsAsync(new List<Appointment> { appointment });
+
+            var result = await service.GetAppointmentsInRangeAsync(1, from, to);
+
+            Assert.Single(result);
+        }
+
+        [Fact]
+        public async Task GetAppointmentsInRangeAsync_ExcludesAppointmentFromDifferentDoctor()
+        {
+            var from = new DateTime(2025, 6, 11);
+            var to = from.AddDays(1);
+            var appointment = new Appointment
+            {
+                DoctorId = 99,
+                Date = from,
+                StartTime = new TimeSpan(10, 0, 0),
+                EndTime = new TimeSpan(11, 0, 0),
+            };
+            mockDataSource
+                .Setup(x => x.GetUpcomingAppointmentsAsync(1, from, 0, It.IsAny<int>()))
+                .ReturnsAsync(new List<Appointment> { appointment });
+
+            var result = await service.GetAppointmentsInRangeAsync(1, from, to);
+
+            Assert.Empty(result);
+        }
     }
 }

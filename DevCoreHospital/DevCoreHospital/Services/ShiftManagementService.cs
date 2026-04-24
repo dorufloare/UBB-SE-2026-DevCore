@@ -46,6 +46,20 @@ namespace DevCoreHospital.Services
 
         public void AddShift(Shift shift) => shiftRepository.AddShift(shift);
 
+        public bool TryAddShift(IStaff staff, DateTime start, DateTime end, string location)
+        {
+            if (!ValidateNoOverlap(staff.StaffID, start, end))
+            {
+                return false;
+            }
+
+            var newShift = new Shift(0, staff, location, start, end, ShiftStatus.SCHEDULED);
+            shiftRepository.AddShift(newShift);
+            return true;
+        }
+
+        public bool ValidateShiftTimes(TimeSpan start, TimeSpan end) => end > start;
+
         public List<Shift> GetDailyShifts(DateTime date)
             => shiftRepository.GetShifts().Where(shift => shift.StartTime.Date == date.Date).ToList();
 
@@ -123,5 +137,28 @@ namespace DevCoreHospital.Services
 
             return qualificationNames.Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(name => name).ToList();
         }
+
+        public float GetWeeklyHours(int staffId)
+        {
+            const int daysInWeek = 7;
+            var now = DateTime.Now;
+            int daysFromMonday = (daysInWeek + (now.DayOfWeek - DayOfWeek.Monday)) % daysInWeek;
+            var weekStart = now.Date.AddDays(-daysFromMonday);
+            var weekEnd = weekStart.AddDays(daysInWeek);
+
+            return shiftRepository.GetShifts()
+                .Where(s => s.AppointedStaff.StaffID == staffId && s.StartTime >= weekStart && s.StartTime < weekEnd)
+                .Sum(s => (float)(s.EndTime - s.StartTime).TotalHours);
+        }
+
+        public List<Shift> GetActiveShifts()
+            => shiftRepository.GetShifts().Where(s => s.Status == ShiftStatus.ACTIVE).ToList();
+
+        public bool IsStaffWorkingDuring(int staffId, DateTime startTime, DateTime endTime)
+            => shiftRepository.GetShifts().Any(s =>
+                s.AppointedStaff.StaffID == staffId &&
+                s.StartTime < endTime &&
+                s.EndTime > startTime &&
+                (s.Status == ShiftStatus.SCHEDULED || s.Status == ShiftStatus.ACTIVE));
     }
 }

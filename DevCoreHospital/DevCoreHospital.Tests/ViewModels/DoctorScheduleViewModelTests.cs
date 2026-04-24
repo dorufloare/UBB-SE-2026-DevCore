@@ -32,8 +32,8 @@ namespace DevCoreHospital.Tests.ViewModels
 
             mockAppointmentService = new Mock<IDoctorAppointmentService>();
             mockAppointmentService
-                .Setup(s => s.GetUpcomingAppointmentsAsync(
-                    It.IsAny<int>(), It.IsAny<DateTime>(), It.IsAny<int>(), It.IsAny<int>()))
+                .Setup(s => s.GetAppointmentsInRangeAsync(
+                    It.IsAny<int>(), It.IsAny<DateTime>(), It.IsAny<DateTime>()))
                 .ReturnsAsync(new List<Appointment>());
 
             mockShiftRepository = new Mock<IShiftRepository>();
@@ -136,8 +136,8 @@ namespace DevCoreHospital.Tests.ViewModels
             };
 
             mockAppointmentService
-                .Setup(s => s.GetUpcomingAppointmentsAsync(
-                    It.IsAny<int>(), It.IsAny<DateTime>(), It.IsAny<int>(), It.IsAny<int>()))
+                .Setup(s => s.GetAppointmentsInRangeAsync(
+                    It.IsAny<int>(), It.IsAny<DateTime>(), It.IsAny<DateTime>()))
                 .ReturnsAsync(new List<Appointment> { appointment });
 
             viewModel.SelectedDate = selectedDate;
@@ -149,28 +149,30 @@ namespace DevCoreHospital.Tests.ViewModels
         }
 
         [Fact]
-        public async Task LoadAsync_ExcludesAppointment_WhenItFallsTwoDaysAfterSelectedDateInDailyMode()
+        public async Task LoadAsync_CallsServiceWithDailyRange_WhenInDailyMode()
         {
             var selectedDate = new DateTime(2025, 6, 11);
-            var appointment = new Appointment
-            {
-                DoctorId = 1,
-                Date = selectedDate.AddDays(2),
-                StartTime = new TimeSpan(10, 0, 0),
-                EndTime = new TimeSpan(11, 0, 0),
-            };
+            DateTime capturedFrom = default;
+            DateTime capturedTo = default;
 
             mockAppointmentService
-                .Setup(s => s.GetUpcomingAppointmentsAsync(
-                    It.IsAny<int>(), It.IsAny<DateTime>(), It.IsAny<int>(), It.IsAny<int>()))
-                .ReturnsAsync(new List<Appointment> { appointment });
+                .Setup(s => s.GetAppointmentsInRangeAsync(
+                    It.IsAny<int>(), It.IsAny<DateTime>(), It.IsAny<DateTime>()))
+                .Callback<int, DateTime, DateTime>((_, from, to) =>
+                {
+                    capturedFrom = from;
+                    capturedTo = to;
+                })
+                .ReturnsAsync(new List<Appointment>());
 
+            viewModel.ViewMode = DoctorScheduleViewModel.ScheduleViewMode.Daily;
             viewModel.SelectedDate = selectedDate;
             viewModel.SelectedDoctor = TestDoctor;
 
             await viewModel.LoadAsync();
 
-            Assert.Empty(viewModel.Appointments);
+            Assert.Equal(selectedDate.Date, capturedFrom);
+            Assert.Equal(selectedDate.Date.AddDays(1), capturedTo);
         }
 
 
@@ -200,53 +202,26 @@ namespace DevCoreHospital.Tests.ViewModels
 
 
         [Fact]
-        public async Task LoadAsync_ExcludesAppointment_WhenEndTimeEqualsStartTime()
+        public async Task LoadAsync_DisplaysAllAppointmentsReturnedByService()
         {
             var selectedDate = new DateTime(2025, 6, 11);
-            var appointment = new Appointment
+            var appointments = new List<Appointment>
             {
-                DoctorId = 1,
-                Date = selectedDate,
-                StartTime = new TimeSpan(10, 0, 0),
-                EndTime = new TimeSpan(10, 0, 0), 
+                new Appointment { DoctorId = 1, Date = selectedDate, StartTime = new TimeSpan(9, 0, 0), EndTime = new TimeSpan(10, 0, 0) },
+                new Appointment { DoctorId = 1, Date = selectedDate, StartTime = new TimeSpan(11, 0, 0), EndTime = new TimeSpan(12, 0, 0) },
             };
 
             mockAppointmentService
-                .Setup(s => s.GetUpcomingAppointmentsAsync(
-                    It.IsAny<int>(), It.IsAny<DateTime>(), It.IsAny<int>(), It.IsAny<int>()))
-                .ReturnsAsync(new List<Appointment> { appointment });
+                .Setup(s => s.GetAppointmentsInRangeAsync(
+                    It.IsAny<int>(), It.IsAny<DateTime>(), It.IsAny<DateTime>()))
+                .ReturnsAsync(appointments);
 
             viewModel.SelectedDate = selectedDate;
             viewModel.SelectedDoctor = TestDoctor;
 
             await viewModel.LoadAsync();
 
-            Assert.Empty(viewModel.Appointments);
-        }
-
-        [Fact]
-        public async Task LoadAsync_ExcludesAppointment_WhenEndTimeIsBeforeStartTime()
-        {
-            var selectedDate = new DateTime(2025, 6, 11);
-            var appointment = new Appointment
-            {
-                DoctorId = 1,
-                Date = selectedDate,
-                StartTime = new TimeSpan(14, 0, 0),
-                EndTime = new TimeSpan(9, 0, 0),
-            };
-
-            mockAppointmentService
-                .Setup(s => s.GetUpcomingAppointmentsAsync(
-                    It.IsAny<int>(), It.IsAny<DateTime>(), It.IsAny<int>(), It.IsAny<int>()))
-                .ReturnsAsync(new List<Appointment> { appointment });
-
-            viewModel.SelectedDate = selectedDate;
-            viewModel.SelectedDoctor = TestDoctor;
-
-            await viewModel.LoadAsync();
-
-            Assert.Empty(viewModel.Appointments);
+            Assert.Equal(2, viewModel.Appointments.Count);
         }
 
 
@@ -318,8 +293,8 @@ namespace DevCoreHospital.Tests.ViewModels
             };
 
             mockAppointmentService
-                .Setup(s => s.GetUpcomingAppointmentsAsync(
-                    It.IsAny<int>(), It.IsAny<DateTime>(), It.IsAny<int>(), It.IsAny<int>()))
+                .Setup(s => s.GetAppointmentsInRangeAsync(
+                    It.IsAny<int>(), It.IsAny<DateTime>(), It.IsAny<DateTime>()))
                 .ReturnsAsync(new List<Appointment> { appointment });
 
             viewModel.SelectedDate = selectedDate;
@@ -610,8 +585,8 @@ namespace DevCoreHospital.Tests.ViewModels
         {
             // Arrange
             mockAppointmentService
-                .Setup(s => s.GetUpcomingAppointmentsAsync(
-                    It.IsAny<int>(), It.IsAny<DateTime>(), It.IsAny<int>(), It.IsAny<int>()))
+                .Setup(s => s.GetAppointmentsInRangeAsync(
+                    It.IsAny<int>(), It.IsAny<DateTime>(), It.IsAny<DateTime>()))
                 .ThrowsAsync(new InvalidOperationException("DB error"));
 
             viewModel.SelectedDoctor = TestDoctor;

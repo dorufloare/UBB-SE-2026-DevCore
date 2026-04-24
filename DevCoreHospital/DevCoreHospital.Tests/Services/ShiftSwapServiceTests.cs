@@ -43,18 +43,21 @@ public class ShiftSwapServiceTests
     }
 
     [Fact]
-    public void GetIncomingSwapRequests_UsesRepositoryList()
+    public void GetIncomingSwapRequests_ReturnsPendingRequestsForColleague()
     {
-        var list = new List<ShiftSwapRequest> { new() { SwapId = 5, ColleagueId = 9, ShiftId = 1, RequesterId = 1, RequestedAt = DateTime.UtcNow, Status = ShiftSwapRequestStatus.PENDING } };
+        var pending = new ShiftSwapRequest { SwapId = 5, ColleagueId = 9, ShiftId = 1, RequesterId = 1, RequestedAt = DateTime.UtcNow, Status = ShiftSwapRequestStatus.PENDING };
+        var accepted = new ShiftSwapRequest { SwapId = 6, ColleagueId = 9, ShiftId = 2, RequesterId = 1, RequestedAt = DateTime.UtcNow, Status = ShiftSwapRequestStatus.ACCEPTED };
         var staff = new Mock<IStaffRepository>();
         var shift = new Mock<IShiftRepository>();
         var swap = new Mock<IShiftSwapRepository>();
-        swap.Setup(shiftSwapRepository => shiftSwapRepository.GetPendingSwapRequestsForColleague(9)).Returns(list);
+        swap.Setup(shiftSwapRepository => shiftSwapRepository.GetSwapRequestsForColleague(9))
+            .Returns(new List<ShiftSwapRequest> { pending, accepted });
         var service = new ShiftSwapService(staff.Object, shift.Object, swap.Object);
 
         var result = service.GetIncomingSwapRequests(9);
 
-        Assert.Same(list, result);
+        Assert.Single(result);
+        Assert.Equal(5, result[0].SwapId);
     }
 
     [Fact]
@@ -100,7 +103,6 @@ public class ShiftSwapServiceTests
         var swap = new Mock<IShiftSwapRepository>();
         staff.Setup(staffRepository => staffRepository.LoadAllStaff()).Returns(new List<IStaff> { requesterDoctor });
         shift.Setup(shiftRepository => shiftRepository.GetShiftById(100)).Returns(futureShift);
-        shift.Setup(shiftRepository => shiftRepository.IsStaffWorkingDuring(It.IsAny<int>(), It.IsAny<DateTime>(), It.IsAny<DateTime>())).Returns(false);
         var service = new ShiftSwapService(staff.Object, shift.Object, swap.Object);
 
         _ = service.RequestShiftSwap(1, 100, 9, out var message);
@@ -154,7 +156,8 @@ public class ShiftSwapServiceTests
         var swap = new Mock<IShiftSwapRepository>();
         staff.Setup(staffRepository => staffRepository.LoadAllStaff()).Returns(new List<IStaff> { a, b });
         shift.Setup(shiftRepository => shiftRepository.GetShiftById(20)).Returns(s);
-        shift.Setup(shiftRepository => shiftRepository.IsStaffWorkingDuring(2, s.StartTime, s.EndTime)).Returns(false);
+        shift.Setup(shiftRepository => shiftRepository.GetShiftsForStaffInRange(2, It.IsAny<DateTime>(), It.IsAny<DateTime>()))
+            .Returns(new List<Shift>());
         var service = new ShiftSwapService(staff.Object, shift.Object, swap.Object);
 
         var colleagues = service.GetEligibleSwapColleaguesForShift(1, 20, out var err);
@@ -174,7 +177,8 @@ public class ShiftSwapServiceTests
         var swap = new Mock<IShiftSwapRepository>();
         staff.Setup(staffRepository => staffRepository.LoadAllStaff()).Returns(new List<IStaff> { a, b });
         shift.Setup(shiftRepository => shiftRepository.GetShiftById(30)).Returns(s);
-        shift.Setup(shiftRepository => shiftRepository.IsStaffWorkingDuring(2, s.StartTime, s.EndTime)).Returns(false);
+        shift.Setup(shiftRepository => shiftRepository.GetShiftsForStaffInRange(2, It.IsAny<DateTime>(), It.IsAny<DateTime>()))
+            .Returns(new List<Shift>());
         var service = new ShiftSwapService(staff.Object, shift.Object, swap.Object);
 
         var list = service.GetEligibleSwapColleaguesForShift(1, 30, out _);
@@ -195,7 +199,8 @@ public class ShiftSwapServiceTests
         staff.Setup(staffRepository => staffRepository.LoadAllStaff()).Returns(new List<IStaff> { a, b });
         staff.Setup(staffRepository => staffRepository.GetStaffById(1)).Returns(a);
         shift.Setup(shiftRepository => shiftRepository.GetShiftById(40)).Returns(s);
-        shift.Setup(shiftRepository => shiftRepository.IsStaffWorkingDuring(2, s.StartTime, s.EndTime)).Returns(false);
+        shift.Setup(shiftRepository => shiftRepository.GetShiftsForStaffInRange(2, It.IsAny<DateTime>(), It.IsAny<DateTime>()))
+            .Returns(new List<Shift>());
         swap.Setup(shiftSwapRepository => shiftSwapRepository.CreateShiftSwapRequest(It.IsAny<ShiftSwapRequest>())).Returns(0);
         var service = new ShiftSwapService(staff.Object, shift.Object, swap.Object);
 
@@ -217,7 +222,8 @@ public class ShiftSwapServiceTests
         staff.Setup(staffRepository => staffRepository.LoadAllStaff()).Returns(new List<IStaff> { a, b });
         staff.Setup(staffRepository => staffRepository.GetStaffById(1)).Returns((IStaff?)null);
         shift.Setup(shiftRepository => shiftRepository.GetShiftById(41)).Returns(s);
-        shift.Setup(shiftRepository => shiftRepository.IsStaffWorkingDuring(2, s.StartTime, s.EndTime)).Returns(false);
+        shift.Setup(shiftRepository => shiftRepository.GetShiftsForStaffInRange(2, It.IsAny<DateTime>(), It.IsAny<DateTime>()))
+            .Returns(new List<Shift>());
         var service = new ShiftSwapService(staff.Object, shift.Object, swap.Object);
 
         _ = service.RequestShiftSwap(1, 41, 2, out var message);
@@ -238,7 +244,8 @@ public class ShiftSwapServiceTests
         staff.Setup(staffRepository => staffRepository.LoadAllStaff()).Returns(new List<IStaff> { a, b });
         staff.Setup(staffRepository => staffRepository.GetStaffById(1)).Returns(a);
         shift.Setup(shiftRepository => shiftRepository.GetShiftById(42)).Returns(s);
-        shift.Setup(shiftRepository => shiftRepository.IsStaffWorkingDuring(2, s.StartTime, s.EndTime)).Returns(false);
+        shift.Setup(shiftRepository => shiftRepository.GetShiftsForStaffInRange(2, It.IsAny<DateTime>(), It.IsAny<DateTime>()))
+            .Returns(new List<Shift>());
         swap.Setup(shiftSwapRepository => shiftSwapRepository.CreateShiftSwapRequest(It.IsAny<ShiftSwapRequest>())).Returns(99);
         var service = new ShiftSwapService(staff.Object, shift.Object, swap.Object);
 
@@ -333,7 +340,8 @@ public class ShiftSwapServiceTests
         var swap = new Mock<IShiftSwapRepository>();
         swap.Setup(shiftSwapRepository => shiftSwapRepository.GetShiftSwapRequestById(1)).Returns(request);
         shift.Setup(shiftRepository => shiftRepository.GetShiftById(55)).Returns(s);
-        shift.Setup(shiftRepository => shiftRepository.IsStaffWorkingDuring(2, s.StartTime, s.EndTime)).Returns(true);
+        shift.Setup(shiftRepository => shiftRepository.GetShiftsForStaffInRange(2, It.IsAny<DateTime>(), It.IsAny<DateTime>()))
+            .Returns(new List<Shift> { s });
         var service = new ShiftSwapService(staff.Object, shift.Object, swap.Object);
 
         _ = service.AcceptSwapRequest(1, 2, out var message);
@@ -360,7 +368,8 @@ public class ShiftSwapServiceTests
         var swap = new Mock<IShiftSwapRepository>();
         swap.Setup(shiftSwapRepository => shiftSwapRepository.GetShiftSwapRequestById(1)).Returns(request);
         shift.Setup(shiftRepository => shiftRepository.GetShiftById(55)).Returns(s);
-        shift.Setup(shiftRepository => shiftRepository.IsStaffWorkingDuring(2, s.StartTime, s.EndTime)).Returns(false);
+        shift.Setup(shiftRepository => shiftRepository.GetShiftsForStaffInRange(2, It.IsAny<DateTime>(), It.IsAny<DateTime>()))
+            .Returns(new List<Shift>());
         swap.Setup(shiftSwapRepository => shiftSwapRepository.ReassignShiftToStaff(55, 2)).Returns(false);
         var service = new ShiftSwapService(staff.Object, shift.Object, swap.Object);
 
@@ -388,7 +397,8 @@ public class ShiftSwapServiceTests
         var swap = new Mock<IShiftSwapRepository>();
         swap.Setup(shiftSwapRepository => shiftSwapRepository.GetShiftSwapRequestById(1)).Returns(request);
         shift.Setup(shiftRepository => shiftRepository.GetShiftById(55)).Returns(s);
-        shift.Setup(shiftRepository => shiftRepository.IsStaffWorkingDuring(2, s.StartTime, s.EndTime)).Returns(false);
+        shift.Setup(shiftRepository => shiftRepository.GetShiftsForStaffInRange(2, It.IsAny<DateTime>(), It.IsAny<DateTime>()))
+            .Returns(new List<Shift>());
         swap.Setup(shiftSwapRepository => shiftSwapRepository.ReassignShiftToStaff(55, 2)).Returns(true);
         var service = new ShiftSwapService(staff.Object, shift.Object, swap.Object);
 
@@ -454,7 +464,8 @@ public class ShiftSwapServiceTests
         staff.Setup(staffRepository => staffRepository.LoadAllStaff()).Returns(new List<IStaff> { a, b });
         staff.Setup(staffRepository => staffRepository.GetStaffById(1)).Returns(a);
         shift.Setup(shiftRepository => shiftRepository.GetShiftById(43)).Returns(s);
-        shift.Setup(shiftRepository => shiftRepository.IsStaffWorkingDuring(2, s.StartTime, s.EndTime)).Returns(false);
+        shift.Setup(shiftRepository => shiftRepository.GetShiftsForStaffInRange(2, It.IsAny<DateTime>(), It.IsAny<DateTime>()))
+            .Returns(new List<Shift>());
         swap.Setup(shiftSwapRepository => shiftSwapRepository.CreateShiftSwapRequest(It.IsAny<ShiftSwapRequest>())).Returns(99);
         var service = new ShiftSwapService(staff.Object, shift.Object, swap.Object);
 
@@ -486,6 +497,42 @@ public class ShiftSwapServiceTests
 
         swap.Verify(shiftSwapRepository => shiftSwapRepository.AddNotification(
             3, "Shift Swap Rejected", It.Is<string>(msg => msg.Contains("1"))), Times.Once);
+    }
+
+    [Fact]
+    public void GetFutureShiftsForStaff_ReturnsOnlyShiftsWithFutureStartTime()
+    {
+        var doctor = BuildDoctor(1, "Cardiology");
+        var futureShift = new Shift(1, doctor, "ER", DateTime.Now.AddDays(2), DateTime.Now.AddDays(2).AddHours(8), ShiftStatus.SCHEDULED);
+        var pastShift = new Shift(2, doctor, "ER", DateTime.Now.AddDays(-1), DateTime.Now.AddDays(-1).AddHours(8), ShiftStatus.COMPLETED);
+
+        var staff = new Mock<IStaffRepository>();
+        var shift = new Mock<IShiftRepository>();
+        var swap = new Mock<IShiftSwapRepository>();
+        shift.Setup(r => r.GetShiftsByStaffID(1)).Returns(new List<Shift> { futureShift, pastShift });
+        var service = new ShiftSwapService(staff.Object, shift.Object, swap.Object);
+
+        var result = service.GetFutureShiftsForStaff(1);
+
+        Assert.Single(result);
+        Assert.Equal(1, result[0].Id);
+    }
+
+    [Fact]
+    public void GetFutureShiftsForStaff_ReturnsEmptyList_WhenNoFutureShiftsExist()
+    {
+        var doctor = BuildDoctor(2, "Neurology");
+        var pastShift = new Shift(10, doctor, "Ward A", DateTime.Now.AddDays(-3), DateTime.Now.AddDays(-3).AddHours(8), ShiftStatus.COMPLETED);
+
+        var staff = new Mock<IStaffRepository>();
+        var shift = new Mock<IShiftRepository>();
+        var swap = new Mock<IShiftSwapRepository>();
+        shift.Setup(r => r.GetShiftsByStaffID(2)).Returns(new List<Shift> { pastShift });
+        var service = new ShiftSwapService(staff.Object, shift.Object, swap.Object);
+
+        var result = service.GetFutureShiftsForStaff(2);
+
+        Assert.Empty(result);
     }
 
     private static Doctor BuildDoctor(int id, string spec)

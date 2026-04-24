@@ -16,7 +16,6 @@ namespace DevCoreHospital.ViewModels.Doctor
     public sealed class MyScheduleViewModel : INotifyPropertyChanged
     {
         private readonly IShiftSwapService staffAndShiftService;
-        private readonly IShiftRepository shiftRepository;
         private readonly IStaffRepository staffRepository;
 
         public ObservableCollection<DoctorOptionViewModel> Doctors { get; } = new ObservableCollection<DoctorOptionViewModel>();
@@ -77,11 +76,9 @@ namespace DevCoreHospital.ViewModels.Doctor
 
         public MyScheduleViewModel(
             IShiftSwapService staffAndShiftService,
-            IShiftRepository shiftRepository,
             IStaffRepository staffRepository)
         {
             this.staffAndShiftService = staffAndShiftService;
-            this.shiftRepository = shiftRepository;
             this.staffRepository = staffRepository;
 
             RequestSwapCommand = new RelayCommand(RequestSwap, CanRequestSwap);
@@ -130,9 +127,8 @@ namespace DevCoreHospital.ViewModels.Doctor
                 return;
             }
 
-            var futureShiftItems = shiftRepository
-                .GetShiftsByStaffID(SelectedDoctor.StaffId)
-                .Where(shift => shift.StartTime > DateTime.Now)
+            var futureShiftItems = staffAndShiftService
+                .GetFutureShiftsForStaff(SelectedDoctor.StaffId)
                 .OrderBy(shift => shift.StartTime)
                 .Select(shift => new DoctorShiftItemViewModel(shift));
 

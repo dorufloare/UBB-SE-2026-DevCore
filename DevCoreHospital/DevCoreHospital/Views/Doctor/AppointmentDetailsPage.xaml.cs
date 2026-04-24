@@ -52,12 +52,6 @@ namespace DevCoreHospital.Views
                 return;
             }
 
-            if (currentAppointment.Status == "Finished")
-            {
-                ShowMessage("This appointment is already finished.", InfoBarSeverity.Warning);
-                return;
-            }
-
             try
             {
                 await service.FinishAppointmentAsync(currentAppointment!);

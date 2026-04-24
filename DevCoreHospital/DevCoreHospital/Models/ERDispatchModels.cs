@@ -32,6 +32,10 @@ namespace DevCoreHospital.Models
         public string Location { get; set; } = string.Empty;
         public DateTime? ScheduleStart { get; set; }
         public DateTime? ScheduleEnd { get; set; }
+
+        public int MinutesToEnd => ScheduleEnd.HasValue
+            ? Math.Max(0, (int)Math.Round((ScheduleEnd.Value - DateTime.Now).TotalMinutes))
+            : -1;
     }
 
     public sealed class DoctorRosterEntry

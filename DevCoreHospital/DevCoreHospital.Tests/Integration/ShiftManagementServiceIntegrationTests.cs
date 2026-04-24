@@ -16,7 +16,7 @@ namespace DevCoreHospital.Tests.Integration
         public ShiftManagementServiceIntegrationTests(SqlTestFixture db) => this.db = db;
 
         [Fact]
-        public void AddShift_WhenShiftIsProvided_AddsShiftToCacheAndDatabase()
+        public void AddShift_WhenShiftIsProvided_AddsShiftToDatabase()
         {
             using var conn = db.OpenConnection();
             var staffId = db.InsertStaff(conn, "Doctor", "Add", "ShiftTest", "Cardiology");
@@ -28,12 +28,12 @@ namespace DevCoreHospital.Tests.Integration
                 var staff = staffRepo.GetStaffById(staffId)!;
                 var start = DateTime.Today.AddDays(30).AddHours(8);
                 var shift = new Shift(0, staff, "ER", start, start.AddHours(4), ShiftStatus.SCHEDULED);
-                var initialCount = shiftRepo.GetShifts().Count;
+                var initialCountForStaff = shiftRepo.GetShiftsByStaffID(staffId).Count;
 
                 service.AddShift(shift);
 
-                Assert.Equal(initialCount + 1, shiftRepo.GetShifts().Count);
-                Assert.Contains(shiftRepo.GetShifts(), s => s.AppointedStaff.StaffID == staffId);
+                Assert.Equal(initialCountForStaff + 1, shiftRepo.GetShiftsByStaffID(staffId).Count);
+                Assert.Contains(shiftRepo.GetShiftsByStaffID(staffId), s => s.AppointedStaff.StaffID == staffId);
             }
             finally
             {
@@ -105,8 +105,8 @@ namespace DevCoreHospital.Tests.Integration
 
                 service.SetShiftActive(shiftId);
 
-                var cachedShift = Assert.Single(shiftRepo.GetShifts().Where(s => s.Id == shiftId));
-                Assert.Equal(ShiftStatus.ACTIVE, cachedShift.Status);
+                var shift = Assert.Single(shiftRepo.GetShifts().Where(s => s.Id == shiftId));
+                Assert.Equal(ShiftStatus.ACTIVE, shift.Status);
                 Assert.Equal("ACTIVE", db.GetShiftStatus(conn, shiftId));
             }
             finally
@@ -131,8 +131,8 @@ namespace DevCoreHospital.Tests.Integration
 
                 service.CancelShift(shiftId);
 
-                var cachedShift = Assert.Single(shiftRepo.GetShifts().Where(s => s.Id == shiftId));
-                Assert.Equal(ShiftStatus.COMPLETED, cachedShift.Status);
+                var shift = Assert.Single(shiftRepo.GetShifts().Where(s => s.Id == shiftId));
+                Assert.Equal(ShiftStatus.COMPLETED, shift.Status);
                 Assert.Equal("COMPLETED", db.GetShiftStatus(conn, shiftId));
             }
             finally

@@ -10,6 +10,6 @@ namespace DevCoreHospital.Repositories
         void AddParticipant(int hangoutId, int staffId);
         List<Hangout> GetAllHangouts();
         Hangout? GetHangoutById(int id);
-        bool HasConflictsOnDate(int staffId, DateTime date);
+        IReadOnlyList<string> GetAppointmentStatusesForStaffOnDate(int staffId, DateTime date);
     }
 }

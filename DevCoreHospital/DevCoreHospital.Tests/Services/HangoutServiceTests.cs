@@ -15,6 +15,9 @@ namespace DevCoreHospital.Tests.Services
         public HangoutServiceTests()
         {
             hangoutRepository = new Mock<IHangoutRepository>();
+            hangoutRepository
+                .Setup(r => r.GetAppointmentStatusesForStaffOnDate(It.IsAny<int>(), It.IsAny<DateTime>()))
+                .Returns(new List<string>());
             service = new HangoutService(hangoutRepository.Object);
             creator = BuildDoctor(1);
         }
@@ -173,7 +176,9 @@ namespace DevCoreHospital.Tests.Services
         public void CreateHangout_WhenCreatorHasConflict_ThrowsInvalidOperationException()
         {
             var date = DateTime.Now.AddDays(10);
-            hangoutRepository.Setup(r => r.HasConflictsOnDate(creator.StaffID, date)).Returns(true);
+            hangoutRepository
+                .Setup(r => r.GetAppointmentStatusesForStaffOnDate(creator.StaffID, date))
+                .Returns(new List<string> { "Scheduled" });
 
             var ex = Assert.Throws<InvalidOperationException>(
                 () => service.CreateHangout("Valid title", "desc", date, 5, creator));
@@ -185,7 +190,9 @@ namespace DevCoreHospital.Tests.Services
         public void CreateHangout_WhenCreatorHasConflict_DoesNotCallAddHangout()
         {
             var date = DateTime.Now.AddDays(10);
-            hangoutRepository.Setup(r => r.HasConflictsOnDate(creator.StaffID, date)).Returns(true);
+            hangoutRepository
+                .Setup(r => r.GetAppointmentStatusesForStaffOnDate(creator.StaffID, date))
+                .Returns(new List<string> { "Scheduled" });
 
             Assert.Throws<InvalidOperationException>(
                 () => service.CreateHangout("Valid title", "desc", date, 5, creator));
@@ -276,7 +283,9 @@ namespace DevCoreHospital.Tests.Services
             var hangout = new Hangout(5, "Some title", "d", date, 5);
             hangout.ParticipantList.Add(BuildDoctor(10));
             hangoutRepository.Setup(r => r.GetHangoutById(5)).Returns(hangout);
-            hangoutRepository.Setup(r => r.HasConflictsOnDate(2, date)).Returns(true);
+            hangoutRepository
+                .Setup(r => r.GetAppointmentStatusesForStaffOnDate(2, date))
+                .Returns(new List<string> { "Scheduled" });
             var staff = BuildDoctor(2);
 
             var ex = Assert.Throws<InvalidOperationException>(() => service.JoinHangout(5, staff));

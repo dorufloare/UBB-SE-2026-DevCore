@@ -135,10 +135,9 @@ namespace DevCoreHospital.ViewModels.Admin
 
         public void CreateNewShift(IStaff staff, DateTime start, DateTime end, string location)
         {
-            if (staffAndShiftService.ValidateNoOverlap(staff.StaffID, start, end))
+            bool added = staffAndShiftService.TryAddShift(staff, start, end, location);
+            if (added)
             {
-                var newShift = new Shift(0, staff, location, start, end, ShiftStatus.SCHEDULED);
-                staffAndShiftService.AddShift(newShift);
                 LoadAndFilterShifts();
             }
         }

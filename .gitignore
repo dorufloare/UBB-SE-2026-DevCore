@@ -80,6 +80,8 @@ artifacts/
 *.claude
 .claude/
 
+output
+coverage/
 
 # Others
 ~$*

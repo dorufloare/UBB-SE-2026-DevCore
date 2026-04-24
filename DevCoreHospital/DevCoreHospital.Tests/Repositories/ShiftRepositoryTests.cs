@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using DevCoreHospital.Models;
 using DevCoreHospital.Repositories;
+using Microsoft.Data.SqlClient;
 
 namespace DevCoreHospital.Tests.Repositories;
 
@@ -12,147 +13,68 @@ public class ShiftRepositoryTests : IClassFixture<SqlTestFixture>
 
     public ShiftRepositoryTests(SqlTestFixture db) => this.db = db;
 
-    [Fact]
-    public void AddShift_WhenShiftIsProvided_AddsShiftToCachedList()
-    {
-        var staffRepo = new StaffRepository(InvalidConnectionString);
-        var shiftRepo = new ShiftRepository(InvalidConnectionString, staffRepo);
-        var initialCount = shiftRepo.GetShifts().Count;
-        var shift = BuildShift(101, BuildDoctor(1, "Cardiology"), "ER", DateTime.Today.AddHours(8), DateTime.Today.AddHours(12), ShiftStatus.SCHEDULED);
-
-        shiftRepo.AddShift(shift);
-
-        Assert.Equal(initialCount + 1, shiftRepo.GetShifts().Count);
-        Assert.Equal(shift.Id, shiftRepo.GetShifts().Last().Id);
-    }
+    // ── Graceful degradation ─────────────────────────────────────────────────
 
     [Fact]
-    public void UpdateShiftStatus_WhenShiftExists_ChangesShiftStatusInCache()
+    public void GetShifts_WhenConnectionFails_ReturnsEmptyList()
     {
-        var staffRepo = new StaffRepository(InvalidConnectionString);
-        var shiftRepo = new ShiftRepository(InvalidConnectionString, staffRepo);
-        var shift = BuildShift(102, BuildDoctor(2, "Neurology"), "ER", DateTime.Today.AddHours(9), DateTime.Today.AddHours(13), ShiftStatus.SCHEDULED);
-        shiftRepo.AddShift(shift);
-
-        shiftRepo.UpdateShiftStatus(102, ShiftStatus.ACTIVE);
-
-        var updated = Assert.Single(shiftRepo.GetShifts().Where(s => s.Id == 102));
-        Assert.Equal(ShiftStatus.ACTIVE, updated.Status);
-    }
-
-    [Fact]
-    public void CancelShift_WhenShiftExists_RemovesShiftFromCachedList()
-    {
-        var staffRepo = new StaffRepository(InvalidConnectionString);
-        var shiftRepo = new ShiftRepository(InvalidConnectionString, staffRepo);
-        var shift = BuildShift(103, BuildDoctor(3, "Oncology"), "ER", DateTime.Today.AddHours(10), DateTime.Today.AddHours(14), ShiftStatus.SCHEDULED);
-        shiftRepo.AddShift(shift);
-
-        shiftRepo.CancelShift(103);
-
-        Assert.Equal(0, shiftRepo.GetShifts().Count(s => s.Id == 103));
-    }
-
-    [Fact]
-    public void GetShiftsByStaffID_WhenShiftsHaveMixedStaff_ReturnsOnlyMatchingStaffShifts()
-    {
-        var staffRepo = new StaffRepository(InvalidConnectionString);
-        var shiftRepo = new ShiftRepository(InvalidConnectionString, staffRepo);
-        var doctorOne = BuildDoctor(4, "Cardiology");
-        var doctorTwo = BuildDoctor(5, "Neurology");
-        shiftRepo.AddShift(BuildShift(104, doctorOne, "ER", DateTime.Today.AddHours(8), DateTime.Today.AddHours(10), ShiftStatus.SCHEDULED));
-        shiftRepo.AddShift(BuildShift(105, doctorTwo, "ER", DateTime.Today.AddHours(10), DateTime.Today.AddHours(12), ShiftStatus.SCHEDULED));
-        shiftRepo.AddShift(BuildShift(106, doctorOne, "ER", DateTime.Today.AddHours(12), DateTime.Today.AddHours(14), ShiftStatus.SCHEDULED));
-
-        var result = shiftRepo.GetShiftsByStaffID(doctorOne.StaffID);
-
-        Assert.Equal(new[] { 104, 106 }, result.Select(s => s.Id).OrderBy(id => id).ToArray());
-    }
-
-    [Fact]
-    public void GetActiveShifts_WhenStatusesDiffer_ReturnsOnlyActiveShifts()
-    {
-        var staffRepo = new StaffRepository(InvalidConnectionString);
-        var shiftRepo = new ShiftRepository(InvalidConnectionString, staffRepo);
-        var doctor = BuildDoctor(6, "Emergency Medicine");
-        shiftRepo.AddShift(BuildShift(107, doctor, "ER", DateTime.Today.AddHours(8), DateTime.Today.AddHours(12), ShiftStatus.ACTIVE));
-        shiftRepo.AddShift(BuildShift(108, doctor, "ER", DateTime.Today.AddHours(13), DateTime.Today.AddHours(17), ShiftStatus.SCHEDULED));
-
-        var result = shiftRepo.GetActiveShifts();
-
-        Assert.Equal(new[] { 107 }, result.Select(s => s.Id).ToArray());
-    }
-
-    [Fact]
-    public void GetShiftById_WhenShiftExists_ReturnsCorrectShift()
-    {
-        var staffRepo = new StaffRepository(InvalidConnectionString);
-        var shiftRepo = new ShiftRepository(InvalidConnectionString, staffRepo);
-        shiftRepo.AddShift(BuildShift(200, BuildDoctor(10, "Cardiology"), "ER", DateTime.Today.AddHours(8), DateTime.Today.AddHours(12), ShiftStatus.SCHEDULED));
-
-        var result = shiftRepo.GetShiftById(200);
-
-        Assert.NotNull(result);
-        Assert.Equal(200, result!.Id);
-    }
-
-    [Fact]
-    public void GetShiftById_WhenShiftDoesNotExist_ReturnsNull()
-    {
-        var staffRepo = new StaffRepository(InvalidConnectionString);
-        var shiftRepo = new ShiftRepository(InvalidConnectionString, staffRepo);
-
-        Assert.Null(shiftRepo.GetShiftById(9999));
-    }
-
-    [Fact]
-    public void GetWeeklyHours_WhenShiftsAreInCurrentWeek_ReturnsTotalHours()
-    {
-        var staffRepo = new StaffRepository(InvalidConnectionString);
-        var shiftRepo = new ShiftRepository(InvalidConnectionString, staffRepo);
-        var doctor = BuildDoctor(11, "Neurology");
-        var now = DateTime.Now;
-        var weekMonday = now.Date.AddDays(-((7 + (now.DayOfWeek - DayOfWeek.Monday)) % 7));
-        shiftRepo.AddShift(BuildShift(201, doctor, "ER", weekMonday.AddHours(8), weekMonday.AddHours(16), ShiftStatus.SCHEDULED));
-        shiftRepo.AddShift(BuildShift(202, doctor, "ER", weekMonday.AddDays(1).AddHours(8), weekMonday.AddDays(1).AddHours(12), ShiftStatus.SCHEDULED));
-
-        Assert.Equal(12f, shiftRepo.GetWeeklyHours(doctor.StaffID));
-    }
-
-    [Fact]
-    public void GetWeeklyHours_WhenShiftsAreOutsideCurrentWeek_ReturnsZero()
-    {
-        var staffRepo = new StaffRepository(InvalidConnectionString);
-        var shiftRepo = new ShiftRepository(InvalidConnectionString, staffRepo);
-        var doctor = BuildDoctor(12, "Oncology");
-        shiftRepo.AddShift(BuildShift(203, doctor, "ER", DateTime.Today.AddDays(-8).AddHours(8), DateTime.Today.AddDays(-8).AddHours(16), ShiftStatus.SCHEDULED));
-
-        Assert.Equal(0f, shiftRepo.GetWeeklyHours(doctor.StaffID));
-    }
-
-    [Fact]
-    public void IsStaffWorkingDuring_WhenConnectionFails_ReturnsFalse()
-    {
-        var staffRepo = new StaffRepository(InvalidConnectionString);
-        var shiftRepo = new ShiftRepository(InvalidConnectionString, staffRepo);
-
-        Assert.False(shiftRepo.IsStaffWorkingDuring(1, DateTime.Today, DateTime.Today.AddHours(8)));
-    }
-
-    [Fact]
-    public void Refresh_WhenConnectionFails_ClearsCache()
-    {
-        var staffRepo = new StaffRepository(InvalidConnectionString);
-        var shiftRepo = new ShiftRepository(InvalidConnectionString, staffRepo);
-        shiftRepo.AddShift(BuildShift(204, BuildDoctor(13, "Cardiology"), "ER", DateTime.Today.AddHours(8), DateTime.Today.AddHours(12), ShiftStatus.SCHEDULED));
-
-        shiftRepo.Refresh();
+        var shiftRepo = new ShiftRepository(InvalidConnectionString, new StaffRepository(InvalidConnectionString));
 
         Assert.Empty(shiftRepo.GetShifts());
     }
 
     [Fact]
-    public void Constructor_LoadsShiftsFromDatabase()
+    public void GetShiftById_WhenConnectionFails_ReturnsNull()
+    {
+        var shiftRepo = new ShiftRepository(InvalidConnectionString, new StaffRepository(InvalidConnectionString));
+
+        Assert.Null(shiftRepo.GetShiftById(1));
+    }
+
+    [Fact]
+    public void GetShiftsByStaffID_WhenConnectionFails_ReturnsEmptyList()
+    {
+        var shiftRepo = new ShiftRepository(InvalidConnectionString, new StaffRepository(InvalidConnectionString));
+
+        Assert.Empty(shiftRepo.GetShiftsByStaffID(1));
+    }
+
+    [Fact]
+    public void AddShift_WhenConnectionFails_DoesNotThrow()
+    {
+        var shiftRepo = new ShiftRepository(InvalidConnectionString, new StaffRepository(InvalidConnectionString));
+        var doctor = new Doctor(1, "John", "Doe", string.Empty, string.Empty, true, "Cardiology", "L-1", DoctorStatus.AVAILABLE, 1);
+        var shift = new Shift(0, doctor, "ER", DateTime.Today.AddHours(8), DateTime.Today.AddHours(12), ShiftStatus.SCHEDULED);
+
+        var ex = Record.Exception(() => shiftRepo.AddShift(shift));
+
+        Assert.Null(ex);
+    }
+
+    [Fact]
+    public void UpdateShiftStatus_WhenConnectionFails_DoesNotThrow()
+    {
+        var shiftRepo = new ShiftRepository(InvalidConnectionString, new StaffRepository(InvalidConnectionString));
+
+        var ex = Record.Exception(() => shiftRepo.UpdateShiftStatus(1, ShiftStatus.ACTIVE));
+
+        Assert.Null(ex);
+    }
+
+    [Fact]
+    public void CancelShift_WhenConnectionFails_DoesNotThrow()
+    {
+        var shiftRepo = new ShiftRepository(InvalidConnectionString, new StaffRepository(InvalidConnectionString));
+
+        var ex = Record.Exception(() => shiftRepo.CancelShift(1));
+
+        Assert.Null(ex);
+    }
+
+    // ── Real database tests ──────────────────────────────────────────────────
+
+    [Fact]
+    public void GetShifts_ReturnsShiftFromDatabase()
     {
         using var conn = db.OpenConnection();
         var staffId = db.InsertStaff(conn, "Doctor", "Alice", "ShiftLoad", "Cardiology");
@@ -160,8 +82,7 @@ public class ShiftRepositoryTests : IClassFixture<SqlTestFixture>
         var shiftId = db.InsertShift(conn, staffId, "Ward A", start, start.AddHours(8));
         try
         {
-            var staffRepo = new StaffRepository(db.ConnectionString);
-            var shiftRepo = new ShiftRepository(db.ConnectionString, staffRepo);
+            var shiftRepo = new ShiftRepository(db.ConnectionString, new StaffRepository(db.ConnectionString));
 
             Assert.Contains(shiftRepo.GetShifts(), s => s.Id == shiftId);
         }
@@ -173,17 +94,44 @@ public class ShiftRepositoryTests : IClassFixture<SqlTestFixture>
     }
 
     [Fact]
-    public void IsStaffWorkingDuring_ReturnsTrueWhenShiftOverlaps()
+    public void AddShift_PersistsShiftToDatabase()
     {
         using var conn = db.OpenConnection();
-        var staffId = db.InsertStaff(conn, "Doctor", "Bob", "IsWorking", "Neurology");
-        var shiftStart = DateTime.Today.AddDays(2).AddHours(8);
-        var shiftId = db.InsertShift(conn, staffId, "Ward B", shiftStart, shiftStart.AddHours(8), "SCHEDULED");
+        var staffId = db.InsertStaff(conn, "Doctor", "AddShift", "DbTest", "Neurology");
+        try
+        {
+            var staffRepo = new StaffRepository(db.ConnectionString);
+            var shiftRepo = new ShiftRepository(db.ConnectionString, staffRepo);
+            var staff = staffRepo.GetStaffById(staffId)!;
+            var start = DateTime.Today.AddDays(40).AddHours(8);
+            var shift = new Shift(0, staff, "Ward B", start, start.AddHours(8), ShiftStatus.SCHEDULED);
+            var countBefore = shiftRepo.GetShiftsByStaffID(staffId).Count;
+
+            shiftRepo.AddShift(shift);
+
+            Assert.Equal(countBefore + 1, shiftRepo.GetShiftsByStaffID(staffId).Count);
+        }
+        finally
+        {
+            DeleteShiftsByStaff(conn, staffId);
+            db.DeleteStaff(conn, staffId);
+        }
+    }
+
+    [Fact]
+    public void UpdateShiftStatus_ChangesStatusInDatabase()
+    {
+        using var conn = db.OpenConnection();
+        var staffId = db.InsertStaff(conn, "Doctor", "UpdateStatus", "DbTest", "Oncology");
+        var start = DateTime.Today.AddDays(41).AddHours(9);
+        var shiftId = db.InsertShift(conn, staffId, "Ward C", start, start.AddHours(8), "SCHEDULED");
         try
         {
             var shiftRepo = new ShiftRepository(db.ConnectionString, new StaffRepository(db.ConnectionString));
 
-            Assert.True(shiftRepo.IsStaffWorkingDuring(staffId, shiftStart.AddHours(2), shiftStart.AddHours(4)));
+            shiftRepo.UpdateShiftStatus(shiftId, ShiftStatus.ACTIVE);
+
+            Assert.Equal("ACTIVE", db.GetShiftStatus(conn, shiftId));
         }
         finally
         {
@@ -193,23 +141,81 @@ public class ShiftRepositoryTests : IClassFixture<SqlTestFixture>
     }
 
     [Fact]
-    public void IsStaffWorkingDuring_ReturnsFalseWhenShiftDoesNotOverlap()
+    public void CancelShift_RemovesShiftFromDatabase()
     {
         using var conn = db.OpenConnection();
-        var staffId = db.InsertStaff(conn, "Doctor", "Carol", "NotWorking", "Oncology");
-        var shiftStart = DateTime.Today.AddDays(3).AddHours(8);
-        var shiftEnd = shiftStart.AddHours(8);
-        var shiftId = db.InsertShift(conn, staffId, "Ward C", shiftStart, shiftEnd, "SCHEDULED");
+        var staffId = db.InsertStaff(conn, "Doctor", "CancelShift", "DbTest", "Cardiology");
+        var start = DateTime.Today.AddDays(42).AddHours(10);
+        var shiftId = db.InsertShift(conn, staffId, "Ward D", start, start.AddHours(8));
         try
         {
             var shiftRepo = new ShiftRepository(db.ConnectionString, new StaffRepository(db.ConnectionString));
 
-            Assert.False(shiftRepo.IsStaffWorkingDuring(staffId, shiftEnd.AddHours(2), shiftEnd.AddHours(4)));
+            shiftRepo.CancelShift(shiftId);
+
+            Assert.Null(db.GetShiftStatus(conn, shiftId));
+        }
+        finally
+        {
+            db.DeleteStaff(conn, staffId);
+        }
+    }
+
+    [Fact]
+    public void GetShiftById_ReturnsCorrectShift()
+    {
+        using var conn = db.OpenConnection();
+        var staffId = db.InsertStaff(conn, "Doctor", "GetById", "DbTest", "Neurology");
+        var start = DateTime.Today.AddDays(43).AddHours(8);
+        var shiftId = db.InsertShift(conn, staffId, "Ward E", start, start.AddHours(8));
+        try
+        {
+            var shiftRepo = new ShiftRepository(db.ConnectionString, new StaffRepository(db.ConnectionString));
+
+            var result = shiftRepo.GetShiftById(shiftId);
+
+            Assert.NotNull(result);
+            Assert.Equal(shiftId, result!.Id);
         }
         finally
         {
             db.DeleteShift(conn, shiftId);
             db.DeleteStaff(conn, staffId);
+        }
+    }
+
+    [Fact]
+    public void GetShiftById_WhenShiftDoesNotExist_ReturnsNull()
+    {
+        var shiftRepo = new ShiftRepository(db.ConnectionString, new StaffRepository(db.ConnectionString));
+
+        Assert.Null(shiftRepo.GetShiftById(int.MaxValue));
+    }
+
+    [Fact]
+    public void GetShiftsByStaffID_ReturnsOnlyMatchingStaffShifts()
+    {
+        using var conn = db.OpenConnection();
+        var doctorOneId = db.InsertStaff(conn, "Doctor", "StaffA", "ShiftFilter", "Cardiology");
+        var doctorTwoId = db.InsertStaff(conn, "Doctor", "StaffB", "ShiftFilter", "Neurology");
+        var start = DateTime.Today.AddDays(44).AddHours(8);
+        var shiftAId = db.InsertShift(conn, doctorOneId, "Ward F", start, start.AddHours(4));
+        var shiftBId = db.InsertShift(conn, doctorTwoId, "Ward F", start.AddHours(4), start.AddHours(8));
+        try
+        {
+            var shiftRepo = new ShiftRepository(db.ConnectionString, new StaffRepository(db.ConnectionString));
+
+            var result = shiftRepo.GetShiftsByStaffID(doctorOneId);
+
+            Assert.Contains(result, s => s.Id == shiftAId);
+            Assert.DoesNotContain(result, s => s.Id == shiftBId);
+        }
+        finally
+        {
+            db.DeleteShift(conn, shiftAId);
+            db.DeleteShift(conn, shiftBId);
+            db.DeleteStaff(conn, doctorOneId);
+            db.DeleteStaff(conn, doctorTwoId);
         }
     }
 
@@ -218,7 +224,7 @@ public class ShiftRepositoryTests : IClassFixture<SqlTestFixture>
     {
         using var conn = db.OpenConnection();
         var staffId = db.InsertStaff(conn, "Doctor", "Dave", "ShiftRange", "Cardiology");
-        var baseDate = DateTime.Today.AddDays(5);
+        var baseDate = DateTime.Today.AddDays(50);
         var inRange = db.InsertShift(conn, staffId, "Ward D", baseDate.AddHours(8), baseDate.AddHours(16));
         var outRange = db.InsertShift(conn, staffId, "Ward D", baseDate.AddDays(10).AddHours(8), baseDate.AddDays(10).AddHours(16));
         try
@@ -238,31 +244,10 @@ public class ShiftRepositoryTests : IClassFixture<SqlTestFixture>
         }
     }
 
-    [Fact]
-    public void Refresh_ReloadsShiftsFromDatabase()
+    private static void DeleteShiftsByStaff(SqlConnection conn, int staffId)
     {
-        using var conn = db.OpenConnection();
-        var staffId = db.InsertStaff(conn, "Doctor", "Eve", "ShiftRefresh", "Neurology");
-        var start = DateTime.Today.AddDays(6).AddHours(8);
-        var staffRepo = new StaffRepository(db.ConnectionString);
-        var shiftRepo = new ShiftRepository(db.ConnectionString, staffRepo);
-        var shiftId = db.InsertShift(conn, staffId, "Ward E", start, start.AddHours(8));
-        try
-        {
-            shiftRepo.Refresh();
-
-            Assert.Contains(shiftRepo.GetShifts(), s => s.Id == shiftId);
-        }
-        finally
-        {
-            db.DeleteShift(conn, shiftId);
-            db.DeleteStaff(conn, staffId);
-        }
+        using var cmd = new SqlCommand("DELETE FROM Shifts WHERE staff_id = @Id", conn);
+        cmd.Parameters.AddWithValue("@Id", staffId);
+        cmd.ExecuteNonQuery();
     }
-
-    private static Doctor BuildDoctor(int staffId, string specialization)
-        => new Doctor(staffId, "John", "Doe", "john.doe@example.com", string.Empty, false, specialization, "LIC-1", DoctorStatus.OFF_DUTY, 5);
-
-    private static Shift BuildShift(int id, IStaff staff, string location, DateTime start, DateTime end, ShiftStatus status)
-        => new Shift(id, staff, location, start, end, status);
 }

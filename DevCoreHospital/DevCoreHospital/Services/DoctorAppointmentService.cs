@@ -1,6 +1,7 @@
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using DevCoreHospital.Data;
 using DevCoreHospital.Models;
 
@@ -27,6 +28,21 @@ namespace DevCoreHospital.Services
         public Task<IReadOnlyList<Appointment>> GetAppointmentsForAdminAsync(int doctorId) =>
             dataSource.GetAppointmentsForAdminAsync(doctorId);
 
+        public async Task CreateAppointmentAsync(string patientName, int doctorId, DateTime date, TimeSpan startTime)
+        {
+            var appointment = new Appointment
+            {
+                PatientName = patientName,
+                DoctorId = doctorId,
+                Date = date.Date,
+                StartTime = startTime,
+                EndTime = startTime.Add(TimeSpan.FromMinutes(30)),
+                Status = "Scheduled",
+            };
+            await dataSource.AddAppointmentAsync(appointment);
+            await dataSource.UpdateDoctorStatusAsync(doctorId, "IN_EXAMINATION");
+        }
+
         public async Task BookAppointmentAsync(Appointment appointment)
         {
             await dataSource.AddAppointmentAsync(appointment);
@@ -35,7 +51,12 @@ namespace DevCoreHospital.Services
 
         public async Task FinishAppointmentAsync(Appointment appointment)
         {
-            await dataSource.UpdateAppointmentStatusAsync(appointment.Id, "Finished");
+            if (string.Equals(appointment?.Status, "Finished", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("This appointment is already finished.");
+            }
+
+            await dataSource.UpdateAppointmentStatusAsync(appointment!.Id, "Finished");
 
             int activeAppointments = await dataSource.GetActiveAppointmentsCountForDoctorAsync(appointment.DoctorId);
 
@@ -43,6 +64,28 @@ namespace DevCoreHospital.Services
             {
                 await dataSource.UpdateDoctorStatusAsync(appointment.DoctorId, "AVAILABLE");
             }
+        }
+
+        public async Task<IReadOnlyList<Appointment>> GetAppointmentsInRangeAsync(int doctorId, DateTime from, DateTime to)
+        {
+            const int maxAppointments = 500;
+            var rawAppointments = await dataSource.GetUpcomingAppointmentsAsync(doctorId, from, 0, maxAppointments);
+            return rawAppointments
+                .Where(appointment => appointment.DoctorId == doctorId)
+                .Where(appointment =>
+                {
+                    var start = appointment.Date.Date + appointment.StartTime;
+                    var end = appointment.Date.Date + appointment.EndTime;
+                    if (end <= start)
+                    {
+                        return false;
+                    }
+
+                    return start < to && end > from;
+                })
+                .OrderBy(appointment => appointment.Date)
+                .ThenBy(appointment => appointment.StartTime)
+                .ToList();
         }
 
         public async Task CancelAppointmentAsync(Appointment appointment)

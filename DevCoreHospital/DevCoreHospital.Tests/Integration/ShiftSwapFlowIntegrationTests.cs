@@ -75,7 +75,7 @@ public class ShiftSwapFlowIntegrationTests : IClassFixture<SqlTestFixture>
         }
         finally
         {
-            if (swapId > 0) db.DeleteSwapRequest(conn, swapId);
+            db.DeleteSwapRequest(conn, swapId);
             db.DeleteShift(conn, shiftId);
             db.DeleteStaff(conn, requesterId);
             db.DeleteStaff(conn, colleagueId);
@@ -99,7 +99,7 @@ public class ShiftSwapFlowIntegrationTests : IClassFixture<SqlTestFixture>
             var shiftRepo = new ShiftRepository(db.ConnectionString, staffRepo);
             var swapRepo  = new ShiftSwapRepository(db.ConnectionString);
             var service   = new ShiftSwapService(staffRepo, shiftRepo, swapRepo);
-            var viewModel = new MyScheduleViewModel(service, shiftRepo, staffRepo);
+            var viewModel = new MyScheduleViewModel(service, staffRepo);
 
             viewModel.SelectedDoctor   = viewModel.Doctors.First(d => d.StaffId == requesterId);
             viewModel.SelectedShift    = viewModel.FutureShifts.First(s => s.Id == shiftId);
@@ -107,7 +107,7 @@ public class ShiftSwapFlowIntegrationTests : IClassFixture<SqlTestFixture>
 
             ((RelayCommand)viewModel.RequestSwapCommand).Execute(null!);
 
-            var pending = swapRepo.GetPendingSwapRequestsForColleague(colleagueId);
+            var pending = swapRepo.GetSwapRequestsForColleague(colleagueId);
             Assert.Contains(pending, r => r.ShiftId == shiftId && r.RequesterId == requesterId);
         }
         finally
@@ -137,7 +137,7 @@ public class ShiftSwapFlowIntegrationTests : IClassFixture<SqlTestFixture>
             var shiftRepo = new ShiftRepository(db.ConnectionString, staffRepo);
             var swapRepo  = new ShiftSwapRepository(db.ConnectionString);
             var service   = new ShiftSwapService(staffRepo, shiftRepo, swapRepo);
-            var viewModel = new MyScheduleViewModel(service, shiftRepo, staffRepo);
+            var viewModel = new MyScheduleViewModel(service, staffRepo);
 
             viewModel.SelectedDoctor    = viewModel.Doctors.First(d => d.StaffId == requesterId);
             viewModel.SelectedShift     = viewModel.FutureShifts.First(s => s.Id == shiftId);

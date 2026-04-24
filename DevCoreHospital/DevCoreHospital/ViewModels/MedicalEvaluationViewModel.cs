@@ -297,12 +297,11 @@ namespace DevCoreHospital.ViewModels
                 return;
             }
 
-            string? warning = repository.GetHighRiskMedicineWarning(currentMeds);
-            string? historyWarning = repository.CheckPatientHistoryForRisk(PatientId, currentMeds);
+            string? warning = repository.CheckMedicineConflict(PatientId, currentMeds);
 
-            if (!string.IsNullOrEmpty(warning) || !string.IsNullOrEmpty(historyWarning))
+            if (!string.IsNullOrEmpty(warning))
             {
-                ConflictWarning = warning ?? historyWarning ?? string.Empty;
+                ConflictWarning = warning;
                 IsConflictVisible = true;
             }
             else
@@ -451,9 +450,7 @@ namespace DevCoreHospital.ViewModels
 
         private void CheckDoctorFatigue()
         {
-            const double fatigueThresholdHours = 12.0;
-            double fatigueHours = repository.GetDoctorFatigueHours(currentUserService.UserId.ToString());
-            IsFatigued = fatigueHours >= fatigueThresholdHours;
+            IsFatigued = repository.IsDoctorFatigued(currentUserService.UserId.ToString());
         }
 
         public void ExecuteDeletion()

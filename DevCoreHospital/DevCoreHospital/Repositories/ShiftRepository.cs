@@ -8,7 +8,6 @@ namespace DevCoreHospital.Repositories
 {
     public class ShiftRepository : IShiftRepository, IShiftManagementShiftRepository, IPharmacyShiftRepository
     {
-        private List<Shift> cachedShifts;
         private readonly string connectionString;
         private readonly StaffRepository staffRepository;
 
@@ -16,7 +15,6 @@ namespace DevCoreHospital.Repositories
         {
             this.connectionString = connectionString;
             this.staffRepository = staffRepository;
-            cachedShifts = FetchAllShiftsFromDatabase();
         }
 
         private SqlConnection GetConnection() => new SqlConnection(connectionString);
@@ -26,6 +24,7 @@ namespace DevCoreHospital.Repositories
             command.Parameters.Add(new SqlParameter(name, value ?? DBNull.Value));
         }
 
+        // Fetches all shifts from DB, joining with staff from StaffRepository.
         private List<Shift> FetchAllShiftsFromDatabase()
         {
             var shifts = new List<Shift>();
@@ -34,7 +33,9 @@ namespace DevCoreHospital.Repositories
             {
                 using var connection = GetConnection();
                 connection.Open();
-                using var command = new SqlCommand("SELECT shift_id, staff_id, location, start_time, end_time, status FROM Shifts", connection);
+                using var command = new SqlCommand(
+                    "SELECT shift_id, staff_id, location, start_time, end_time, status FROM Shifts",
+                    connection);
 
                 using var reader = command.ExecuteReader();
                 while (reader.Read())
@@ -47,7 +48,7 @@ namespace DevCoreHospital.Repositories
                     string statusText = reader.IsDBNull(5) ? "Scheduled" : reader.GetString(5);
 
                     Enum.TryParse<ShiftStatus>(statusText, true, out ShiftStatus shiftStatus);
-                    var appointedStaff = allStaff.FirstOrDefault(staffMember => staffMember.StaffID == staffId);
+                    var appointedStaff = allStaff.FirstOrDefault(s => s.StaffID == staffId);
 
                     if (appointedStaff != null)
                     {
@@ -57,164 +58,85 @@ namespace DevCoreHospital.Repositories
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error GetShifts: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Error FetchAllShiftsFromDatabase: {ex.Message}");
             }
             return shifts;
         }
 
+        // ── Read methods ────────────────────────────────────────────────────
+        public List<Shift> GetShifts() => FetchAllShiftsFromDatabase();
+
+        public Shift? GetShiftById(int shiftId)
+            => FetchAllShiftsFromDatabase().FirstOrDefault(s => s.Id == shiftId);
+
+        public List<Shift> GetShiftsByStaffID(int staffId)
+            => FetchAllShiftsFromDatabase().Where(s => s.AppointedStaff.StaffID == staffId).ToList();
+
+        public IReadOnlyList<Shift> GetShiftsForStaffInRange(int staffId, DateTime rangeStart, DateTime rangeEnd)
+            => FetchAllShiftsFromDatabase()
+                .Where(s =>
+                    s.AppointedStaff.StaffID == staffId &&
+                    s.StartTime < rangeEnd &&
+                    s.EndTime > rangeStart)
+                .OrderBy(s => s.StartTime)
+                .ToList();
+
+        // ── Write methods ───────────────────────────────────────────────────
         public void AddShift(Shift newShift)
         {
-            cachedShifts.Add(newShift);
             try
             {
                 using var connection = GetConnection();
                 connection.Open();
                 using var command = new SqlCommand(@"
                     INSERT INTO Shifts (staff_id, location, start_time, end_time, status, is_active)
-                    VALUES (@StaffId, @Location, @StartTime, @EndTime, @Status, @IsActive)", connection);
-
+                    VALUES (@StaffId, @Location, @StartTime, @EndTime, @Status, 1)", connection);
                 AddParameter(command, "@StaffId", newShift.AppointedStaff.StaffID);
                 AddParameter(command, "@Location", newShift.Location);
                 AddParameter(command, "@StartTime", newShift.StartTime);
                 AddParameter(command, "@EndTime", newShift.EndTime);
                 AddParameter(command, "@Status", newShift.Status.ToString());
-                AddParameter(command, "@IsActive", true);
                 command.ExecuteNonQuery();
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error creating new shift: {ex.Message}");
-            }
-        }
-
-        public void CancelShift(int shiftId)
-        {
-            var shiftToCancel = cachedShifts.FirstOrDefault(shift => shift.Id == shiftId);
-            if (shiftToCancel != null)
-            {
-                cachedShifts.Remove(shiftToCancel);
-                try
-                {
-                    using var connection = GetConnection();
-                    connection.Open();
-                    using var command = new SqlCommand("DELETE FROM Shifts WHERE shift_id = @Id", connection);
-                    AddParameter(command, "@Id", shiftId);
-                    command.ExecuteNonQuery();
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Error deleting shift: {ex.Message}");
-                }
-            }
-        }
-
-        public List<Shift> GetShifts() => cachedShifts;
-
-        public Shift? GetShiftById(int shiftId)
-            => cachedShifts.FirstOrDefault(shift => shift.Id == shiftId);
-
-        public List<Shift> GetShiftsByStaffID(int staffId)
-            => cachedShifts.Where(shift => shift.AppointedStaff.StaffID == staffId).ToList();
-
-        public List<Shift> GetActiveShifts()
-            => cachedShifts.Where(shift => shift.Status == ShiftStatus.ACTIVE).ToList();
-
-        public float GetWeeklyHours(int staffId)
-        {
-            var staffShifts = GetShiftsByStaffID(staffId);
-            float totalHours = 0;
-
-            const int daysInWeek = 7;
-            var now = DateTime.Now;
-            int daysFromMonday = (daysInWeek + (now.DayOfWeek - DayOfWeek.Monday)) % daysInWeek;
-            var weekStartMonday = now.Date.AddDays(-daysFromMonday);
-            var weekEndSunday = weekStartMonday.AddDays(daysInWeek);
-
-            foreach (var shift in staffShifts)
-            {
-                if (shift.StartTime >= weekStartMonday && shift.StartTime < weekEndSunday)
-                {
-                    totalHours += (float)(shift.EndTime - shift.StartTime).TotalHours;
-                }
-            }
-
-            return totalHours;
-        }
-
-        public IReadOnlyList<Shift> GetShiftsForStaffInRange(int staffId, DateTime rangeStart, DateTime rangeEnd)
-        {
-            return FetchAllShiftsFromDatabase()
-                .Where(shift =>
-                    shift.AppointedStaff.StaffID == staffId &&
-                    shift.StartTime < rangeEnd &&
-                    shift.EndTime > rangeStart)
-                .OrderBy(shift => shift.StartTime)
-                .ToList();
-        }
-
-        public bool IsStaffWorkingDuring(int staffId, DateTime startTime, DateTime endTime)
-        {
-            try
-            {
-                using var connection = GetConnection();
-                connection.Open();
-                using var command = new SqlCommand(@"
-                    SELECT COUNT(*)
-                    FROM Shifts
-                    WHERE staff_id = @StaffId
-                      AND start_time < @EndTime
-                      AND end_time > @StartTime
-                      AND status IN ('SCHEDULED', 'ACTIVE')", connection);
-                AddParameter(command, "@StaffId", staffId);
-                AddParameter(command, "@StartTime", startTime);
-                AddParameter(command, "@EndTime", endTime);
-
-                var result = command.ExecuteScalar();
-                return Convert.ToInt32(result) > 0;
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error IsStaffWorkingDuring: {ex.Message}");
-                return false;
+                System.Diagnostics.Debug.WriteLine($"Error AddShift: {ex.Message}");
             }
         }
 
         public void UpdateShiftStatus(int shiftId, ShiftStatus status)
         {
-            var shiftToUpdate = cachedShifts.FirstOrDefault(shift => shift.Id == shiftId);
-            if (shiftToUpdate != null)
+            try
             {
-                shiftToUpdate.Status = status;
-                try
-                {
-                    using var connection = GetConnection();
-                    connection.Open();
-                    using var command = new SqlCommand(@"
-                        UPDATE Shifts SET
-                            staff_id = @StaffId,
-                            location = @Location,
-                            start_time = @StartTime,
-                            end_time = @EndTime,
-                            status = @Status
-                        WHERE shift_id = @Id", connection);
-                    AddParameter(command, "@StaffId", shiftToUpdate.AppointedStaff.StaffID);
-                    AddParameter(command, "@Location", shiftToUpdate.Location);
-                    AddParameter(command, "@StartTime", shiftToUpdate.StartTime);
-                    AddParameter(command, "@EndTime", shiftToUpdate.EndTime);
-                    AddParameter(command, "@Status", shiftToUpdate.Status.ToString());
-                    AddParameter(command, "@Id", shiftToUpdate.Id);
-                    command.ExecuteNonQuery();
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Error updating shift: {ex.Message}");
-                }
+                using var connection = GetConnection();
+                connection.Open();
+                using var command = new SqlCommand(
+                    "UPDATE Shifts SET status = @Status WHERE shift_id = @Id", connection);
+                AddParameter(command, "@Status", status.ToString());
+                AddParameter(command, "@Id", shiftId);
+                command.ExecuteNonQuery();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error UpdateShiftStatus: {ex.Message}");
             }
         }
 
-        public void Refresh()
+        public void CancelShift(int shiftId)
         {
-            cachedShifts = FetchAllShiftsFromDatabase();
+            try
+            {
+                using var connection = GetConnection();
+                connection.Open();
+                using var command = new SqlCommand(
+                    "DELETE FROM Shifts WHERE shift_id = @Id", connection);
+                AddParameter(command, "@Id", shiftId);
+                command.ExecuteNonQuery();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error CancelShift: {ex.Message}");
+            }
         }
     }
 }

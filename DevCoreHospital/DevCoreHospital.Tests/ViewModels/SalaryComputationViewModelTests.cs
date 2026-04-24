@@ -182,13 +182,10 @@ public class SalaryComputationViewModelTests
     [Fact]
     public async Task ComputeSalaryAsync_TransitionsIsLoadingAndFormatsSalaryResult()
     {
+        var tcs = new TaskCompletionSource<double>();
         var salaryService = new Mock<ISalaryComputationService>();
         salaryService.Setup(s => s.ComputeSalaryDoctorAsync(It.IsAny<Doctor>(), It.IsAny<List<Shift>>(), 7, 2026))
-            .Returns(async () =>
-            {
-                await Task.Delay(10);
-                return 4567.8;
-            });
+            .Returns(tcs.Task);
 
         var doctor = new Doctor { StaffID = 4, YearsOfExperience = 2 };
         var viewModel = new SalaryComputationViewModel(salaryService.Object, new IStaff[] { doctor }, [])
@@ -200,6 +197,8 @@ public class SalaryComputationViewModelTests
 
         var execution = viewModel.ComputeSalaryCommand.ExecuteAsync();
         Assert.True(viewModel.IsLoading);
+
+        tcs.SetResult(4567.8);
         await execution;
 
         Assert.Equal($"Computed Salary: $4567{GetSeparator()}80", viewModel.SalaryResult);

@@ -224,11 +224,7 @@ namespace DevCoreHospital.Tests.ViewModels
         {
             var vm = CreateViewModel();
             var raisedProperties = new List<string>();
-            vm.PropertyChanged += (_, e) =>
-            {
-                if (e.PropertyName is not null)
-                    raisedProperties.Add(e.PropertyName);
-            };
+            vm.PropertyChanged += (_, e) => raisedProperties.Add(e.PropertyName ?? string.Empty);
             var wednesday = new DateTimeOffset(new DateTime(2025, 4, 16));
 
             vm.SelectedWeekStart = wednesday;
@@ -246,11 +242,7 @@ namespace DevCoreHospital.Tests.ViewModels
 
             var vm = CreateViewModel();
             var raisedProperties = new List<string>();
-            vm.PropertyChanged += (_, e) =>
-            {
-                if (e.PropertyName is not null)
-                    raisedProperties.Add(e.PropertyName);
-            };
+            vm.PropertyChanged += (_, e) => raisedProperties.Add(e.PropertyName ?? string.Empty);
 
             vm.RunAutoAudit();
 

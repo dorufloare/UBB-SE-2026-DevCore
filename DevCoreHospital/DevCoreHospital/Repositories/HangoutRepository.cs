@@ -65,16 +65,6 @@ namespace DevCoreHospital.Repositories
             return hangout;
         }
 
-        public bool HasConflictsOnDate(int staffId, DateTime date)
-        {
-            var statuses = GetAppointmentStatusesForStaffOnDate(staffId, date);
-            var activeConflicts = statuses.Where(appointmentStatus =>
-                !string.Equals(appointmentStatus, "Finished", StringComparison.OrdinalIgnoreCase) &&
-                !string.Equals(appointmentStatus, "Canceled", StringComparison.OrdinalIgnoreCase) &&
-                !string.Equals(appointmentStatus, "Cancelled", StringComparison.OrdinalIgnoreCase));
-            return activeConflicts.Any();
-        }
-
         private int InsertHangout(string title, string description, DateTime date, int maxParticipants)
         {
             using var connection = GetConnection();
@@ -164,7 +154,7 @@ namespace DevCoreHospital.Repositories
             return participants;
         }
 
-        private List<string> GetAppointmentStatusesForStaffOnDate(int staffId, DateTime date)
+        public IReadOnlyList<string> GetAppointmentStatusesForStaffOnDate(int staffId, DateTime date)
         {
             var statuses = new List<string>();
             try

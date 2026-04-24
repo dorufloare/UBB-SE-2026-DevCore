@@ -130,48 +130,25 @@ namespace DevCoreHospital.Tests.ViewModels
 
 
         [Fact]
-        public async Task BookAppointmentAsync_CallsServiceWithCorrectPatientAndDoctor()
+        public async Task BookAppointmentAsync_CallsCreateAppointmentAsync_WithCorrectPatientAndDoctor()
         {
             var date = new DateTime(2025, 8, 1);
             var time = new TimeSpan(9, 0, 0);
 
             await viewModel.BookAppointmentAsync("PAT-42", 5, date, time);
 
-            mockService.Verify(s => s.BookAppointmentAsync(
-                It.Is<Appointment>(a => a.PatientName == "PAT-42" && a.DoctorId == 5)), Times.Once);
+            mockService.Verify(s => s.CreateAppointmentAsync("PAT-42", 5, date, time), Times.Once);
         }
 
         [Fact]
-        public async Task BookAppointmentAsync_SetsEndTime_ToStartTimePlusThirtyMinutes()
-        {
-            var time = new TimeSpan(10, 0, 0);
-
-            await viewModel.BookAppointmentAsync("PAT-1", 1, DateTime.Today, time);
-
-            mockService.Verify(s => s.BookAppointmentAsync(
-                It.Is<Appointment>(a => a.EndTime == time.Add(TimeSpan.FromMinutes(30)))), Times.Once);
-        }
-
-        [Fact]
-        public async Task BookAppointmentAsync_SetsStatus_ToScheduled()
-        {
-            var time = new TimeSpan(10, 0, 0);
-
-            await viewModel.BookAppointmentAsync("PAT-1", 1, DateTime.Today, time);
-
-            mockService.Verify(s => s.BookAppointmentAsync(
-                It.Is<Appointment>(a => a.Status == "Scheduled")), Times.Once);
-        }
-
-        [Fact]
-        public async Task BookAppointmentAsync_SetsDate_ToDateComponentOnly()
+        public async Task BookAppointmentAsync_PassesDateAndTimeDirectlyToService()
         {
             var dateWithTime = new DateTime(2025, 8, 1, 15, 30, 0);
+            var time = new TimeSpan(10, 0, 0);
 
-            await viewModel.BookAppointmentAsync("PAT-1", 1, dateWithTime, TimeSpan.Zero);
+            await viewModel.BookAppointmentAsync("PAT-1", 1, dateWithTime, time);
 
-            mockService.Verify(s => s.BookAppointmentAsync(
-                It.Is<Appointment>(a => a.Date == dateWithTime.Date)), Times.Once);
+            mockService.Verify(s => s.CreateAppointmentAsync("PAT-1", 1, dateWithTime, time), Times.Once);
         }
 
 

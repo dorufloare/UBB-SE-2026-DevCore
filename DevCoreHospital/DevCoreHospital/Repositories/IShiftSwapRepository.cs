@@ -7,7 +7,7 @@ namespace DevCoreHospital.Repositories
     {
         int CreateShiftSwapRequest(ShiftSwapRequest request);
 
-        List<ShiftSwapRequest> GetPendingSwapRequestsForColleague(int colleagueId);
+        List<ShiftSwapRequest> GetSwapRequestsForColleague(int colleagueId);
 
         ShiftSwapRequest? GetShiftSwapRequestById(int swapId);
 

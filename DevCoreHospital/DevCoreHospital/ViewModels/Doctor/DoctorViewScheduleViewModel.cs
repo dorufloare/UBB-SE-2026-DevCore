@@ -12,8 +12,6 @@ namespace DevCoreHospital.ViewModels.Doctor
 {
     public class DoctorScheduleViewModel : ObservableObject
     {
-        private const int MaxAppointmentsToLoad = 500;
-
         private readonly ICurrentUserService currentUser;
         private readonly IDoctorAppointmentService appointmentService;
         private readonly IShiftRepository shiftRepository;
@@ -249,30 +247,13 @@ namespace DevCoreHospital.ViewModels.Doctor
                 DateTime from = IsDaily ? SelectedDate.Date : StartOfWeek(SelectedDate);
                 DateTime to = IsDaily ? from.AddDays(1) : from.AddDays(7);
 
-                var rawAppointments = await appointmentService.GetUpcomingAppointmentsAsync(doctorId, from, 0, MaxAppointmentsToLoad);
+                var filteredAppointments = await appointmentService.GetAppointmentsInRangeAsync(doctorId, from, to);
                 var rawShifts = await Task.Run(() => shiftRepository.GetShiftsForStaffInRange(doctorId, from, to));
 
                 if (capturedLoadVersion != loadVersion)
                 {
                     return;
                 }
-
-                var filteredAppointments = rawAppointments
-                    .Where(appointment => appointment.DoctorId == doctorId)
-                    .Where(appointment =>
-                    {
-                        var start = appointment.Date.Date + appointment.StartTime;
-                        var end = appointment.Date.Date + appointment.EndTime;
-                        if (end <= start)
-                        {
-                            return false;
-                        }
-
-                        return start < to && end > from;
-                    })
-                    .OrderBy(appointment => appointment.Date)
-                    .ThenBy(appointment => appointment.StartTime)
-                    .ToList();
 
                 var filteredShifts = rawShifts
                     .Where(shift => shift.Status != ShiftStatus.CANCELLED)

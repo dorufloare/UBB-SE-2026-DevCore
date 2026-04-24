@@ -19,6 +19,13 @@ namespace DevCoreHospital.Services
             this.shiftSwapRepository = shiftSwapRepository;
         }
 
+        public List<Shift> GetFutureShiftsForStaff(int staffId)
+        {
+            return shiftRepository.GetShiftsByStaffID(staffId)
+                .Where(shift => shift.StartTime > DateTime.Now)
+                .ToList();
+        }
+
         private static string NormalizeForComparison(string? text) => (text ?? string.Empty).Trim().ToLowerInvariant();
 
         public List<IStaff> GetEligibleSwapColleaguesForShift(int requesterId, int shiftId, out string error)
@@ -74,7 +81,8 @@ namespace DevCoreHospital.Services
             }
 
             return colleaguesWithSameProfile
-                .Where(colleague => !shiftRepository.IsStaffWorkingDuring(colleague.StaffID, shift.StartTime, shift.EndTime))
+                .Where(colleague => !shiftRepository.GetShiftsForStaffInRange(colleague.StaffID, shift.StartTime, shift.EndTime)
+                    .Any(s => s.Status == ShiftStatus.SCHEDULED || s.Status == ShiftStatus.ACTIVE))
                 .ToList();
         }
 
@@ -130,7 +138,9 @@ namespace DevCoreHospital.Services
 
         public List<ShiftSwapRequest> GetIncomingSwapRequests(int colleagueId)
         {
-            return shiftSwapRepository.GetPendingSwapRequestsForColleague(colleagueId);
+            return shiftSwapRepository.GetSwapRequestsForColleague(colleagueId)
+                .Where(r => r.Status == ShiftSwapRequestStatus.PENDING)
+                .ToList();
         }
 
         public bool AcceptSwapRequest(int swapId, int colleagueId, out string message)
@@ -163,7 +173,8 @@ namespace DevCoreHospital.Services
                 return false;
             }
 
-            if (shiftRepository.IsStaffWorkingDuring(colleagueId, shift.StartTime, shift.EndTime))
+            if (shiftRepository.GetShiftsForStaffInRange(colleagueId, shift.StartTime, shift.EndTime)
+                    .Any(s => s.Status == ShiftStatus.SCHEDULED || s.Status == ShiftStatus.ACTIVE))
             {
                 message = "You are already scheduled to work in that interval.";
                 return false;
@@ -177,7 +188,6 @@ namespace DevCoreHospital.Services
 
             shiftSwapRepository.UpdateShiftSwapRequestStatus(swapId, "ACCEPTED");
             shiftSwapRepository.AddNotification(swapRequest.RequesterId, "Shift Swap Accepted", $"Your swap request #{swapId} was accepted.");
-            shiftRepository.Refresh();
 
             message = "Swap accepted.";
             return true;

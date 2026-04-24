@@ -37,8 +37,10 @@ namespace DevCoreHospital.Tests.Fakes
 
         public Hangout? GetHangoutById(int id) => hangouts.FirstOrDefault(h => h.HangoutID == id);
 
-        public bool HasConflictsOnDate(int staffId, DateTime date)
-            => conflicts.Contains((staffId, date.Date));
+        public IReadOnlyList<string> GetAppointmentStatusesForStaffOnDate(int staffId, DateTime date)
+            => conflicts.Contains((staffId, date.Date))
+                ? new List<string> { "Scheduled" }
+                : new List<string>();
 
         public void AddConflictForStaff(int staffId, DateTime date)
             => conflicts.Add((staffId, date.Date));

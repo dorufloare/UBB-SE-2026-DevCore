@@ -175,7 +175,7 @@ namespace DevCoreHospital.Tests.ViewModels
         }
 
         [Fact]
-        public void CreateNewShift_WhenNoOverlap_AddsScheduledShift()
+        public void CreateNewShift_WhenNoOverlap_DelegatesToTryAddShift()
         {
             // Arrange
             var doctor = BuildDoctor(50, "Cardiology");
@@ -187,18 +187,8 @@ namespace DevCoreHospital.Tests.ViewModels
                 .Setup(service => service.GetWeeklyShifts(It.IsAny<DateTime>()))
                 .Returns(new List<Shift>());
             serviceMock
-                .Setup(service => service.ValidateNoOverlap(doctor.StaffID, start, end))
+                .Setup(service => service.TryAddShift(doctor, start, end, "ER"))
                 .Returns(true);
-
-            int addShiftCalls = 0;
-            Shift? capturedShift = null;
-            serviceMock
-                .Setup(service => service.AddShift(It.IsAny<Shift>()))
-                .Callback<Shift>(shift =>
-                {
-                    addShiftCalls++;
-                    capturedShift = shift;
-                });
 
             var viewModel = new AdminShiftViewModel(serviceMock.Object);
 
@@ -206,17 +196,11 @@ namespace DevCoreHospital.Tests.ViewModels
             viewModel.CreateNewShift(doctor, start, end, "ER");
 
             // Assert
-            Assert.Equal(1, addShiftCalls);
-            Assert.NotNull(capturedShift);
-            Assert.Equal(doctor.StaffID, capturedShift!.AppointedStaff.StaffID);
-            Assert.Equal("ER", capturedShift.Location);
-            Assert.Equal(ShiftStatus.SCHEDULED, capturedShift.Status);
-            Assert.Equal(start, capturedShift.StartTime);
-            Assert.Equal(end, capturedShift.EndTime);
+            serviceMock.Verify(service => service.TryAddShift(doctor, start, end, "ER"), Times.Once);
         }
 
         [Fact]
-        public void CreateNewShift_WhenOverlapExists_DoesNotAddShift()
+        public void CreateNewShift_WhenTryAddShiftReturnsFalse_DoesNotReloadShifts()
         {
             // Arrange
             var doctor = BuildDoctor(51, "Cardiology");
@@ -224,25 +208,26 @@ namespace DevCoreHospital.Tests.ViewModels
             var end = new DateTime(2030, 6, 2, 16, 0, 0);
 
             var serviceMock = new Mock<IShiftManagementService>();
+            int getWeeklyCalls = 0;
             serviceMock
                 .Setup(service => service.GetWeeklyShifts(It.IsAny<DateTime>()))
-                .Returns(new List<Shift>());
+                .Returns(() =>
+                {
+                    getWeeklyCalls++;
+                    return new List<Shift>();
+                });
             serviceMock
-                .Setup(service => service.ValidateNoOverlap(doctor.StaffID, start, end))
+                .Setup(service => service.TryAddShift(doctor, start, end, "ER"))
                 .Returns(false);
 
-            int addShiftCalls = 0;
-            serviceMock
-                .Setup(service => service.AddShift(It.IsAny<Shift>()))
-                .Callback(() => addShiftCalls++);
-
             var viewModel = new AdminShiftViewModel(serviceMock.Object);
+            int callsAfterConstruct = getWeeklyCalls;
 
             // Act
             viewModel.CreateNewShift(doctor, start, end, "ER");
 
             // Assert
-            Assert.Equal(0, addShiftCalls);
+            Assert.Equal(callsAfterConstruct, getWeeklyCalls);
         }
 
         [Fact]

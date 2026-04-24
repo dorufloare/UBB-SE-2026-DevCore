@@ -212,6 +212,28 @@ namespace DevCoreHospital.Repositories
             return doctors;
         }
 
+        public bool IsDoctorFatigued(string doctorId)
+        {
+            const double fatigueThresholdHours = 12.0;
+            return GetDoctorFatigueHours(doctorId) >= fatigueThresholdHours;
+        }
+
+        public string? CheckMedicineConflict(string patientId, string meds)
+        {
+            if (string.IsNullOrWhiteSpace(meds) || string.IsNullOrWhiteSpace(patientId))
+            {
+                return null;
+            }
+
+            string? highRiskWarning = GetHighRiskMedicineWarning(meds);
+            if (!string.IsNullOrEmpty(highRiskWarning))
+            {
+                return highRiskWarning;
+            }
+
+            return CheckPatientHistoryForRisk(patientId, meds);
+        }
+
         public string? GetHighRiskMedicineWarning(string medicineName)
         {
             using (SqlConnection conn = new SqlConnection(connectionString))

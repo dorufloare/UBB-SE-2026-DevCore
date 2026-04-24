@@ -36,24 +36,12 @@ public class StaffRepositoryTests : IClassFixture<SqlTestFixture>
         => Assert.Empty(new StaffRepository(InvalidConnectionString).GetPharmacystsByCertification("Sterile Compounding"));
 
     [Fact]
-    public void UpdateStaffAvailability_WhenStaffNotInCache_DoesNotThrow()
+    public void UpdateStaffAvailability_WhenConnectionFails_DoesNotThrow()
     {
         var ex = Record.Exception(() => new StaffRepository(InvalidConnectionString).UpdateStaffAvailability(999, true, DoctorStatus.AVAILABLE));
 
         Assert.Null(ex);
     }
-
-    [Fact]
-    public void GetPotentialSwapColleagues_WhenConnectionFails_ReturnsEmptyList()
-    {
-        var requester = new Doctor(1, "John", "Doe", string.Empty, string.Empty, true, "Cardiology", "L-1", DoctorStatus.AVAILABLE, 3);
-
-        Assert.Empty(new StaffRepository(InvalidConnectionString).GetPotentialSwapColleagues(requester));
-    }
-
-    [Fact]
-    public void GetAvailableStaff_WhenConnectionFails_ReturnsEmptyList()
-        => Assert.Empty(new StaffRepository(InvalidConnectionString).GetAvailableStaff("Cardiology", "Sterile Compounding"));
 
     [Fact]
     public void LoadAllStaff_ReturnsDoctorInsertedInDatabase()
@@ -165,31 +153,6 @@ public class StaffRepositoryTests : IClassFixture<SqlTestFixture>
     }
 
     [Fact]
-    public void GetPotentialSwapColleagues_ReturnsDoctorsWithSameSpecialization()
-    {
-        using var conn = db.OpenConnection();
-        var requesterId = db.InsertStaff(conn, "Doctor", "Jack", "SwapColleague", "Cardiology");
-        var sameSpecId = db.InsertStaff(conn, "Doctor", "Karen", "SwapColleague", "Cardiology");
-        var diffSpecId = db.InsertStaff(conn, "Doctor", "Leo", "SwapColleague", "Neurology");
-        try
-        {
-            var requester = new Doctor(requesterId, "Jack", "SwapColleague", string.Empty, string.Empty, true, "Cardiology", "LIC-1", DoctorStatus.AVAILABLE, 1);
-
-            var result = new StaffRepository(db.ConnectionString).GetPotentialSwapColleagues(requester);
-
-            Assert.Contains(result, s => s.StaffID == sameSpecId);
-            Assert.DoesNotContain(result, s => s.StaffID == diffSpecId);
-            Assert.DoesNotContain(result, s => s.StaffID == requesterId);
-        }
-        finally
-        {
-            db.DeleteStaff(conn, requesterId);
-            db.DeleteStaff(conn, sameSpecId);
-            db.DeleteStaff(conn, diffSpecId);
-        }
-    }
-
-    [Fact]
     public void UpdateStaffAvailability_UpdatesAvailabilityAndStatusInDatabase()
     {
         using var conn = db.OpenConnection();
@@ -211,122 +174,4 @@ public class StaffRepositoryTests : IClassFixture<SqlTestFixture>
         }
     }
 
-    [Fact]
-    public void GetAvailableStaff_WithBothParams_ReturnsDoctorAndPharmacistMatchingFilters()
-    {
-        using var conn = db.OpenConnection();
-        var doctorId = db.InsertStaff(conn, "Doctor", "Nina", "AvailBoth", "Cardiology", isAvailable: true);
-        var pharmacistId = db.InsertStaff(conn, "Pharmacist", "Owen", "AvailBoth", certification: "BCPS", isAvailable: true);
-        var otherDoctorId = db.InsertStaff(conn, "Doctor", "Paul", "AvailBoth", "Neurology", isAvailable: true);
-        try
-        {
-            var result = new StaffRepository(db.ConnectionString).GetAvailableStaff("Cardiology", "BCPS");
-
-            Assert.Contains(result, s => s.StaffID == doctorId);
-            Assert.Contains(result, s => s.StaffID == pharmacistId);
-            Assert.DoesNotContain(result, s => s.StaffID == otherDoctorId);
-        }
-        finally
-        {
-            db.DeleteStaff(conn, doctorId);
-            db.DeleteStaff(conn, pharmacistId);
-            db.DeleteStaff(conn, otherDoctorId);
-        }
-    }
-
-    [Fact]
-    public void GetAvailableStaff_WithOnlyDoctorSpec_ReturnsOnlyMatchingDoctors()
-    {
-        using var conn = db.OpenConnection();
-        var matchingDoctorId = db.InsertStaff(conn, "Doctor", "Quinn", "AvailDocOnly", "Oncology", isAvailable: true);
-        var pharmacistId = db.InsertStaff(conn, "Pharmacist", "Ruth", "AvailDocOnly", certification: "PharmD", isAvailable: true);
-        try
-        {
-            var result = new StaffRepository(db.ConnectionString).GetAvailableStaff("Oncology", string.Empty);
-
-            Assert.Contains(result, s => s.StaffID == matchingDoctorId);
-            Assert.DoesNotContain(result, s => s.StaffID == pharmacistId);
-        }
-        finally
-        {
-            db.DeleteStaff(conn, matchingDoctorId);
-            db.DeleteStaff(conn, pharmacistId);
-        }
-    }
-
-    [Fact]
-    public void GetAvailableStaff_WithOnlyPharmacistCert_ReturnsOnlyMatchingPharmacists()
-    {
-        using var conn = db.OpenConnection();
-        var doctorId = db.InsertStaff(conn, "Doctor", "Sam", "AvailPharmOnly", "Cardiology", isAvailable: true);
-        var matchingPharmId = db.InsertStaff(conn, "Pharmacist", "Tina", "AvailPharmOnly", certification: "BCOP", isAvailable: true);
-        try
-        {
-            var result = new StaffRepository(db.ConnectionString).GetAvailableStaff(string.Empty, "BCOP");
-
-            Assert.Contains(result, s => s.StaffID == matchingPharmId);
-            Assert.DoesNotContain(result, s => s.StaffID == doctorId);
-        }
-        finally
-        {
-            db.DeleteStaff(conn, doctorId);
-            db.DeleteStaff(conn, matchingPharmId);
-        }
-    }
-
-    [Fact]
-    public void GetAvailableStaff_WithNoParams_ReturnsAllAvailableStaff()
-    {
-        using var conn = db.OpenConnection();
-        var doctorId = db.InsertStaff(conn, "Doctor", "Uma", "AvailNone", "Cardiology", isAvailable: true);
-        var pharmacistId = db.InsertStaff(conn, "Pharmacist", "Victor", "AvailNone", certification: "PharmD", isAvailable: true);
-        try
-        {
-            var result = new StaffRepository(db.ConnectionString).GetAvailableStaff(string.Empty, string.Empty);
-
-            Assert.Contains(result, s => s.StaffID == doctorId);
-            Assert.Contains(result, s => s.StaffID == pharmacistId);
-        }
-        finally
-        {
-            db.DeleteStaff(conn, doctorId);
-            db.DeleteStaff(conn, pharmacistId);
-        }
-    }
-
-    [Fact]
-    public void GetPotentialSwapColleagues_ReturnsPharmacistsWithSameCertification()
-    {
-        using var conn = db.OpenConnection();
-        var requesterId = db.InsertStaff(conn, "Pharmacist", "Wendy", "PharmSwap", certification: "BCPS");
-        var sameCertId = db.InsertStaff(conn, "Pharmacist", "Xavier", "PharmSwap", certification: "BCPS");
-        var diffCertId = db.InsertStaff(conn, "Pharmacist", "Yara", "PharmSwap", certification: "PharmD");
-        try
-        {
-            var requester = new Pharmacyst(requesterId, "Wendy", "PharmSwap", string.Empty, true, "BCPS", 1);
-
-            var result = new StaffRepository(db.ConnectionString).GetPotentialSwapColleagues(requester);
-
-            Assert.Contains(result, s => s.StaffID == sameCertId);
-            Assert.DoesNotContain(result, s => s.StaffID == diffCertId);
-            Assert.DoesNotContain(result, s => s.StaffID == requesterId);
-        }
-        finally
-        {
-            db.DeleteStaff(conn, requesterId);
-            db.DeleteStaff(conn, sameCertId);
-            db.DeleteStaff(conn, diffCertId);
-        }
-    }
-
-    [Fact]
-    public void GetPotentialSwapColleagues_ReturnsEmpty_WhenRequesterNotInDatabase()
-    {
-        // Arrange: use a staff ID that does not exist in the database
-        var ghost = new Doctor(999999, "Ghost", "User", string.Empty, string.Empty, true, "Cardiology", "LIC-X", DoctorStatus.AVAILABLE, 1);
-
-        var result = new StaffRepository(db.ConnectionString).GetPotentialSwapColleagues(ghost);
-
-        Assert.Empty(result);
-    }
 }

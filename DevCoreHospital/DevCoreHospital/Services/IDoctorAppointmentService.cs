@@ -11,8 +11,10 @@ namespace DevCoreHospital.Services
         Task<IReadOnlyList<(int DoctorId, string DoctorName)>> GetAllDoctorsAsync();
         Task<Appointment?> GetAppointmentDetailsAsync(int appointmentId);
         Task<IReadOnlyList<Appointment>> GetAppointmentsForAdminAsync(int doctorId);
+        Task CreateAppointmentAsync(string patientName, int doctorId, DateTime date, TimeSpan startTime);
         Task BookAppointmentAsync(Appointment appointment);
         Task FinishAppointmentAsync(Appointment appointment);
+        Task<IReadOnlyList<Appointment>> GetAppointmentsInRangeAsync(int doctorId, DateTime from, DateTime to);
         Task CancelAppointmentAsync(Appointment appointment);
     }
 }

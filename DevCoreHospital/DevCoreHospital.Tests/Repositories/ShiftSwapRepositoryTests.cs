@@ -12,11 +12,11 @@ public class ShiftSwapRepositoryTests : IClassFixture<SqlTestFixture>
     public ShiftSwapRepositoryTests(SqlTestFixture db) => this.db = db;
 
     [Fact]
-    public void GetPendingSwapRequestsForColleague_WhenConnectionFails_ReturnsEmptyList()
+    public void GetSwapRequestsForColleague_WhenConnectionFails_ReturnsEmptyList()
     {
         var repo = new ShiftSwapRepository(InvalidConnectionString);
 
-        Assert.Empty(repo.GetPendingSwapRequestsForColleague(1));
+        Assert.Empty(repo.GetSwapRequestsForColleague(1));
     }
 
     [Fact]
@@ -93,7 +93,7 @@ public class ShiftSwapRepositoryTests : IClassFixture<SqlTestFixture>
         }
         finally
         {
-            if (swapId > 0) db.DeleteSwapRequest(conn, swapId);
+            db.DeleteSwapRequest(conn, swapId);
             db.DeleteShift(conn, shiftId);
             db.DeleteStaff(conn, requesterId);
             db.DeleteStaff(conn, colleagueId);
@@ -128,7 +128,7 @@ public class ShiftSwapRepositoryTests : IClassFixture<SqlTestFixture>
         }
         finally
         {
-            if (swapId > 0) db.DeleteSwapRequest(conn, swapId);
+            db.DeleteSwapRequest(conn, swapId);
             db.DeleteShift(conn, shiftId);
             db.DeleteStaff(conn, requesterId);
             db.DeleteStaff(conn, colleagueId);
@@ -136,7 +136,7 @@ public class ShiftSwapRepositoryTests : IClassFixture<SqlTestFixture>
     }
 
     [Fact]
-    public void GetPendingSwapRequestsForColleague_ReturnsPendingRequests()
+    public void GetSwapRequestsForColleague_ReturnsRequestsForColleague()
     {
         using var conn = db.OpenConnection();
         var requesterId = db.InsertStaff(conn, "Doctor", "Alice", "GetPending", "Neurology");
@@ -152,14 +152,13 @@ public class ShiftSwapRepositoryTests : IClassFixture<SqlTestFixture>
                 RequestedAt = DateTime.UtcNow, Status = ShiftSwapRequestStatus.PENDING,
             });
 
-            var results = repo.GetPendingSwapRequestsForColleague(colleagueId);
+            var results = repo.GetSwapRequestsForColleague(colleagueId);
 
             Assert.Contains(results, r => r.SwapId == swapId);
-            Assert.All(results, r => Assert.Equal(ShiftSwapRequestStatus.PENDING, r.Status));
         }
         finally
         {
-            if (swapId > 0) db.DeleteSwapRequest(conn, swapId);
+            db.DeleteSwapRequest(conn, swapId);
             db.DeleteShift(conn, shiftId);
             db.DeleteStaff(conn, requesterId);
             db.DeleteStaff(conn, colleagueId);
@@ -190,7 +189,7 @@ public class ShiftSwapRepositoryTests : IClassFixture<SqlTestFixture>
         }
         finally
         {
-            if (swapId > 0) db.DeleteSwapRequest(conn, swapId);
+            db.DeleteSwapRequest(conn, swapId);
             db.DeleteShift(conn, shiftId);
             db.DeleteStaff(conn, requesterId);
             db.DeleteStaff(conn, colleagueId);
