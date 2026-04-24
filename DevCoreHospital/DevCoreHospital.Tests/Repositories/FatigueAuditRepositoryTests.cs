@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using DevCoreHospital.Data;
 using DevCoreHospital.Models;
 using DevCoreHospital.Repositories;
@@ -44,9 +45,7 @@ public class FatigueAuditRepositoryTests
 
         var result = repository.GetAllShifts();
 
-        Assert.Equal(2, result.Count);
-        Assert.Equal(1, result[0].Id);
-        Assert.Equal(2, result[1].Id);
+        Assert.Equal(new[] { 1, 2 }, result.Select(shift => shift.Id).ToArray());
     }
 
     [Fact]
@@ -79,9 +78,7 @@ public class FatigueAuditRepositoryTests
 
         var result = repository.GetStaffProfiles();
 
-        Assert.Equal(2, result.Count);
-        Assert.Equal("Alice", result[0].FullName);
-        Assert.Equal("Bob", result[1].FullName);
+        Assert.Equal(new[] { "Alice", "Bob" }, result.Select(profile => profile.FullName).ToArray());
     }
 
     [Fact]
