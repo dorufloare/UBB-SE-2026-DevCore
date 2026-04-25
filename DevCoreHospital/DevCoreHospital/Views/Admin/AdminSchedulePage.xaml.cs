@@ -37,7 +37,7 @@ namespace DevCoreHospital.Views.Admin
             DateCalendar.SelectedDates.Add(System.DateTime.Today);
         }
 
-        private void DateCalendar_SelectedDatesChanged(CalendarView sender, CalendarViewSelectedDatesChangedEventArgs args)
+        private void DateCalendar_SelectedDatesChanged(CalendarView sender, CalendarViewSelectedDatesChangedEventArgs eventArgs)
         {
             if (sender.SelectedDates == null || sender.SelectedDates.Count == 0)
             {

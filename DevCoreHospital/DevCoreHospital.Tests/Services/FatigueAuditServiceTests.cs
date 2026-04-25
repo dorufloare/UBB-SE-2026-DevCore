@@ -66,7 +66,8 @@ namespace DevCoreHospital.Tests.Services
             var result = CreateService().RunAutoAudit(WeekStart);
 
             Assert.True(result.HasConflicts);
-            Assert.Contains(result.Violations, violation => violation.Rule == "MAX_60H_PER_WEEK");
+            bool IsMaxWeeklyHoursViolation(AuditViolation violation) => violation.Rule == "MAX_60H_PER_WEEK";
+            Assert.Contains(result.Violations, IsMaxWeeklyHoursViolation);
         }
 
         [Fact]
@@ -81,7 +82,8 @@ namespace DevCoreHospital.Tests.Services
             var result = CreateService().RunAutoAudit(WeekStart);
 
             Assert.True(result.HasConflicts);
-            Assert.Contains(result.Violations, violation => violation.Rule == "MIN_12H_REST");
+            bool IsMinRestViolation(AuditViolation violation) => violation.Rule == "MIN_12H_REST";
+            Assert.Contains(result.Violations, IsMinRestViolation);
         }
 
         [Fact]

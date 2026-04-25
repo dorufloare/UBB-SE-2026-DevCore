@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using DevCoreHospital.Models;
 using DevCoreHospital.Services;
 using DevCoreHospital.ViewModels.Doctor;
+using DevCoreHospital.Views.Shell;
 using Moq;
 
 namespace DevCoreHospital.Tests.ViewModels
@@ -13,7 +14,7 @@ namespace DevCoreHospital.Tests.ViewModels
     {
         private readonly Mock<ICurrentUserService> mockCurrentUser;
         private readonly Mock<IDoctorAppointmentService> mockAppointmentService;
-        private readonly Mock<IDialogService> mockDialogService = new Mock<IDialogService>();
+        private readonly DialogPresenter dialogPresenter = new DialogPresenter();
         private readonly DoctorScheduleViewModel viewModel;
 
         private static readonly DoctorScheduleViewModel.DoctorOption TestDoctor =
@@ -25,8 +26,8 @@ namespace DevCoreHospital.Tests.ViewModels
         public DoctorScheduleViewModelTests()
         {
             mockCurrentUser = new Mock<ICurrentUserService>();
-            mockCurrentUser.Setup(u => u.Role).Returns("Doctor");
-            mockCurrentUser.Setup(u => u.UserId).Returns(1);
+            mockCurrentUser.Setup(currentUser => currentUser.Role).Returns("Doctor");
+            mockCurrentUser.Setup(currentUser => currentUser.UserId).Returns(1);
 
             mockAppointmentService = new Mock<IDoctorAppointmentService>();
             mockAppointmentService
@@ -42,14 +43,14 @@ namespace DevCoreHospital.Tests.ViewModels
             viewModel = new DoctorScheduleViewModel(
                 mockCurrentUser.Object,
                 mockAppointmentService.Object,
-                mockDialogService.Object);
+                dialogPresenter);
         }
 
 
         [Fact]
         public void IsDoctor_IsTrue_WhenRoleIsDoctor()
         {
-            mockCurrentUser.Setup(u => u.Role).Returns("Doctor");
+            mockCurrentUser.Setup(currentUser => currentUser.Role).Returns("Doctor");
 
             Assert.True(viewModel.IsDoctor);
         }
@@ -57,7 +58,7 @@ namespace DevCoreHospital.Tests.ViewModels
         [Fact]
         public void IsDoctor_IsTrue_WhenRoleIsAdmin()
         {
-            mockCurrentUser.Setup(u => u.Role).Returns("Admin");
+            mockCurrentUser.Setup(currentUser => currentUser.Role).Returns("Admin");
 
             Assert.True(viewModel.IsDoctor);
         }
@@ -65,7 +66,7 @@ namespace DevCoreHospital.Tests.ViewModels
         [Fact]
         public void IsDoctor_IsFalse_WhenRoleIsNeitherDoctorNorAdmin()
         {
-            mockCurrentUser.Setup(u => u.Role).Returns("Nurse");
+            mockCurrentUser.Setup(currentUser => currentUser.Role).Returns("Nurse");
 
             Assert.False(viewModel.IsDoctor);
         }
@@ -74,7 +75,7 @@ namespace DevCoreHospital.Tests.ViewModels
         [Fact]
         public async Task LoadAsync_SetsAccessDeniedErrorMessage_WhenRoleIsNotDoctorOrAdmin()
         {
-            mockCurrentUser.Setup(u => u.Role).Returns("Nurse");
+            mockCurrentUser.Setup(currentUser => currentUser.Role).Returns("Nurse");
 
             await viewModel.LoadAsync();
 
@@ -84,7 +85,7 @@ namespace DevCoreHospital.Tests.ViewModels
         [Fact]
         public async Task LoadAsync_ClearsAppointments_WhenAccessIsDenied()
         {
-            mockCurrentUser.Setup(u => u.Role).Returns("Nurse");
+            mockCurrentUser.Setup(currentUser => currentUser.Role).Returns("Nurse");
 
             await viewModel.LoadAsync();
 
@@ -94,7 +95,7 @@ namespace DevCoreHospital.Tests.ViewModels
         [Fact]
         public async Task LoadAsync_ClearsShifts_WhenAccessIsDenied()
         {
-            mockCurrentUser.Setup(u => u.Role).Returns("Nurse");
+            mockCurrentUser.Setup(currentUser => currentUser.Role).Returns("Nurse");
 
             await viewModel.LoadAsync();
 
@@ -323,7 +324,7 @@ namespace DevCoreHospital.Tests.ViewModels
         [Fact]
         public async Task IsEmpty_IsFalse_WhenErrorMessageIsSet()
         {
-            mockCurrentUser.Setup(u => u.Role).Returns("Nurse");
+            mockCurrentUser.Setup(currentUser => currentUser.Role).Returns("Nurse");
 
             await viewModel.LoadAsync();
 

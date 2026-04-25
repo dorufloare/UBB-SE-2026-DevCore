@@ -156,21 +156,25 @@ namespace DevCoreHospital.Services
 
         private bool DidStaffParticipateInHangoutForMonth(int staffId, int month, int year)
         {
+            bool IsForStaff((int HangoutId, int StaffId) participant) => participant.StaffId == staffId;
+            int ToHangoutId((int HangoutId, int StaffId) participant) => participant.HangoutId;
+
             var allParticipants = hangoutParticipantRepository.GetAllParticipants();
             var hangoutIdsForStaff = allParticipants
-                .Where(participant => participant.StaffId == staffId)
-                .Select(participant => participant.HangoutId)
+                .Where(IsForStaff)
+                .Select(ToHangoutId)
                 .ToHashSet();
             if (hangoutIdsForStaff.Count == 0)
             {
                 return false;
             }
 
-            var allHangouts = hangoutRepository.GetAllHangouts();
-            return allHangouts.Any(hangout =>
+            bool IsHangoutInTargetMonth(Hangout hangout) =>
                 hangoutIdsForStaff.Contains(hangout.HangoutID)
                 && hangout.Date.Month == month
-                && hangout.Date.Year == year);
+                && hangout.Date.Year == year;
+
+            return hangoutRepository.GetAllHangouts().Any(IsHangoutInTargetMonth);
         }
     }
 }

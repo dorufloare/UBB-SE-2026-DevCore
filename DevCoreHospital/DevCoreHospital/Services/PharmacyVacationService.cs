@@ -9,6 +9,11 @@ namespace DevCoreHospital.Services
     public sealed class PharmacyVacationService : IPharmacyVacationService
     {
         private const int MaxVacationDaysPerMonth = 4;
+        private const int OneDay = 1;
+        private const int FirstShiftId = 1;
+        private const int IdIncrement = 1;
+        private const int EmptyShiftCollectionCount = 0;
+        private const string VacationShiftLocationLabel = "Vacation";
 
         private readonly IPharmacyStaffRepository staffRepository;
         private readonly IPharmacyShiftRepository shiftRepository;
@@ -21,17 +26,20 @@ namespace DevCoreHospital.Services
 
         public IReadOnlyList<Pharmacyst> GetPharmacists()
         {
+            string ByFirstName(Pharmacyst pharmacist) => pharmacist.FirstName;
+            string ByLastName(Pharmacyst pharmacist) => pharmacist.LastName;
+
             return staffRepository
                 .GetPharmacists()
-                .OrderBy(pharmacist => pharmacist.FirstName)
-                .ThenBy(pharmacist => pharmacist.LastName)
+                .OrderBy(ByFirstName)
+                .ThenBy(ByLastName)
                 .ToList();
         }
 
         public void RegisterVacation(int pharmacistStaffId, DateTime startDate, DateTime endDate)
         {
             var start = startDate.Date;
-            var endExclusive = endDate.Date.AddDays(1);
+            var endExclusive = endDate.Date.AddDays(OneDay);
 
             if (endDate.Date < start)
             {
@@ -52,8 +60,7 @@ namespace DevCoreHospital.Services
 
             if (overlappingShift is not null)
             {
-                throw new InvalidOperationException(
-                    "Cannot add vacation: this period overlaps an existing shift.");
+                throw new InvalidOperationException("Cannot add vacation: this period overlaps an existing shift.");
             }
 
             if (WouldExceedMonthlyVacationLimit(pharmacistShifts, start, endExclusive, MaxVacationDaysPerMonth))
@@ -62,13 +69,16 @@ namespace DevCoreHospital.Services
                     $"Cannot add vacation: pharmacist would exceed {MaxVacationDaysPerMonth} vacation days in a month.");
             }
 
+            int ByShiftId(Shift shift) => shift.Id;
             var allShifts = shiftRepository.GetAllShifts();
-            var nextId = allShifts.Count == 0 ? 1 : allShifts.Max(shift => shift.Id) + 1;
+            var nextId = allShifts.Count == EmptyShiftCollectionCount
+                ? FirstShiftId
+                : allShifts.Max(ByShiftId) + IdIncrement;
 
             var vacationShift = new Shift(
                 nextId,
                 pharmacist,
-                "Vacation",
+                VacationShiftLocationLabel,
                 start,
                 endExclusive,
                 ShiftStatus.VACATION);
@@ -103,7 +113,7 @@ namespace DevCoreHospital.Services
             DateTime startInclusive,
             DateTime endExclusive)
         {
-            for (var day = startInclusive.Date; day < endExclusive.Date; day = day.AddDays(1))
+            for (var day = startInclusive.Date; day < endExclusive.Date; day = day.AddDays(OneDay))
             {
                 var key = (day.Year, day.Month);
                 if (!buckets.TryGetValue(key, out var daysInMonth))

@@ -1,10 +1,12 @@
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using DevCoreHospital.Models;
 using DevCoreHospital.Services;
+using DevCoreHospital.ViewModels.Base;
 
 namespace DevCoreHospital.ViewModels
 {
@@ -23,25 +25,13 @@ namespace DevCoreHospital.ViewModels
         public async Task LoadDoctorsAsync()
         {
             var doctors = await appointmentService.GetAllDoctorsAsync();
-            Doctors.Clear();
-            foreach (var doc in doctors)
-            {
-                Doctors.Add(new DoctorOption
-                {
-                    DoctorId = doc.DoctorId,
-                    DoctorName = string.IsNullOrWhiteSpace(doc.DoctorName) ? $"Doctor #{doc.DoctorId}" : doc.DoctorName,
-                });
-            }
+            Doctors.ReplaceWith(doctors.Select(DoctorOption.From));
         }
 
         public async Task LoadAppointmentsForDoctorAsync(int doctorId)
         {
-            var apps = await appointmentService.GetAppointmentsForAdminAsync(doctorId);
-            AppointmentsList.Clear();
-            foreach (var app in apps)
-            {
-                AppointmentsList.Add(app);
-            }
+            var appointments = await appointmentService.GetAppointmentsForAdminAsync(doctorId);
+            AppointmentsList.ReplaceWith(appointments);
         }
 
         public async Task BookAppointmentAsync(string patientId, int doctorId, DateTime date, TimeSpan time)
@@ -70,6 +60,13 @@ namespace DevCoreHospital.ViewModels
         {
             public int DoctorId { get; set; }
             public string DoctorName { get; set; } = string.Empty;
+
+            public static DoctorOption From((int DoctorId, string DoctorName) doctor) =>
+                new DoctorOption
+                {
+                    DoctorId = doctor.DoctorId,
+                    DoctorName = string.IsNullOrWhiteSpace(doctor.DoctorName) ? $"Doctor #{doctor.DoctorId}" : doctor.DoctorName,
+                };
         }
     }
 }

@@ -17,6 +17,7 @@ namespace DevCoreHospital.ViewModels.Doctor
         private readonly IShiftSwapService service;
 
         public ObservableCollection<IncomingSwapRequestItemViewModel> Requests { get; } = new ObservableCollection<IncomingSwapRequestItemViewModel>();
+        public ObservableCollection<DoctorOptionViewModel> Doctors { get; } = new ObservableCollection<DoctorOptionViewModel>();
 
         private DoctorOptionViewModel? selectedDoctor;
         public DoctorOptionViewModel? SelectedDoctor
@@ -31,8 +32,6 @@ namespace DevCoreHospital.ViewModels.Doctor
             }
         }
 
-        public ObservableCollection<DoctorOptionViewModel> Doctors { get; } = new ObservableCollection<DoctorOptionViewModel>();
-
         private string statusMessage = string.Empty;
         public string StatusMessage
         {
@@ -45,39 +44,16 @@ namespace DevCoreHospital.ViewModels.Doctor
         public ICommand RejectCommand { get; }
 
         public IncomingSwapRequestsViewModel(IShiftSwapService shiftSwapService)
-            : this(shiftSwapService, LoadDoctorsFromService(shiftSwapService))
+            : this(shiftSwapService, shiftSwapService.GetAllDoctors().Select(DoctorOptionViewModel.From))
         {
-        }
-
-        private static IEnumerable<DoctorOptionViewModel> LoadDoctorsFromService(IShiftSwapService shiftSwapService)
-        {
-            string GetFirstName(Models.Doctor doctorModel) => doctorModel.FirstName;
-            string GetLastName(Models.Doctor doctorModel) => doctorModel.LastName;
-            DoctorOptionViewModel ToDoctorOptionViewModel(Models.Doctor doctorModel) => new DoctorOptionViewModel
-            {
-                StaffId = doctorModel.StaffID,
-                DisplayName = $"{doctorModel.FirstName} {doctorModel.LastName}".Trim(),
-            };
-
-            return shiftSwapService.GetAllDoctors()
-                .OrderBy(GetFirstName)
-                .ThenBy(GetLastName)
-                .Select(ToDoctorOptionViewModel);
         }
 
         public IncomingSwapRequestsViewModel(IShiftSwapService service, IEnumerable<DoctorOptionViewModel> doctors)
         {
             this.service = service;
 
-            foreach (var doctor in doctors)
-            {
-                Doctors.Add(doctor);
-            }
-
-            if (Doctors.Count > 0)
-            {
-                SelectedDoctor = Doctors[0];
-            }
+            Doctors.ReplaceWith(doctors);
+            SelectedDoctor = Doctors.FirstOrDefault();
 
             bool CanRefresh() => SelectedDoctor != null;
             RefreshCommand = new RelayCommand(LoadRequests, CanRefresh);
@@ -108,9 +84,9 @@ namespace DevCoreHospital.ViewModels.Doctor
                 return;
             }
 
-            var ok = service.AcceptSwapRequest(SelectedRequest.SwapId, SelectedDoctor.StaffId, out var msg);
-            StatusMessage = msg;
-            if (ok)
+            var succeeded = service.AcceptSwapRequest(SelectedRequest.SwapId, SelectedDoctor.StaffId, out var resultMessage);
+            StatusMessage = resultMessage;
+            if (succeeded)
             {
                 LoadRequests();
             }
@@ -123,9 +99,9 @@ namespace DevCoreHospital.ViewModels.Doctor
                 return;
             }
 
-            var ok = service.RejectSwapRequest(SelectedRequest.SwapId, SelectedDoctor.StaffId, out var msg);
-            StatusMessage = msg;
-            if (ok)
+            var succeeded = service.RejectSwapRequest(SelectedRequest.SwapId, SelectedDoctor.StaffId, out var resultMessage);
+            StatusMessage = resultMessage;
+            if (succeeded)
             {
                 LoadRequests();
             }
@@ -133,29 +109,18 @@ namespace DevCoreHospital.ViewModels.Doctor
 
         private void LoadRequests()
         {
-            Requests.Clear();
-
             if (SelectedDoctor == null)
             {
+                Requests.Clear();
                 StatusMessage = "Select doctor first.";
                 return;
             }
 
-            var list = service.GetIncomingSwapRequests(SelectedDoctor.StaffId);
-            foreach (var request in list)
-            {
-                Requests.Add(new IncomingSwapRequestItemViewModel
-                {
-                    SwapId = request.SwapId,
-                    ShiftId = request.ShiftId,
-                    RequesterId = request.RequesterId,
-                    RequestedAt = request.RequestedAt,
-                    Status = request.Status.ToString(),
-                });
-            }
+            Requests.ReplaceWith(service.GetIncomingSwapRequests(SelectedDoctor.StaffId)
+                .Select(IncomingSwapRequestItemViewModel.From));
 
             StatusMessage = Requests.Count == 0 ? "No pending requests." : $"{Requests.Count} pending request(s).";
-            SelectedRequest = Requests.Count > 0 ? Requests[0] : null;
+            SelectedRequest = Requests.FirstOrDefault();
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
@@ -180,5 +145,15 @@ namespace DevCoreHospital.ViewModels.Doctor
         public DateTime RequestedAt { get; set; }
         public string Status { get; set; } = string.Empty;
         public string DisplayText => $"Request #{SwapId} | Shift #{ShiftId} | From staff #{RequesterId} | {RequestedAt:g}";
+
+        public static IncomingSwapRequestItemViewModel From(ShiftSwapRequest request) =>
+            new IncomingSwapRequestItemViewModel
+            {
+                SwapId = request.SwapId,
+                ShiftId = request.ShiftId,
+                RequesterId = request.RequesterId,
+                RequestedAt = request.RequestedAt,
+                Status = request.Status.ToString(),
+            };
     }
 }

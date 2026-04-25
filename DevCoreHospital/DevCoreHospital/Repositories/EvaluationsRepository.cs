@@ -9,6 +9,7 @@ namespace DevCoreHospital.Repositories
     public class EvaluationsRepository : IEvaluationsRepository
     {
         private const string EvaluationSourcePatient = "PATIENT";
+        private const int UnknownDoctorId = 0;
 
         private readonly string connectionString;
 
@@ -48,8 +49,8 @@ namespace DevCoreHospital.Repositories
                     PatientId = reader.IsDBNull(patientIdOrdinal) ? string.Empty : reader.GetInt32(patientIdOrdinal).ToString(),
                     Symptoms = reader.IsDBNull(diagnosisOrdinal) ? string.Empty : reader.GetString(diagnosisOrdinal),
                     Notes = reader.IsDBNull(notesOrdinal) ? string.Empty : reader.GetString(notesOrdinal),
-                    MedsList = reader.IsDBNull(medicationsOrdinal) ? string.Empty : reader.GetString(medicationsOrdinal),
-                    Evaluator = new Doctor { StaffID = reader.IsDBNull(doctorIdOrdinal) ? 0 : reader.GetInt32(doctorIdOrdinal) },
+                    MedicationsList = reader.IsDBNull(medicationsOrdinal) ? string.Empty : reader.GetString(medicationsOrdinal),
+                    Evaluator = new Doctor { StaffID = reader.IsDBNull(doctorIdOrdinal) ? UnknownDoctorId : reader.GetInt32(doctorIdOrdinal) },
                 });
             }
             return evaluations;

@@ -86,51 +86,107 @@ namespace DevCoreHospital.Tests.ViewModels
             Assert.Equal(42, result.Id);
         }
 
+        private static Appointment BuildFullAppointment() => BuildAppointment(
+            id: 5, patientName: "Alice", doctorName: "Dr. Brown",
+            location: "Ward B", status: "Scheduled", type: "Follow-up",
+            notes: "Bring X-ray",
+            date: new DateTime(2025, 7, 10),
+            startTime: new TimeSpan(9, 0, 0),
+            endTime: new TimeSpan(11, 30, 0));
+
         [Fact]
-        public void ToAppointment_PreservesAllFields()
+        public void ToAppointment_WhenBuilt_PreservesPatientName()
         {
-            var date = new DateTime(2025, 7, 10);
-            var start = new TimeSpan(9, 0, 0);
-            var end = new TimeSpan(11, 30, 0);
-            var appt = BuildAppointment(
-                id: 5, patientName: "Alice", doctorName: "Dr. Brown",
-                location: "Ward B", status: "Scheduled", type: "Follow-up",
-                notes: "Bring X-ray", date: date, startTime: start, endTime: end);
-            var viewModel = new AppointmentItemViewModel(appt);
-
-            var result = viewModel.ToAppointment();
-
-            Assert.Equal(5, result.Id);
+            var result = new AppointmentItemViewModel(BuildFullAppointment()).ToAppointment();
             Assert.Equal("Alice", result.PatientName);
-            Assert.Equal("Dr. Brown", result.DoctorName);
-            Assert.Equal("Ward B", result.Location);
-            Assert.Equal("Scheduled", result.Status);
-            Assert.Equal("Follow-up", result.Type);
-            Assert.Equal("Bring X-ray", result.Notes);
-            Assert.Equal(date, result.Date);
-            Assert.Equal(start, result.StartTime);
-            Assert.Equal(end, result.EndTime);
         }
 
         [Fact]
-        public void Constructor_HandlesNullFields_WithEmptyStrings()
+        public void ToAppointment_WhenBuilt_PreservesDoctorName()
         {
-            var appt = new Appointment
-            {
-                Id = 1,
-                PatientName = null!,
-                DoctorName = null!,
-                Location = null!,
-                Notes = null!,
-                Type = null!,
-                Status = null!,
-                Date = DateTime.Now,
-            };
+            var result = new AppointmentItemViewModel(BuildFullAppointment()).ToAppointment();
+            Assert.Equal("Dr. Brown", result.DoctorName);
+        }
 
-            var viewModel = new AppointmentItemViewModel(appt);
+        [Fact]
+        public void ToAppointment_WhenBuilt_PreservesLocation()
+        {
+            var result = new AppointmentItemViewModel(BuildFullAppointment()).ToAppointment();
+            Assert.Equal("Ward B", result.Location);
+        }
 
+        [Fact]
+        public void ToAppointment_WhenBuilt_PreservesStatus()
+        {
+            var result = new AppointmentItemViewModel(BuildFullAppointment()).ToAppointment();
+            Assert.Equal("Scheduled", result.Status);
+        }
+
+        [Fact]
+        public void ToAppointment_WhenBuilt_PreservesType()
+        {
+            var result = new AppointmentItemViewModel(BuildFullAppointment()).ToAppointment();
+            Assert.Equal("Follow-up", result.Type);
+        }
+
+        [Fact]
+        public void ToAppointment_WhenBuilt_PreservesNotes()
+        {
+            var result = new AppointmentItemViewModel(BuildFullAppointment()).ToAppointment();
+            Assert.Equal("Bring X-ray", result.Notes);
+        }
+
+        [Fact]
+        public void ToAppointment_WhenBuilt_PreservesDate()
+        {
+            var result = new AppointmentItemViewModel(BuildFullAppointment()).ToAppointment();
+            Assert.Equal(new DateTime(2025, 7, 10), result.Date);
+        }
+
+        [Fact]
+        public void ToAppointment_WhenBuilt_PreservesStartTime()
+        {
+            var result = new AppointmentItemViewModel(BuildFullAppointment()).ToAppointment();
+            Assert.Equal(new TimeSpan(9, 0, 0), result.StartTime);
+        }
+
+        [Fact]
+        public void ToAppointment_WhenBuilt_PreservesEndTime()
+        {
+            var result = new AppointmentItemViewModel(BuildFullAppointment()).ToAppointment();
+            Assert.Equal(new TimeSpan(11, 30, 0), result.EndTime);
+        }
+
+        private static Appointment BuildAllNullStringsAppointment() => new Appointment
+        {
+            Id = 1,
+            PatientName = null!,
+            DoctorName = null!,
+            Location = null!,
+            Notes = null!,
+            Type = null!,
+            Status = null!,
+            Date = DateTime.Now,
+        };
+
+        [Fact]
+        public void Constructor_WhenPatientNameIsNull_NormalizesToEmptyString()
+        {
+            var viewModel = new AppointmentItemViewModel(BuildAllNullStringsAppointment());
             Assert.Equal(string.Empty, viewModel.PatientName);
+        }
+
+        [Fact]
+        public void Constructor_WhenDoctorNameIsNull_NormalizesToEmptyString()
+        {
+            var viewModel = new AppointmentItemViewModel(BuildAllNullStringsAppointment());
             Assert.Equal(string.Empty, viewModel.DoctorName);
+        }
+
+        [Fact]
+        public void Constructor_WhenNotesIsNull_NormalizesToEmptyString()
+        {
+            var viewModel = new AppointmentItemViewModel(BuildAllNullStringsAppointment());
             Assert.Equal(string.Empty, viewModel.Notes);
         }
     }

@@ -17,6 +17,6 @@ namespace DevCoreHospital.Services
 
         bool IsDoctorFatigued(string doctorId);
 
-        string? CheckMedicineConflict(string patientId, string meds);
+        string? CheckMedicineConflict(string patientId, string medications);
     }
 }

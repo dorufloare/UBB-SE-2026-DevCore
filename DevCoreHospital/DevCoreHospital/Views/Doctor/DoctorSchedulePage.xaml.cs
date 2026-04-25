@@ -1,6 +1,7 @@
 using DevCoreHospital.Configuration;
 using DevCoreHospital.Services;
 using DevCoreHospital.ViewModels.Doctor;
+using DevCoreHospital.Views.Shell;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -10,24 +11,24 @@ namespace DevCoreHospital.Views.Doctor
 {
     public sealed partial class DoctorSchedulePage : Page
     {
-        private readonly DoctorScheduleViewModel vm;
-        private readonly DialogService dialogService;
+        private readonly DoctorScheduleViewModel viewModel;
+        private readonly DialogPresenter dialogPresenter;
         private bool initialized;
 
         public DoctorSchedulePage()
         {
             InitializeComponent();
 
-            vm = App.Services.GetRequiredService<DoctorScheduleViewModel>();
-            dialogService = App.Services.GetRequiredService<DialogService>();
-            DataContext = vm;
+            viewModel = App.Services.GetRequiredService<DoctorScheduleViewModel>();
+            dialogPresenter = App.Services.GetRequiredService<DialogPresenter>();
+            DataContext = viewModel;
         }
 
         protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
 
-            dialogService.SetXamlRoot(this.XamlRoot);
+            dialogPresenter.SetXamlRoot(this.XamlRoot);
 
             if (initialized)
             {
@@ -36,10 +37,10 @@ namespace DevCoreHospital.Views.Doctor
 
             initialized = true;
 
-            await vm.InitializeAsync();
+            await viewModel.InitializeAsync();
         }
 
-        private void DateCalendar_SelectedDatesChanged(CalendarView sender, CalendarViewSelectedDatesChangedEventArgs args)
+        private void DateCalendar_SelectedDatesChanged(CalendarView sender, CalendarViewSelectedDatesChangedEventArgs eventArgs)
         {
             if (sender.SelectedDates == null || sender.SelectedDates.Count == 0)
             {
@@ -53,7 +54,7 @@ namespace DevCoreHospital.Views.Doctor
                 return;
             }
 
-            vm.SelectedDate = picked;
+            viewModel.SelectedDate = picked;
         }
 
         private void DetailsButton_Click(object sender, RoutedEventArgs e)

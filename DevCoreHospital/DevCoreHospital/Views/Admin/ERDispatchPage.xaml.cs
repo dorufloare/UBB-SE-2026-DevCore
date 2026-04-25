@@ -51,7 +51,7 @@ namespace DevCoreHospital.Views
 
         private async void ApplyOverride_Click(object sender, RoutedEventArgs e)
         {
-            if (UnmatchedRequestCombo.SelectedItem is not ERDispatchViewModel.UnmatchedRequestRow req)
+            if (UnmatchedRequestCombo.SelectedItem is not ERDispatchViewModel.UnmatchedRequestRow selectedRequest)
             {
                 return;
             }
@@ -61,7 +61,7 @@ namespace DevCoreHospital.Views
                 return;
             }
 
-            var success = await ViewModel.ApplyOverrideAsync(req.RequestId, candidate.DoctorId);
+            var success = await ViewModel.ApplyOverrideAsync(selectedRequest.RequestId, candidate.DoctorId);
             if (!success)
             {
                 return;

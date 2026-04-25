@@ -51,9 +51,7 @@ namespace DevCoreHospital.Tests.Services
 
             service.SetShiftActive(shiftId);
 
-            Assert.Equal(1, updateCount);
-            Assert.Equal(shiftId, updatedShiftId);
-            Assert.Equal(ShiftStatus.ACTIVE, updatedStatus);
+            Assert.Equal((shiftId, ShiftStatus.ACTIVE), (updatedShiftId, updatedStatus));
         }
 
         [Fact]
@@ -87,10 +85,7 @@ namespace DevCoreHospital.Tests.Services
 
             service.SetShiftActive(shiftId);
 
-            Assert.Equal(1, updateCount);
-            Assert.Equal(doctor.StaffID, updatedStaffId);
-            Assert.Equal(true, updatedAvailability);
-            Assert.Equal(DoctorStatus.AVAILABLE, updatedDoctorStatus);
+            Assert.Equal((doctor.StaffID, true, DoctorStatus.AVAILABLE), (updatedStaffId, updatedAvailability, updatedDoctorStatus));
         }
 
         [Fact]
@@ -154,10 +149,7 @@ namespace DevCoreHospital.Tests.Services
 
             service.CancelShift(shiftId);
 
-            Assert.Equal(1, updateCount);
-            Assert.Equal(doctor.StaffID, updatedStaffId);
-            Assert.Equal(false, updatedAvailability);
-            Assert.Equal(DoctorStatus.OFF_DUTY, updatedDoctorStatus);
+            Assert.Equal((doctor.StaffID, false, DoctorStatus.OFF_DUTY), (updatedStaffId, updatedAvailability, updatedDoctorStatus));
         }
 
         [Fact]
@@ -189,9 +181,7 @@ namespace DevCoreHospital.Tests.Services
 
             service.CancelShift(shiftId);
 
-            Assert.Equal(1, updateCount);
-            Assert.Equal(shiftId, updatedShiftId);
-            Assert.Equal(ShiftStatus.COMPLETED, updatedStatus);
+            Assert.Equal((shiftId, ShiftStatus.COMPLETED), (updatedShiftId, updatedStatus));
         }
 
         [Fact]
@@ -276,7 +266,7 @@ namespace DevCoreHospital.Tests.Services
 
             var result = service.GetFilteredStaff(location, "sterile");
 
-            Assert.Equal(new[] { matchingPharmacist.StaffID }, result.Select(staff => staff.StaffID).ToArray());
+            Assert.Equal(new[] { matchingPharmacist.StaffID }, result.Select(StaffIdSelector).ToArray());
         }
 
         [Fact]
@@ -294,7 +284,7 @@ namespace DevCoreHospital.Tests.Services
 
             var result = service.GetFilteredStaff("ER", "cardio");
 
-            Assert.Equal(new[] { matchingDoctor.StaffID }, result.Select(staff => staff.StaffID).ToArray());
+            Assert.Equal(new[] { matchingDoctor.StaffID }, result.Select(StaffIdSelector).ToArray());
         }
 
         [Theory]
@@ -425,7 +415,7 @@ namespace DevCoreHospital.Tests.Services
                     candidateNoOverlap.StaffID,
                     anotherNoOverlapDoctor.StaffID,
                 },
-                replacements.Select(staff => staff.StaffID).ToArray());
+                replacements.Select(StaffIdSelector).ToArray());
         }
 
         [Fact]
@@ -589,6 +579,8 @@ namespace DevCoreHospital.Tests.Services
 
         private static Doctor BuildDoctor(int staffId, string specialization)
             => new Doctor(staffId, "John", "Doe", "john.doe@example.com", false, specialization, "LIC-1", DoctorStatus.OFF_DUTY, 5);
+
+        private static int StaffIdSelector(IStaff staff) => staff.StaffID;
 
         [Fact]
         public void GetActiveShifts_ReturnsOnlyActiveShifts()

@@ -10,6 +10,13 @@ namespace DevCoreHospital.ViewModels.Pharmacy;
 
 public class PharmacyScheduleViewModel : ObservableObject
 {
+    private const string PharmacistRoleLabel = "Pharmacist";
+    private const string AdminRoleLabel = "Admin";
+    private const string DailyDateFormat = "dddd, dd MMM yyyy";
+    private const string WeeklyDateFormat = "dd MMM yyyy";
+    private const int DaysInWeek = 7;
+    private const int OneDay = 1;
+
     private readonly ICurrentUserService currentUser;
     private readonly IPharmacyScheduleService scheduleService;
     private bool isInitializing;
@@ -73,18 +80,24 @@ public class PharmacyScheduleViewModel : ObservableObject
         set => IsWeeklyView = !value;
     }
 
-    public string HeaderSubtitle =>
-        IsWeeklyView
-            ? $"Week of {StartOfWeek(AnchorDate):dd MMM yyyy} \u2013 {StartOfWeek(AnchorDate).AddDays(6):dd MMM yyyy}"
-            : AnchorDate.ToString("dddd, dd MMM yyyy");
+    public string HeaderSubtitle
+    {
+        get
+        {
+            const int LastDayOfWeekOffset = DaysInWeek - 1;
+            return IsWeeklyView
+                ? $"Week of {StartOfWeek(AnchorDate).ToString(WeeklyDateFormat)} – {StartOfWeek(AnchorDate).AddDays(LastDayOfWeekOffset).ToString(WeeklyDateFormat)}"
+                : AnchorDate.ToString(DailyDateFormat);
+        }
+    }
 
     public string SelectedDateText =>
         IsWeeklyView
-            ? $"Week of {StartOfWeek(AnchorDate):dd MMM yyyy}"
-            : AnchorDate.ToString("dddd, dd MMM yyyy");
+            ? $"Week of {StartOfWeek(AnchorDate).ToString(WeeklyDateFormat)}"
+            : AnchorDate.ToString(DailyDateFormat);
 
-    public bool IsPharmacist => string.Equals(currentUser.Role, "Pharmacist", StringComparison.OrdinalIgnoreCase) ||
-                                string.Equals(currentUser.Role, "Admin", StringComparison.OrdinalIgnoreCase);
+    public bool IsPharmacist => string.Equals(currentUser.Role, PharmacistRoleLabel, StringComparison.OrdinalIgnoreCase) ||
+                                string.Equals(currentUser.Role, AdminRoleLabel, StringComparison.OrdinalIgnoreCase);
     public bool IsAccessDenied => !IsPharmacist;
     public bool IsEmpty => !IsLoading && string.IsNullOrWhiteSpace(ErrorMessage) && Shifts.Count == 0;
 
@@ -108,10 +121,10 @@ public class PharmacyScheduleViewModel : ObservableObject
         void SetToday() => AnchorDate = DateTime.Today;
         TodayCommand = new RelayCommand(SetToday, CanExecuteAsPharmacist);
 
-        void GoToNextPeriod() => AnchorDate = IsWeeklyView ? AnchorDate.AddDays(7) : AnchorDate.AddDays(1);
+        void GoToNextPeriod() => AnchorDate = IsWeeklyView ? AnchorDate.AddDays(DaysInWeek) : AnchorDate.AddDays(OneDay);
         NextPeriodCommand = new RelayCommand(GoToNextPeriod, CanExecuteAsPharmacist);
 
-        void GoToPreviousPeriod() => AnchorDate = IsWeeklyView ? AnchorDate.AddDays(-7) : AnchorDate.AddDays(-1);
+        void GoToPreviousPeriod() => AnchorDate = IsWeeklyView ? AnchorDate.AddDays(-DaysInWeek) : AnchorDate.AddDays(-OneDay);
         PreviousPeriodCommand = new RelayCommand(GoToPreviousPeriod, CanExecuteAsPharmacist);
 
         void ShowDaily() => IsWeeklyView = false;
@@ -139,7 +152,7 @@ public class PharmacyScheduleViewModel : ObservableObject
     private static DateTime StartOfWeek(DateTime date)
     {
         var normalizedDate = date.Date;
-        var daysFromMonday = (7 + (int)normalizedDate.DayOfWeek - (int)DayOfWeek.Monday) % 7;
+        var daysFromMonday = (DaysInWeek + (int)normalizedDate.DayOfWeek - (int)DayOfWeek.Monday) % DaysInWeek;
         return normalizedDate.AddDays(-daysFromMonday);
     }
 
@@ -168,7 +181,7 @@ public class PharmacyScheduleViewModel : ObservableObject
             }
 
             var rangeStart = IsWeeklyView ? StartOfWeek(AnchorDate) : AnchorDate.Date;
-            var rangeEnd = IsWeeklyView ? rangeStart.AddDays(7) : rangeStart.AddDays(1);
+            var rangeEnd = IsWeeklyView ? rangeStart.AddDays(DaysInWeek) : rangeStart.AddDays(OneDay);
 
             var staffId = SelectedPharmacist.StaffId;
             var rawShifts = await scheduleService.GetShiftsAsync(staffId, rangeStart, rangeEnd);

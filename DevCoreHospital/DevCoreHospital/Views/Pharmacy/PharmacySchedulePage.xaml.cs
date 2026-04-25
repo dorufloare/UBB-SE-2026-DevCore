@@ -25,7 +25,7 @@ public sealed partial class PharmacySchedulePage : Page
         await ViewModel.InitializeAsync();
     }
 
-    private void DateCalendar_SelectedDatesChanged(CalendarView sender, CalendarViewSelectedDatesChangedEventArgs args)
+    private void DateCalendar_SelectedDatesChanged(CalendarView sender, CalendarViewSelectedDatesChangedEventArgs eventArgs)
     {
         if (sender.SelectedDates == null || sender.SelectedDates.Count == 0)
         {

@@ -68,8 +68,11 @@ namespace DevCoreHospital.Services
                 throw new ArgumentException("Hangout not found.");
             }
 
+            bool IsForCurrentHangout((int HangoutId, int StaffId) participant) => participant.HangoutId == hangoutId;
+            bool IsCurrentStaffMember((int HangoutId, int StaffId) participant) => participant.StaffId == staff.StaffID;
+
             var participantsForHangout = hangoutParticipantRepository.GetAllParticipants()
-                .Where(participant => participant.HangoutId == hangoutId)
+                .Where(IsForCurrentHangout)
                 .ToList();
 
             if (participantsForHangout.Count >= hangout.MaxParticipants)
@@ -77,7 +80,7 @@ namespace DevCoreHospital.Services
                 throw new InvalidOperationException("This hangout is already full.");
             }
 
-            if (participantsForHangout.Any(participant => participant.StaffId == staff.StaffID))
+            if (participantsForHangout.Any(IsCurrentStaffMember))
             {
                 throw new InvalidOperationException("You have already joined this hangout.");
             }
@@ -92,15 +95,20 @@ namespace DevCoreHospital.Services
 
         public List<Hangout> GetAllHangouts()
         {
+            int ByStaffId(IStaff staffMember) => staffMember.StaffID;
+
             var hangouts = hangoutRepository.GetAllHangouts();
             var allParticipants = hangoutParticipantRepository.GetAllParticipants();
-            var allStaffById = staffRepository.LoadAllStaff().ToDictionary(staffMember => staffMember.StaffID);
+            var allStaffById = staffRepository.LoadAllStaff().ToDictionary(ByStaffId);
 
             foreach (var hangout in hangouts)
             {
+                bool IsForThisHangout((int HangoutId, int StaffId) participant) => participant.HangoutId == hangout.HangoutID;
+                int ToStaffId((int HangoutId, int StaffId) participant) => participant.StaffId;
+
                 var staffIdsForHangout = allParticipants
-                    .Where(participant => participant.HangoutId == hangout.HangoutID)
-                    .Select(participant => participant.StaffId);
+                    .Where(IsForThisHangout)
+                    .Select(ToStaffId);
                 foreach (var staffId in staffIdsForHangout)
                 {
                     if (allStaffById.TryGetValue(staffId, out var staffMember))
@@ -114,17 +122,20 @@ namespace DevCoreHospital.Services
 
         private bool HasConflictingAppointmentOnDate(int staffId, DateTime date)
         {
-            var allAppointments = System.Threading.Tasks.Task.Run(() => appointmentRepository.GetAllAppointmentsAsync()).GetAwaiter().GetResult();
+            System.Threading.Tasks.Task<IReadOnlyList<Appointment>> LoadAllAppointments() => appointmentRepository.GetAllAppointmentsAsync();
+            var allAppointments = System.Threading.Tasks.Task.Run(LoadAllAppointments).GetAwaiter().GetResult();
 
             bool IsActiveStatus(string status) =>
                 !string.Equals(status, FinishedAppointmentStatus, StringComparison.OrdinalIgnoreCase)
                 && !string.Equals(status, CanceledAppointmentStatusUs, StringComparison.OrdinalIgnoreCase)
                 && !string.Equals(status, CancelledAppointmentStatusUk, StringComparison.OrdinalIgnoreCase);
 
-            return allAppointments.Any(appointment =>
+            bool IsConflictingForStaff(Appointment appointment) =>
                 appointment.DoctorId == staffId
                 && appointment.Date.Date == date.Date
-                && IsActiveStatus(appointment.Status));
+                && IsActiveStatus(appointment.Status);
+
+            return allAppointments.Any(IsConflictingForStaff);
         }
     }
 }

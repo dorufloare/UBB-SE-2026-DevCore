@@ -192,21 +192,32 @@ public class IncomingSwapRequestsViewModelTests
         Assert.Null(viewModel.SelectedDoctor);
     }
 
-    [Fact]
-    public void DisplayText_ContainsSwapIdShiftIdAndRequesterId()
-    {
-        var item = new IncomingSwapRequestItemViewModel
+    private static IncomingSwapRequestItemViewModel BuildSwapRequestItem() =>
+        new IncomingSwapRequestItemViewModel
         {
             SwapId = 7,
             ShiftId = 42,
             RequesterId = 3,
             RequestedAt = new DateTime(2025, 6, 15, 10, 30, 0),
-            Status = "PENDING"
+            Status = "PENDING",
         };
 
-        Assert.Contains("7", item.DisplayText);
-        Assert.Contains("42", item.DisplayText);
-        Assert.Contains("3", item.DisplayText);
+    [Fact]
+    public void DisplayText_WhenItemPopulated_ContainsSwapId()
+    {
+        Assert.Contains("7", BuildSwapRequestItem().DisplayText);
+    }
+
+    [Fact]
+    public void DisplayText_WhenItemPopulated_ContainsShiftId()
+    {
+        Assert.Contains("42", BuildSwapRequestItem().DisplayText);
+    }
+
+    [Fact]
+    public void DisplayText_WhenItemPopulated_ContainsRequesterId()
+    {
+        Assert.Contains("3", BuildSwapRequestItem().DisplayText);
     }
 
     [Fact]

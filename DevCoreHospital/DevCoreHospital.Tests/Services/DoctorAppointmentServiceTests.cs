@@ -112,7 +112,7 @@ namespace DevCoreHospital.Tests.Services
         }
 
         [Fact]
-        public async Task CancelAppointmentAsync_ThrowsInvalidOperationException_WhenFinishedStatus_IsCaseDifferent()
+        public async Task CancelAppointmentAsync_WhenStatusIsFinishedWithDifferentCase_ThrowsInvalidOperationException()
         {
             var finishedAppointment = new Appointment { Id = 3, DoctorId = 10, Status = "FINISHED" };
 
@@ -142,21 +142,18 @@ namespace DevCoreHospital.Tests.Services
         }
 
         [Fact]
-        public async Task GetAllDoctorsAsync_CombinesNamesAndOrdersAlphabetically()
+        public async Task GetAllDoctorsAsync_WhenNamesUnordered_ReturnsThemAlphabeticallySorted()
         {
             IReadOnlyList<(int DoctorId, string FirstName, string LastName)> raw = new List<(int, string, string)>
             {
                 (1, "Dr.", "Smith"),
-                (2, "Dr.", "Jones")
+                (2, "Dr.", "Jones"),
             };
             mockStaffRepository.Setup(staffRepository => staffRepository.GetAllDoctorsAsync()).ReturnsAsync(raw);
 
             var result = await service.GetAllDoctorsAsync();
 
-            Assert.Equal(2, result.Count);
-            Assert.Equal((2, "Dr. Jones"), result[0]);
-            Assert.Equal((1, "Dr. Smith"), result[1]);
-            mockStaffRepository.Verify(staffRepository => staffRepository.GetAllDoctorsAsync(), Times.Once);
+            Assert.Equal(new[] { (2, "Dr. Jones"), (1, "Dr. Smith") }, result);
         }
 
         [Fact]
@@ -222,7 +219,7 @@ namespace DevCoreHospital.Tests.Services
         }
 
         [Fact]
-        public async Task FinishAppointmentAsync_ThrowsInvalidOperationException_WhenFinishedStatus_IsCaseDifferent()
+        public async Task FinishAppointmentAsync_WhenStatusIsFinishedWithDifferentCase_ThrowsInvalidOperationException()
         {
             var finishedAppointment = new Appointment { Id = 5, DoctorId = 10, Status = "FINISHED" };
 

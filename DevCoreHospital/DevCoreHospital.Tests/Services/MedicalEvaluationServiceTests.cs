@@ -154,21 +154,20 @@ namespace DevCoreHospital.Tests.Services
         }
 
         [Fact]
-        public void CheckMedicineConflict_ReturnsHistoryAlert_WhenPatientHadAllergyToSameMed()
+        public void CheckMedicineConflict_WhenPatientHadAllergyToSameMed_ReturnsHistoryAlert()
         {
             var pastEvaluation = new MedicalEvaluation
             {
                 PatientId = "P1",
                 Symptoms = "Allergy reported",
-                MedsList = "Penicillin",
+                MedicationsList = "Penicillin",
             };
             evaluationsRepository.Setup(repository => repository.GetAllEvaluations())
                 .Returns(new List<MedicalEvaluation> { pastEvaluation });
 
             var result = CreateService().CheckMedicineConflict("P1", "Penicillin");
 
-            Assert.NotNull(result);
-            Assert.Contains("HISTORY ALERT", result);
+            Assert.Contains("HISTORY ALERT", result ?? string.Empty);
         }
     }
 }

@@ -60,34 +60,13 @@ namespace DevCoreHospital.ViewModels
 
             ComputeSalaryCommand = new AsyncRelayCommand(ComputeSalaryAsync, CanComputeSalary);
 
-            foreach (var staff in staffList)
-            {
-                StaffList.Add(staff);
-            }
-
-            foreach (var shift in shiftList)
-            {
-                ShiftList.Add(shift);
-            }
+            StaffList.ReplaceWith(staffList);
+            ShiftList.ReplaceWith(shiftList);
         }
 
-        private void LoadStaffList()
-        {
-            StaffList.Clear();
-            foreach (var staff in salaryService.GetAllStaff())
-            {
-                StaffList.Add(staff);
-            }
-        }
+        private void LoadStaffList() => StaffList.ReplaceWith(salaryService.GetAllStaff());
 
-        private void LoadShiftList()
-        {
-            ShiftList.Clear();
-            foreach (var shift in salaryService.GetAllShifts())
-            {
-                ShiftList.Add(shift);
-            }
-        }
+        private void LoadShiftList() => ShiftList.ReplaceWith(salaryService.GetAllShifts());
 
         private bool CanComputeSalary()
         {

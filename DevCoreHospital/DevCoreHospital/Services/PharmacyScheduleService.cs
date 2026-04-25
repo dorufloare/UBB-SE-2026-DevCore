@@ -24,12 +24,14 @@ public sealed class PharmacyScheduleService : IPharmacyScheduleService
             shift.AppointedStaff.StaffID == pharmacistStaffId
             && shift.StartTime < rangeEnd
             && shift.EndTime > rangeStart;
+        DateTime ByStartTime(Shift shift) => shift.StartTime;
 
-        return Task.Run<IReadOnlyList<Shift>>(
-            () => shiftRepository.GetAllShifts()
-                .Where(IsForStaffInRange)
-                .OrderBy(shift => shift.StartTime)
-                .ToList());
+        IReadOnlyList<Shift> LoadAndFilter() => shiftRepository.GetAllShifts()
+            .Where(IsForStaffInRange)
+            .OrderBy(ByStartTime)
+            .ToList();
+
+        return Task.Run(LoadAndFilter);
     }
 
     public List<Pharmacyst> GetPharmacists() => staffRepository.GetPharmacists();

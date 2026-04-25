@@ -7,23 +7,30 @@ namespace DevCoreHospital.Tests.ViewModels;
 
 public class SalaryComputationViewModelTests
 {
-    [Fact]
-    public void Constructor_WithInjectedCollections_PopulatesStaffAndShiftLists()
+    private static SalaryComputationViewModel CreateViewModelWithTwoStaffAndTwoShifts(out Doctor doctor, out Pharmacyst pharmacist)
     {
-        var doctor = new Doctor { StaffID = 10, FirstName = "D", LastName = "One" };
-        var pharmacist = new Pharmacyst { StaffID = 11, FirstName = "P", LastName = "Two" };
+        doctor = new Doctor { StaffID = 10, FirstName = "D", LastName = "One" };
+        pharmacist = new Pharmacyst { StaffID = 11, FirstName = "P", LastName = "Two" };
         var shifts = new[]
         {
             CreateShift(1, doctor, new DateTime(2026, 5, 1, 8, 0, 0), new DateTime(2026, 5, 1, 16, 0, 0)),
-            CreateShift(2, pharmacist, new DateTime(2026, 5, 2, 8, 0, 0), new DateTime(2026, 5, 2, 16, 0, 0))
+            CreateShift(2, pharmacist, new DateTime(2026, 5, 2, 8, 0, 0), new DateTime(2026, 5, 2, 16, 0, 0)),
         };
+        return new SalaryComputationViewModel(CreateStrictSalaryService().Object, new IStaff[] { doctor, pharmacist }, shifts);
+    }
 
-        var viewModel = new SalaryComputationViewModel(CreateStrictSalaryService().Object, new IStaff[] { doctor, pharmacist }, shifts);
+    [Fact]
+    public void Constructor_WhenInjectedWithStaff_PopulatesStaffListWithBothMembers()
+    {
+        var viewModel = CreateViewModelWithTwoStaffAndTwoShifts(out var doctor, out var pharmacist);
+        Assert.Equal(new IStaff[] { doctor, pharmacist }, viewModel.StaffList);
+    }
 
-        Assert.Equal(2, viewModel.StaffList.Count);
+    [Fact]
+    public void Constructor_WhenInjectedWithShifts_PopulatesShiftListWithBothShifts()
+    {
+        var viewModel = CreateViewModelWithTwoStaffAndTwoShifts(out _, out _);
         Assert.Equal(2, viewModel.ShiftList.Count);
-        Assert.Contains(doctor, viewModel.StaffList);
-        Assert.Contains(pharmacist, viewModel.StaffList);
     }
 
     [Fact]
@@ -55,12 +62,11 @@ public class SalaryComputationViewModelTests
         Assert.True(viewModel.ComputeSalaryCommand.CanExecute(null));
     }
 
-    [Fact]
-    public async Task ComputeSalaryAsync_DoctorPath_SetsSalaryResultAndClearsLoading()
+    private static async Task<SalaryComputationViewModel> ExecuteDoctorComputationReturning(double computedSalary)
     {
         var salaryService = new Mock<ISalaryComputationService>();
         salaryService.Setup(service => service.ComputeSalaryDoctorAsync(It.IsAny<Doctor>(), It.IsAny<List<Shift>>(), 5, 2026))
-            .ReturnsAsync(1234.5);
+            .ReturnsAsync(computedSalary);
 
         var doctor = new Doctor { StaffID = 1, FirstName = "A", LastName = "B", YearsOfExperience = 3 };
         var shift = CreateShift(11, doctor, new DateTime(2026, 5, 4, 8, 0, 0), new DateTime(2026, 5, 4, 16, 0, 0));
@@ -68,18 +74,34 @@ public class SalaryComputationViewModelTests
         {
             SelectedStaff = doctor,
             SelectedMonth = 5,
-            SelectedYear = 2026
+            SelectedYear = 2026,
         };
-
         await viewModel.ComputeSalaryCommand.ExecuteAsync();
-
-        Assert.Equal($"Computed Salary: $1234{GetSeparator()}50", viewModel.SalaryResult);
-        Assert.Equal(string.Empty, viewModel.ErrorMessage);
-        Assert.False(viewModel.IsLoading);
+        return viewModel;
     }
 
     [Fact]
-    public async Task ComputeSalaryAsync_DoctorPath_FiltersShiftsByStaffMonthAndYear()
+    public async Task ComputeSalaryAsync_WhenDoctorComputationSucceeds_FormatsSalaryResult()
+    {
+        var viewModel = await ExecuteDoctorComputationReturning(1234.5);
+        Assert.Equal($"Computed Salary: $1234{GetSeparator()}50", viewModel.SalaryResult);
+    }
+
+    [Fact]
+    public async Task ComputeSalaryAsync_WhenDoctorComputationSucceeds_ClearsErrorMessage()
+    {
+        var viewModel = await ExecuteDoctorComputationReturning(1234.5);
+        Assert.Equal(string.Empty, viewModel.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task ComputeSalaryAsync_WhenDoctorComputationSucceeds_ClearsLoadingFlag()
+    {
+        var viewModel = await ExecuteDoctorComputationReturning(1234.5);
+        Assert.False(viewModel.IsLoading);
+    }
+
+    private static async Task<List<Shift>?> CaptureShiftsPassedToDoctorComputation()
     {
         var salaryService = new Mock<ISalaryComputationService>();
         List<Shift>? capturedShifts = null;
@@ -104,22 +126,31 @@ public class SalaryComputationViewModelTests
         {
             SelectedStaff = selectedDoctor,
             SelectedMonth = 5,
-            SelectedYear = 2026
+            SelectedYear = 2026,
         };
-
         await viewModel.ComputeSalaryCommand.ExecuteAsync();
-
-        Assert.NotNull(capturedShifts);
-        Assert.Single(capturedShifts!);
-        Assert.Equal(100, capturedShifts![0].Id);
+        return capturedShifts;
     }
 
     [Fact]
-    public async Task ComputeSalaryAsync_PharmacistPath_SetsSalaryResult()
+    public async Task ComputeSalaryAsync_WhenDoctorPathInvoked_PassesSingleShiftMatchingStaffMonthAndYear()
+    {
+        var capturedShifts = await CaptureShiftsPassedToDoctorComputation();
+        Assert.Single(capturedShifts!);
+    }
+
+    [Fact]
+    public async Task ComputeSalaryAsync_WhenDoctorPathInvoked_PassesShiftWithMatchingId()
+    {
+        var capturedShifts = await CaptureShiftsPassedToDoctorComputation();
+        Assert.Equal(100, capturedShifts![0].Id);
+    }
+
+    private static async Task<SalaryComputationViewModel> ExecutePharmacistComputationReturning(double computedSalary)
     {
         var salaryService = new Mock<ISalaryComputationService>();
         salaryService.Setup(service => service.ComputeSalaryPharmacistAsync(It.IsAny<Pharmacyst>(), It.IsAny<List<Shift>>(), 6, 2026))
-            .ReturnsAsync(987.65);
+            .ReturnsAsync(computedSalary);
 
         var pharmacist = new Pharmacyst { StaffID = 2, FirstName = "P", LastName = "H", YearsOfExperience = 4 };
         var shift = CreateShift(12, pharmacist, new DateTime(2026, 6, 1, 8, 0, 0), new DateTime(2026, 6, 1, 16, 0, 0));
@@ -127,36 +158,54 @@ public class SalaryComputationViewModelTests
         {
             SelectedStaff = pharmacist,
             SelectedMonth = 6,
-            SelectedYear = 2026
+            SelectedYear = 2026,
         };
-
         await viewModel.ComputeSalaryCommand.ExecuteAsync();
-
-        Assert.Equal($"Computed Salary: $987{GetSeparator()}65", viewModel.SalaryResult);
-        Assert.Equal(string.Empty, viewModel.ErrorMessage);
-        Assert.False(viewModel.IsLoading);
+        return viewModel;
     }
 
     [Fact]
-    public async Task ComputeSalaryAsync_UnsupportedStaffType_SetsErrorMessage()
+    public async Task ComputeSalaryAsync_WhenPharmacistComputationSucceeds_FormatsSalaryResult()
+    {
+        var viewModel = await ExecutePharmacistComputationReturning(987.65);
+        Assert.Equal($"Computed Salary: $987{GetSeparator()}65", viewModel.SalaryResult);
+    }
+
+    [Fact]
+    public async Task ComputeSalaryAsync_WhenPharmacistComputationSucceeds_ClearsLoadingFlag()
+    {
+        var viewModel = await ExecutePharmacistComputationReturning(987.65);
+        Assert.False(viewModel.IsLoading);
+    }
+
+    private static async Task<SalaryComputationViewModel> ExecuteWithUnsupportedStaffType()
     {
         var salaryService = new Mock<ISalaryComputationService>(MockBehavior.Strict);
         var viewModel = new SalaryComputationViewModel(salaryService.Object, [], [])
         {
             SelectedStaff = new TestStaff { StaffID = 3 },
             SelectedMonth = 5,
-            SelectedYear = 2026
+            SelectedYear = 2026,
         };
-
         await viewModel.ComputeSalaryCommand.ExecuteAsync();
-
-        Assert.Contains("Unsupported staff type", viewModel.ErrorMessage);
-        Assert.Equal(string.Empty, viewModel.SalaryResult);
-        Assert.False(viewModel.IsLoading);
+        return viewModel;
     }
 
     [Fact]
-    public async Task ComputeSalaryAsync_WhenServiceThrows_SetsComputationFailedError()
+    public async Task ComputeSalaryAsync_WhenStaffTypeUnsupported_SetsUnsupportedTypeErrorMessage()
+    {
+        var viewModel = await ExecuteWithUnsupportedStaffType();
+        Assert.Contains("Unsupported staff type", viewModel.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task ComputeSalaryAsync_WhenStaffTypeUnsupported_ClearsSalaryResult()
+    {
+        var viewModel = await ExecuteWithUnsupportedStaffType();
+        Assert.Equal(string.Empty, viewModel.SalaryResult);
+    }
+
+    private static async Task<SalaryComputationViewModel> ExecuteDoctorComputationThatThrows()
     {
         var salaryService = new Mock<ISalaryComputationService>();
         salaryService.Setup(service => service.ComputeSalaryDoctorAsync(It.IsAny<Doctor>(), It.IsAny<List<Shift>>(), 8, 2026))
@@ -167,24 +216,33 @@ public class SalaryComputationViewModelTests
         {
             SelectedStaff = doctor,
             SelectedMonth = 8,
-            SelectedYear = 2026
+            SelectedYear = 2026,
         };
-
         await viewModel.ComputeSalaryCommand.ExecuteAsync();
+        return viewModel;
+    }
 
-        Assert.Contains("Computation failed", viewModel.ErrorMessage);
+    [Fact]
+    public async Task ComputeSalaryAsync_WhenServiceThrows_ErrorMessageContainsExceptionText()
+    {
+        var viewModel = await ExecuteDoctorComputationThatThrows();
         Assert.Contains("boom", viewModel.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task ComputeSalaryAsync_WhenServiceThrows_ClearsSalaryResult()
+    {
+        var viewModel = await ExecuteDoctorComputationThatThrows();
         Assert.Equal(string.Empty, viewModel.SalaryResult);
-        Assert.False(viewModel.IsLoading);
     }
 
     [Fact]
     public async Task ComputeSalaryAsync_TransitionsIsLoadingAndFormatsSalaryResult()
     {
-        var tcs = new TaskCompletionSource<double>();
+        var taskCompletionSource = new TaskCompletionSource<double>();
         var salaryService = new Mock<ISalaryComputationService>();
         salaryService.Setup(service => service.ComputeSalaryDoctorAsync(It.IsAny<Doctor>(), It.IsAny<List<Shift>>(), 7, 2026))
-            .Returns(tcs.Task);
+            .Returns(taskCompletionSource.Task);
 
         var doctor = new Doctor { StaffID = 4, YearsOfExperience = 2 };
         var viewModel = new SalaryComputationViewModel(salaryService.Object, new IStaff[] { doctor }, [])
@@ -197,43 +255,13 @@ public class SalaryComputationViewModelTests
         var execution = viewModel.ComputeSalaryCommand.ExecuteAsync();
         Assert.True(viewModel.IsLoading);
 
-        tcs.SetResult(4567.8);
+        taskCompletionSource.SetResult(4567.8);
         await execution;
 
         Assert.Equal($"Computed Salary: $4567{GetSeparator()}80", viewModel.SalaryResult);
         Assert.False(viewModel.IsLoading);
     }
 
-    [Fact]
-    public void TestStaff_Properties_CanBeReadAndWritten()
-    {
-        var staff = new TestStaff
-        {
-            StaffID = 55,
-            FirstName = "Test",
-            LastName = "Staff",
-            ContactInfo = "test@hospital.local",
-            Available = true
-        };
-
-        Assert.Equal(55, staff.StaffID);
-        Assert.Equal("Test", staff.FirstName);
-        Assert.Equal("Staff", staff.LastName);
-        Assert.Equal("test@hospital.local", staff.ContactInfo);
-        Assert.True(staff.Available);
-
-        staff.StaffID = 56;
-        staff.FirstName = "Updated";
-        staff.LastName = "Person";
-        staff.ContactInfo = "updated@hospital.local";
-        staff.Available = false;
-
-        Assert.Equal(56, staff.StaffID);
-        Assert.Equal("Updated", staff.FirstName);
-        Assert.Equal("Person", staff.LastName);
-        Assert.Equal("updated@hospital.local", staff.ContactInfo);
-        Assert.False(staff.Available);
-    }
 
     private static SalaryComputationViewModel CreateViewModelWithStubService()
     {

@@ -6,6 +6,7 @@ using DevCoreHospital.ViewModels;
 using DevCoreHospital.ViewModels.Admin;
 using DevCoreHospital.ViewModels.Doctor;
 using DevCoreHospital.ViewModels.Pharmacy;
+using DevCoreHospital.Views.Shell;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 
@@ -23,7 +24,7 @@ namespace DevCoreHospital
             Services = ConfigureServices().BuildServiceProvider();
         }
 
-        protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
+        protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs eventArgs)
         {
             window = new MainWindow();
             window.Activate();
@@ -44,8 +45,7 @@ namespace DevCoreHospital
         private static void RegisterInfrastructure(IServiceCollection services)
         {
             services.AddSingleton<ICurrentUserService, CurrentUserService>();
-            services.AddSingleton<DialogService>();
-            services.AddSingleton<IDialogService>(serviceProvider => serviceProvider.GetRequiredService<DialogService>());
+            services.AddSingleton<DialogPresenter>();
         }
 
         private static void RegisterRepositories(IServiceCollection services)

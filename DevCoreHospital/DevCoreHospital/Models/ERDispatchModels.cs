@@ -4,11 +4,13 @@ namespace DevCoreHospital.Models
 {
     public sealed class ERRequest
     {
+        public const string PendingStatus = "PENDING";
+
         public int Id { get; set; }
         public string Specialization { get; set; } = string.Empty;
         public string Location { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
-        public string Status { get; set; } = "PENDING";
+        public string Status { get; set; } = PendingStatus;
         public int? AssignedDoctorId { get; set; }
         public string? AssignedDoctorName { get; set; }
     }

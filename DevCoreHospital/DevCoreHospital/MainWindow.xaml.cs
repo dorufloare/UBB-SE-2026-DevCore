@@ -12,9 +12,9 @@ namespace DevCoreHospital
             RootFrame.Navigate(typeof(RoleSelectionPage));
         }
 
-        private void NavView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
+        private void NavView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs eventArgs)
         {
-            if (args.SelectedItemContainer is not NavigationViewItem selected)
+            if (eventArgs.SelectedItemContainer is not NavigationViewItem selected)
             {
                 return;
             }

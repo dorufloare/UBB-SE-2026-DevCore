@@ -35,8 +35,10 @@ namespace DevCoreHospital.Services
         {
             bool IsFutureShiftForStaff(Shift shift) =>
                 shift.AppointedStaff.StaffID == staffId && shift.StartTime > DateTime.Now;
+            DateTime SortKey(Shift shift) => shift.StartTime;
             return shiftRepository.GetAllShifts()
                 .Where(IsFutureShiftForStaff)
+                .OrderBy(SortKey)
                 .ToList();
         }
 
@@ -47,7 +49,8 @@ namespace DevCoreHospital.Services
             error = string.Empty;
 
             var allShifts = shiftRepository.GetAllShifts();
-            var shift = allShifts.FirstOrDefault(existingShift => existingShift.Id == shiftId);
+            bool HasMatchingShiftId(Shift existingShift) => existingShift.Id == shiftId;
+            var shift = allShifts.FirstOrDefault(HasMatchingShiftId);
             if (shift == null)
             {
                 error = "Shift not found.";
@@ -67,7 +70,8 @@ namespace DevCoreHospital.Services
             }
 
             var allStaff = staffRepository.LoadAllStaff();
-            var requester = allStaff.FirstOrDefault(staffMember => staffMember.StaffID == requesterId);
+            bool HasRequesterId(IStaff staffMember) => staffMember.StaffID == requesterId;
+            var requester = allStaff.FirstOrDefault(HasRequesterId);
             if (requester == null)
             {
                 error = "Requester not found.";
@@ -104,12 +108,15 @@ namespace DevCoreHospital.Services
                     .ToList();
             }
 
-            bool HasNoOverlappingShifts(IStaff colleague) =>
-                !allShifts.Any(existingShift =>
+            bool HasNoOverlappingShifts(IStaff colleague)
+            {
+                bool OverlapsTargetShift(Shift existingShift) =>
                     existingShift.AppointedStaff.StaffID == colleague.StaffID
                     && existingShift.StartTime < shift.EndTime
                     && existingShift.EndTime > shift.StartTime
-                    && IsScheduledOrActive(existingShift));
+                    && IsScheduledOrActive(existingShift);
+                return !allShifts.Any(OverlapsTargetShift);
+            }
 
             return colleaguesWithSameProfile
                 .Where(HasNoOverlappingShifts)
@@ -134,7 +141,8 @@ namespace DevCoreHospital.Services
                 return false;
             }
 
-            var shift = shiftRepository.GetAllShifts().FirstOrDefault(existingShift => existingShift.Id == shiftId);
+            bool HasMatchingShiftIdInLookup(Shift existingShift) => existingShift.Id == shiftId;
+            var shift = shiftRepository.GetAllShifts().FirstOrDefault(HasMatchingShiftIdInLookup);
             var requester = staffRepository.GetStaffById(requesterId);
             if (requester == null)
             {
@@ -171,9 +179,11 @@ namespace DevCoreHospital.Services
         {
             bool IsPendingForColleague(ShiftSwapRequest swapRequest) =>
                 swapRequest.ColleagueId == colleagueId && swapRequest.Status == ShiftSwapRequestStatus.PENDING;
+            DateTime ByRequestedAt(ShiftSwapRequest swapRequest) => swapRequest.RequestedAt;
+
             return shiftSwapRepository.GetAllShiftSwapRequests()
                 .Where(IsPendingForColleague)
-                .OrderByDescending(swapRequest => swapRequest.RequestedAt)
+                .OrderByDescending(ByRequestedAt)
                 .ToList();
         }
 
@@ -201,7 +211,8 @@ namespace DevCoreHospital.Services
             }
 
             var allShifts = shiftRepository.GetAllShifts();
-            var shift = allShifts.FirstOrDefault(existingShift => existingShift.Id == swapRequest.ShiftId);
+            bool HasTargetShiftId(Shift existingShift) => existingShift.Id == swapRequest.ShiftId;
+            var shift = allShifts.FirstOrDefault(HasTargetShiftId);
             if (shift == null)
             {
                 message = "Shift not found.";
@@ -211,11 +222,13 @@ namespace DevCoreHospital.Services
             bool IsScheduledOrActive(Shift scheduledShift) =>
                 scheduledShift.Status == ShiftStatus.SCHEDULED || scheduledShift.Status == ShiftStatus.ACTIVE;
 
-            if (allShifts.Any(existingShift =>
-                    existingShift.AppointedStaff.StaffID == colleagueId
-                    && existingShift.StartTime < shift.EndTime
-                    && existingShift.EndTime > shift.StartTime
-                    && IsScheduledOrActive(existingShift)))
+            bool ColleagueOverlapsTargetShift(Shift existingShift) =>
+                existingShift.AppointedStaff.StaffID == colleagueId
+                && existingShift.StartTime < shift.EndTime
+                && existingShift.EndTime > shift.StartTime
+                && IsScheduledOrActive(existingShift);
+
+            if (allShifts.Any(ColleagueOverlapsTargetShift))
             {
                 message = "You are already scheduled to work in that interval.";
                 return false;
@@ -232,8 +245,17 @@ namespace DevCoreHospital.Services
             return true;
         }
 
-        public List<Doctor> GetAllDoctors() =>
-            staffRepository.LoadAllStaff().OfType<Doctor>().ToList();
+        public List<Doctor> GetAllDoctors()
+        {
+            string ByFirstName(Doctor doctor) => doctor.FirstName;
+            string ByLastName(Doctor doctor) => doctor.LastName;
+
+            return staffRepository.LoadAllStaff()
+                .OfType<Doctor>()
+                .OrderBy(ByFirstName)
+                .ThenBy(ByLastName)
+                .ToList();
+        }
 
         public bool RejectSwapRequest(int swapId, int colleagueId, out string message)
         {

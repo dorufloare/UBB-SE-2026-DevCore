@@ -8,6 +8,10 @@ namespace DevCoreHospital.Services
 {
     public class ShiftManagementService : IShiftManagementService
     {
+        private const int DaysInWeek = 7;
+        private const int NewShiftPlaceholderId = 0;
+        private const string PharmacyLocationLabel = "Pharmacy";
+
         private readonly IShiftManagementStaffRepository staffRepository;
         private readonly IShiftManagementShiftRepository shiftRepository;
 
@@ -19,7 +23,8 @@ namespace DevCoreHospital.Services
 
         public void SetShiftActive(int shiftId)
         {
-            var shift = shiftRepository.GetAllShifts().FirstOrDefault(existingShift => existingShift.Id == shiftId);
+            bool HasMatchingId(Shift existingShift) => existingShift.Id == shiftId;
+            var shift = shiftRepository.GetAllShifts().FirstOrDefault(HasMatchingId);
             if (shift != null)
             {
                 shiftRepository.UpdateShiftStatus(shiftId, ShiftStatus.ACTIVE);
@@ -29,7 +34,8 @@ namespace DevCoreHospital.Services
 
         public void CancelShift(int shiftId)
         {
-            var shift = shiftRepository.GetAllShifts().FirstOrDefault(existingShift => existingShift.Id == shiftId);
+            bool HasMatchingId(Shift existingShift) => existingShift.Id == shiftId;
+            var shift = shiftRepository.GetAllShifts().FirstOrDefault(HasMatchingId);
             if (shift != null)
             {
                 staffRepository.UpdateStaffAvailability(shift.AppointedStaff.StaffID, false, DoctorStatus.OFF_DUTY);
@@ -55,7 +61,7 @@ namespace DevCoreHospital.Services
                 return false;
             }
 
-            var newShift = new Shift(0, staff, location, start, end, ShiftStatus.SCHEDULED);
+            var newShift = new Shift(NewShiftPlaceholderId, staff, location, start, end, ShiftStatus.SCHEDULED);
             shiftRepository.AddShift(newShift);
             return true;
         }
@@ -71,7 +77,7 @@ namespace DevCoreHospital.Services
         public List<Shift> GetWeeklyShifts(DateTime date)
         {
             var weekStart = date.AddDays(-(int)DateTime.Now.DayOfWeek + (int)DayOfWeek.Monday);
-            var weekEnd = weekStart.AddDays(7);
+            var weekEnd = weekStart.AddDays(DaysInWeek);
 
             bool IsInWeek(Shift shift) => shift.StartTime >= weekStart && shift.StartTime < weekEnd;
             return GetHydratedShifts().Where(IsInWeek).ToList();
@@ -93,15 +99,18 @@ namespace DevCoreHospital.Services
             var allStaff = staffRepository.LoadAllStaff();
             var filteredStaff = new List<IStaff>();
 
-            if (location.Equals("Pharmacy", StringComparison.OrdinalIgnoreCase))
+            bool PharmacistHasCertification(Pharmacyst pharmacist) =>
+                pharmacist.Certification.Contains(requiredSpecializationOrCertification, StringComparison.OrdinalIgnoreCase);
+            bool DoctorHasSpecialization(Doctor doctor) =>
+                doctor.Specialization.Contains(requiredSpecializationOrCertification, StringComparison.OrdinalIgnoreCase);
+
+            if (location.Equals(PharmacyLocationLabel, StringComparison.OrdinalIgnoreCase))
             {
-                filteredStaff.AddRange(allStaff.OfType<Pharmacyst>()
-                    .Where(pharmacist => pharmacist.Certification.Contains(requiredSpecializationOrCertification, StringComparison.OrdinalIgnoreCase)));
+                filteredStaff.AddRange(allStaff.OfType<Pharmacyst>().Where(PharmacistHasCertification));
             }
             else
             {
-                filteredStaff.AddRange(allStaff.OfType<Doctor>()
-                    .Where(doctor => doctor.Specialization.Contains(requiredSpecializationOrCertification, StringComparison.OrdinalIgnoreCase)));
+                filteredStaff.AddRange(allStaff.OfType<Doctor>().Where(DoctorHasSpecialization));
             }
 
             return filteredStaff;
@@ -130,29 +139,34 @@ namespace DevCoreHospital.Services
             var qualificationNames = new List<string>();
             var allStaff = staffRepository.LoadAllStaff();
 
-            if (location.Equals("Pharmacy", StringComparison.OrdinalIgnoreCase))
+            bool HasCertification(Pharmacyst pharmacist) => !string.IsNullOrEmpty(pharmacist.Certification);
+            string ToCertification(Pharmacyst pharmacist) => pharmacist.Certification;
+            bool HasSpecialization(Doctor doctor) => !string.IsNullOrEmpty(doctor.Specialization);
+            string ToSpecialization(Doctor doctor) => doctor.Specialization;
+            string IdentityName(string name) => name;
+
+            if (location.Equals(PharmacyLocationLabel, StringComparison.OrdinalIgnoreCase))
             {
                 qualificationNames.AddRange(allStaff.OfType<Pharmacyst>()
-                    .Where(pharmacist => !string.IsNullOrEmpty(pharmacist.Certification))
-                    .Select(pharmacist => pharmacist.Certification));
+                    .Where(HasCertification)
+                    .Select(ToCertification));
             }
             else
             {
                 qualificationNames.AddRange(allStaff.OfType<Doctor>()
-                    .Where(doctor => !string.IsNullOrEmpty(doctor.Specialization))
-                    .Select(doctor => doctor.Specialization));
+                    .Where(HasSpecialization)
+                    .Select(ToSpecialization));
             }
 
-            return qualificationNames.Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(name => name).ToList();
+            return qualificationNames.Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(IdentityName).ToList();
         }
 
         public float GetWeeklyHours(int staffId)
         {
-            const int daysInWeek = 7;
             var now = DateTime.Now;
-            int daysFromMonday = (daysInWeek + (now.DayOfWeek - DayOfWeek.Monday)) % daysInWeek;
+            int daysFromMonday = (DaysInWeek + (now.DayOfWeek - DayOfWeek.Monday)) % DaysInWeek;
             var weekStart = now.Date.AddDays(-daysFromMonday);
-            var weekEnd = weekStart.AddDays(daysInWeek);
+            var weekEnd = weekStart.AddDays(DaysInWeek);
 
             bool IsForStaffInWeek(Shift shift) => shift.AppointedStaff.StaffID == staffId && shift.StartTime >= weekStart && shift.StartTime < weekEnd;
             float ToShiftHours(Shift shift) => (float)(shift.EndTime - shift.StartTime).TotalHours;
@@ -170,8 +184,9 @@ namespace DevCoreHospital.Services
 
         private List<Shift> GetHydratedShifts()
         {
+            int ByStaffId(IStaff staffMember) => staffMember.StaffID;
             var staffById = (staffRepository.LoadAllStaff() ?? new List<IStaff>())
-                .ToDictionary(staffMember => staffMember.StaffID);
+                .ToDictionary(ByStaffId);
             var hydratedShifts = new List<Shift>();
             foreach (var shift in shiftRepository.GetAllShifts() ?? new List<Shift>())
             {

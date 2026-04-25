@@ -110,11 +110,11 @@ public class MyScheduleViewModelTests
     [Fact]
     public void LoadFutureShifts_WhenDoctorHasNoFutureSlots_SetsNoFutureShiftMessage()
     {
-        var doc = new MDoctor(1, "A", "A", string.Empty, true, "S", "L", DoctorStatus.AVAILABLE, 1);
-        var past = new Shift(1, doc, "W", DateTime.UtcNow.AddDays(-2), DateTime.UtcNow.AddDays(-2).AddHours(1), ShiftStatus.SCHEDULED);
+        var doctor = new MDoctor(1, "A", "A", string.Empty, true, "S", "L", DoctorStatus.AVAILABLE, 1);
+        var pastShift = new Shift(1, doctor, "W", DateTime.UtcNow.AddDays(-2), DateTime.UtcNow.AddDays(-2).AddHours(1), ShiftStatus.SCHEDULED);
         var service = new FakeShiftSwapService();
-        service.AllDoctors.Add(doc);
-        service.FutureShiftsByStaffId[1] = new List<Shift> { past };
+        service.AllDoctors.Add(doctor);
+        service.FutureShiftsByStaffId[1] = new List<Shift> { pastShift };
         var viewModel = new MyScheduleViewModel(service);
 
         Assert.Equal("Selected doctor has no future shifts available for swap requests.", viewModel.StatusMessage);
@@ -123,11 +123,11 @@ public class MyScheduleViewModelTests
     [Fact]
     public void LoadEligibleColleagues_WhenServiceReturnsError_ShowsServiceError()
     {
-        var doc = new MDoctor(1, "A", "A", string.Empty, true, "S", "L", DoctorStatus.AVAILABLE, 1);
+        var doctor = new MDoctor(1, "A", "A", string.Empty, true, "S", "L", DoctorStatus.AVAILABLE, 1);
         var when = DateTime.UtcNow.AddDays(2);
-        var shiftOne = new Shift(8, doc, "W", when, when.AddHours(1), ShiftStatus.SCHEDULED);
+        var shiftOne = new Shift(8, doctor, "W", when, when.AddHours(1), ShiftStatus.SCHEDULED);
         var service = new FakeShiftSwapService { EligibleError = "Shift not found." };
-        service.AllDoctors.Add(doc);
+        service.AllDoctors.Add(doctor);
         service.FutureShiftsByStaffId[1] = new List<Shift> { shiftOne };
         var viewModel = new MyScheduleViewModel(service);
 
@@ -139,11 +139,11 @@ public class MyScheduleViewModelTests
     [Fact]
     public void LoadEligibleColleagues_WhenNoPeersInProfile_ExplainsNoColleagues()
     {
-        var doc = new MDoctor(1, "A", "A", string.Empty, true, "S", "L", DoctorStatus.AVAILABLE, 1);
+        var doctor = new MDoctor(1, "A", "A", string.Empty, true, "S", "L", DoctorStatus.AVAILABLE, 1);
         var when = DateTime.UtcNow.AddDays(2);
-        var shiftOne = new Shift(8, doc, "W", when, when.AddHours(1), ShiftStatus.SCHEDULED);
+        var shiftOne = new Shift(8, doctor, "W", when, when.AddHours(1), ShiftStatus.SCHEDULED);
         var service = new FakeShiftSwapService { EligibleError = string.Empty };
-        service.AllDoctors.Add(doc);
+        service.AllDoctors.Add(doctor);
         service.FutureShiftsByStaffId[1] = new List<Shift> { shiftOne };
         var viewModel = new MyScheduleViewModel(service);
 
@@ -155,11 +155,11 @@ public class MyScheduleViewModelTests
     [Fact]
     public void RequestSwapCommand_CanExecuteIsFalseWhenShiftMissing()
     {
-        var doc = new MDoctor(1, "A", "A", string.Empty, true, "E", "L", DoctorStatus.AVAILABLE, 1);
+        var doctor = new MDoctor(1, "A", "A", string.Empty, true, "E", "L", DoctorStatus.AVAILABLE, 1);
         var when = DateTime.UtcNow.AddDays(3);
-        var shiftOne = new Shift(10, doc, "W", when, when.AddHours(2), ShiftStatus.SCHEDULED);
+        var shiftOne = new Shift(10, doctor, "W", when, when.AddHours(2), ShiftStatus.SCHEDULED);
         var service = new FakeShiftSwapService { EligibleError = string.Empty };
-        service.AllDoctors.Add(doc);
+        service.AllDoctors.Add(doctor);
         service.FutureShiftsByStaffId[1] = new List<Shift> { shiftOne };
         var viewModel = new MyScheduleViewModel(service);
         viewModel.SelectedColleague = new StaffOptionViewModel { StaffId = 2, DisplayName = "B" };
@@ -195,11 +195,11 @@ public class MyScheduleViewModelTests
     [Fact]
     public void RequestSwap_WhenRequiredSelectionMissing_ExplainsAllThree()
     {
-        var doc = new MDoctor(1, "A", "A", string.Empty, true, "E", "L", DoctorStatus.AVAILABLE, 1);
+        var doctor = new MDoctor(1, "A", "A", string.Empty, true, "E", "L", DoctorStatus.AVAILABLE, 1);
         var when = DateTime.UtcNow.AddDays(3);
-        var shiftOne = new Shift(10, doc, "W", when, when.AddHours(2), ShiftStatus.SCHEDULED);
+        var shiftOne = new Shift(10, doctor, "W", when, when.AddHours(2), ShiftStatus.SCHEDULED);
         var service = new FakeShiftSwapService();
-        service.AllDoctors.Add(doc);
+        service.AllDoctors.Add(doctor);
         service.FutureShiftsByStaffId[1] = new List<Shift> { shiftOne };
         var viewModel = new MyScheduleViewModel(service);
         viewModel.SelectedColleague = new StaffOptionViewModel { StaffId = 1, DisplayName = "X" };

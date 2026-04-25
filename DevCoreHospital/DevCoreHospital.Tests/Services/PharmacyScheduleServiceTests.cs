@@ -12,13 +12,13 @@ namespace DevCoreHospital.Tests.Services
     {
         private readonly Mock<IShiftRepository> shiftRepositoryMock;
         private readonly Mock<IPharmacyStaffRepository> staffRepositoryMock;
-        private readonly PharmacyScheduleService sut;
+        private readonly PharmacyScheduleService service;
 
         public PharmacyScheduleServiceTests()
         {
             shiftRepositoryMock = new Mock<IShiftRepository>();
             staffRepositoryMock = new Mock<IPharmacyStaffRepository>();
-            sut = new PharmacyScheduleService(shiftRepositoryMock.Object, staffRepositoryMock.Object);
+            service = new PharmacyScheduleService(shiftRepositoryMock.Object, staffRepositoryMock.Object);
         }
 
         private static Shift MakeShift(int id, DateTime start, DateTime end)
@@ -40,7 +40,7 @@ namespace DevCoreHospital.Tests.Services
                 .Setup(shiftRepository => shiftRepository.GetAllShifts())
                 .Returns(expected);
 
-            var result = await sut.GetShiftsAsync(1, rangeStart, rangeEnd);
+            var result = await service.GetShiftsAsync(1, rangeStart, rangeEnd);
 
             Assert.Equal(expected.Count, result.Count);
             Assert.Equal(expected[0].Id, result[0].Id);
@@ -55,7 +55,7 @@ namespace DevCoreHospital.Tests.Services
                 .Setup(shiftRepository => shiftRepository.GetAllShifts())
                 .Returns(new List<Shift>());
 
-            var result = await sut.GetShiftsAsync(99, rangeStart, rangeEnd);
+            var result = await service.GetShiftsAsync(99, rangeStart, rangeEnd);
 
             Assert.Empty(result);
         }
@@ -69,7 +69,7 @@ namespace DevCoreHospital.Tests.Services
                 .Setup(shiftRepository => shiftRepository.GetAllShifts())
                 .Returns(new List<Shift>());
 
-            await sut.GetShiftsAsync(42, rangeStart, rangeEnd);
+            await service.GetShiftsAsync(42, rangeStart, rangeEnd);
 
             shiftRepositoryMock.Verify(shiftRepository => shiftRepository.GetAllShifts(), Times.Once);
         }
@@ -83,7 +83,7 @@ namespace DevCoreHospital.Tests.Services
                 .Setup(shiftRepository => shiftRepository.GetAllShifts())
                 .Returns(new List<Shift>());
 
-            await sut.GetShiftsAsync(1, rangeStart, rangeEnd);
+            await service.GetShiftsAsync(1, rangeStart, rangeEnd);
 
             shiftRepositoryMock.Verify(
                 shiftRepository => shiftRepository.GetAllShifts(),
@@ -105,7 +105,7 @@ namespace DevCoreHospital.Tests.Services
                 .Setup(shiftRepository => shiftRepository.GetAllShifts())
                 .Returns(shifts);
 
-            var result = await sut.GetShiftsAsync(1, rangeStart, rangeEnd);
+            var result = await service.GetShiftsAsync(1, rangeStart, rangeEnd);
 
             Assert.Equal(3, result.Count);
         }
@@ -116,7 +116,7 @@ namespace DevCoreHospital.Tests.Services
             var pharmacist = new Pharmacyst(1, "Ana", "Pop", string.Empty, true, "General", 2);
             staffRepositoryMock.Setup(staffRepository => staffRepository.GetPharmacists()).Returns(new List<Pharmacyst> { pharmacist });
 
-            var result = sut.GetPharmacists();
+            var result = service.GetPharmacists();
 
             Assert.Single(result);
             Assert.Equal(1, result[0].StaffID);
@@ -127,7 +127,7 @@ namespace DevCoreHospital.Tests.Services
         {
             staffRepositoryMock.Setup(staffRepository => staffRepository.GetPharmacists()).Returns(new List<Pharmacyst>());
 
-            var result = sut.GetPharmacists();
+            var result = service.GetPharmacists();
 
             Assert.Empty(result);
         }

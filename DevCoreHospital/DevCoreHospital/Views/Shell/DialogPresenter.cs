@@ -3,10 +3,12 @@ using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
-namespace DevCoreHospital.Services
+namespace DevCoreHospital.Views.Shell
 {
-    public sealed class DialogService : IDialogService
+    public sealed class DialogPresenter
     {
+        private const string CloseButtonLabel = "OK";
+
         private XamlRoot? xamlRoot;
 
         public void SetXamlRoot(XamlRoot xamlRoot) => this.xamlRoot = xamlRoot;
@@ -22,7 +24,7 @@ namespace DevCoreHospital.Services
             {
                 Title = title,
                 Content = message,
-                CloseButtonText = "OK",
+                CloseButtonText = CloseButtonLabel,
                 XamlRoot = xamlRoot,
             };
 

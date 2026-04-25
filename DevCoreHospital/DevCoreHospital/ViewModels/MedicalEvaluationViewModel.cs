@@ -83,7 +83,7 @@ namespace DevCoreHospital.ViewModels
                     if (value != null)
                     {
                         Symptoms = value.Symptoms;
-                        MedsList = value.MedsList;
+                        MedicationsList = value.MedicationsList;
                         DoctorNotes = value.Notes;
                         PatientId = value.PatientId;
                     }
@@ -128,7 +128,7 @@ namespace DevCoreHospital.ViewModels
         }
 
         private string medsList = string.Empty;
-        public string MedsList
+        public string MedicationsList
         {
             get => medsList;
             set
@@ -265,12 +265,7 @@ namespace DevCoreHospital.ViewModels
 
         private void LoadDoctorList()
         {
-            AllDoctors.Clear();
-            var doctors = evaluationService.GetAllDoctors();
-            foreach (var doctor in doctors)
-            {
-                AllDoctors.Add(doctor);
-            }
+            AllDoctors.ReplaceWith(evaluationService.GetAllDoctors());
 
             bool IsCurrentUser(DevCoreHospital.Models.Doctor doctor) => doctor.StaffID == currentUserService.UserId;
             selectedDoctor = AllDoctors.FirstOrDefault(IsCurrentUser);
@@ -282,12 +277,7 @@ namespace DevCoreHospital.ViewModels
 
         private void LoadAppointments()
         {
-            AvailableAppointments.Clear();
-            var appointments = evaluationService.GetAppointmentsByDoctor(currentUserService.UserId);
-            foreach (var appointment in appointments)
-            {
-                AvailableAppointments.Add(appointment);
-            }
+            AvailableAppointments.ReplaceWith(evaluationService.GetAppointmentsByDoctor(currentUserService.UserId));
         }
 
         private void ValidateMedsConflict(string currentMeds)
@@ -351,7 +341,7 @@ namespace DevCoreHospital.ViewModels
                 {
                     PatientId = this.PatientId,
                     Symptoms = Symptoms,
-                    MedsList = this.MedsList,
+                    MedicationsList = this.MedicationsList,
                     Notes = this.DoctorNotes,
                     EvaluationDate = DateTime.Now,
                     Evaluator = new DevCoreHospital.Models.Doctor(
@@ -370,7 +360,7 @@ namespace DevCoreHospital.ViewModels
         public void ResetForm()
         {
             Symptoms = string.Empty;
-            MedsList = string.Empty;
+            MedicationsList = string.Empty;
             DoctorNotes = string.Empty;
             IsRiskAssumed = false;
             IsConflictVisible = false;
@@ -385,7 +375,7 @@ namespace DevCoreHospital.ViewModels
         private void ResetFormForNewSelection()
         {
             Symptoms = string.Empty;
-            MedsList = string.Empty;
+            MedicationsList = string.Empty;
             DoctorNotes = string.Empty;
             IsRiskAssumed = false;
             IsConflictVisible = false;
@@ -398,7 +388,7 @@ namespace DevCoreHospital.ViewModels
         private void NotifyAllProperties()
         {
             RaisePropertyChanged(nameof(Symptoms));
-            RaisePropertyChanged(nameof(MedsList));
+            RaisePropertyChanged(nameof(MedicationsList));
             RaisePropertyChanged(nameof(DoctorNotes));
             RaisePropertyChanged(nameof(IsRiskAssumed));
             RaisePropertyChanged(nameof(IsConflictVisible));
@@ -435,8 +425,6 @@ namespace DevCoreHospital.ViewModels
 
         private void ApplyFilter()
         {
-            PastEvaluations.Clear();
-
             bool RecordMatchesSearch(MedicalEvaluation record) =>
                 record.PatientId.Contains(SearchText, StringComparison.OrdinalIgnoreCase);
 
@@ -444,10 +432,7 @@ namespace DevCoreHospital.ViewModels
                 ? allRecords
                 : allRecords.Where(RecordMatchesSearch);
 
-            foreach (var record in filteredRecords)
-            {
-                PastEvaluations.Add(record);
-            }
+            PastEvaluations.ReplaceWith(filteredRecords);
 
             RaisePropertyChanged(nameof(IsEmptyStateVisible));
             RaisePropertyChanged(nameof(EmptyStateVisibility));

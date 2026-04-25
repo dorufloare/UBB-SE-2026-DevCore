@@ -82,35 +82,15 @@ namespace DevCoreHospital.ViewModels.Doctor
 
         private void LoadDoctors()
         {
-            Doctors.Clear();
+            Doctors.ReplaceWith(staffAndShiftService.GetAllDoctors().Select(DoctorOptionViewModel.From));
 
-            string GetDoctorFirstName(Models.Doctor doctor) => doctor.FirstName;
-            string GetDoctorLastName(Models.Doctor doctor) => doctor.LastName;
-            DoctorOptionViewModel ToDoctorOptionViewModel(Models.Doctor doctor) => new DoctorOptionViewModel
-            {
-                StaffId = doctor.StaffID,
-                DisplayName = $"{doctor.FirstName} {doctor.LastName}".Trim()
-            };
-
-            var doctors = staffAndShiftService
-                .GetAllDoctors()
-                .OrderBy(GetDoctorFirstName)
-                .ThenBy(GetDoctorLastName)
-                .Select(ToDoctorOptionViewModel);
-
-            foreach (var doctor in doctors)
-            {
-                Doctors.Add(doctor);
-            }
-
-            if (Doctors.Count > 0)
-            {
-                SelectedDoctor = Doctors[0];
-            }
-            else
+            if (Doctors.Count == 0)
             {
                 StatusMessage = "No doctors found in database.";
+                return;
             }
+
+            SelectedDoctor = Doctors.FirstOrDefault();
         }
 
         private void LoadFutureShifts()
@@ -124,18 +104,10 @@ namespace DevCoreHospital.ViewModels.Doctor
                 return;
             }
 
-            DateTime GetShiftStartTime(Shift shift) => shift.StartTime;
             DoctorShiftItemViewModel ToShiftItemViewModel(Shift shift) => new DoctorShiftItemViewModel(shift);
-
-            var futureShiftItems = staffAndShiftService
+            FutureShifts.ReplaceWith(staffAndShiftService
                 .GetFutureShiftsForStaff(SelectedDoctor.StaffId)
-                .OrderBy(GetShiftStartTime)
-                .Select(ToShiftItemViewModel);
-
-            foreach (var item in futureShiftItems)
-            {
-                FutureShifts.Add(item);
-            }
+                .Select(ToShiftItemViewModel));
 
             StatusMessage = FutureShifts.Count == 0
                 ? "Selected doctor has no future shifts available for swap requests."
@@ -169,14 +141,7 @@ namespace DevCoreHospital.ViewModels.Doctor
                 return;
             }
 
-            foreach (var colleague in colleagues)
-            {
-                EligibleColleagues.Add(new StaffOptionViewModel
-                {
-                    StaffId = colleague.StaffID,
-                    DisplayName = $"{colleague.FirstName} {colleague.LastName}".Trim()
-                });
-            }
+            EligibleColleagues.ReplaceWith(colleagues.Select(StaffOptionViewModel.From));
 
             StatusMessage = EligibleColleagues.Count == 0
                 ? "No colleagues available in the same role/department profile."
@@ -229,11 +194,25 @@ namespace DevCoreHospital.ViewModels.Doctor
     {
         public int StaffId { get; set; }
         public string DisplayName { get; set; } = string.Empty;
+
+        public static DoctorOptionViewModel From(Models.Doctor doctor) =>
+            new DoctorOptionViewModel
+            {
+                StaffId = doctor.StaffID,
+                DisplayName = $"{doctor.FirstName} {doctor.LastName}".Trim(),
+            };
     }
 
     public sealed class StaffOptionViewModel
     {
         public int StaffId { get; set; }
         public string DisplayName { get; set; } = string.Empty;
+
+        public static StaffOptionViewModel From(IStaff staffMember) =>
+            new StaffOptionViewModel
+            {
+                StaffId = staffMember.StaffID,
+                DisplayName = $"{staffMember.FirstName} {staffMember.LastName}".Trim(),
+            };
     }
 }

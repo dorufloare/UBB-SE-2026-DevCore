@@ -4,13 +4,16 @@ using System.Globalization;
 using System.Linq;
 using DevCoreHospital.Services;
 using DevCoreHospital.ViewModels.Base;
-using Microsoft.UI;
-using Microsoft.UI.Xaml.Media;
 
 namespace DevCoreHospital.ViewModels
 {
     public sealed class FatigueShiftAuditViewModel : ObservableObject
     {
+        private const string EnglishCultureCode = "en-US";
+        private const string WeeklyDateFormat = "dd MMM yyyy";
+
+        private static readonly CultureInfo EnglishCulture = CultureInfo.GetCultureInfo(EnglishCultureCode);
+
         private readonly IFatigueAuditService auditService;
 
         public ObservableCollection<AuditViolationRow> Violations { get; } = new ObservableCollection<AuditViolationRow>();
@@ -31,14 +34,8 @@ namespace DevCoreHospital.ViewModels
             }
         }
 
-        public string WeekLabel
-        {
-            get
-            {
-                var englishCulture = CultureInfo.GetCultureInfo("en-US");
-                return $"Week of {SelectedWeekStart.ToString("dd MMM yyyy", englishCulture)}";
-            }
-        }
+        public string WeekLabel =>
+            $"Week of {SelectedWeekStart.ToString(WeeklyDateFormat, EnglishCulture)}";
 
         private string statusMessage = "Run Auto-Audit to validate this roster.";
         public string StatusMessage
@@ -56,17 +53,12 @@ namespace DevCoreHospital.ViewModels
                 if (SetProperty(ref canPublish, value))
                 {
                     RaisePropertyChanged(nameof(PublishStatus));
-                    RaisePropertyChanged(nameof(PublishStatusColor));
                     RaisePropertyChanged(nameof(PublishStatusDescription));
                 }
             }
         }
 
         public string PublishStatus => CanPublish ? "Publish status: READY" : "Publish status: BLOCKED";
-
-        public Brush PublishStatusColor => CanPublish
-            ? new SolidColorBrush(Colors.Green)
-            : new SolidColorBrush(Colors.Red);
 
         public string PublishStatusDescription => CanPublish
             ? "? No violations detected. Roster is ready to publish."
@@ -122,7 +114,7 @@ namespace DevCoreHospital.ViewModels
             RaisePropertyChanged(nameof(HasConflicts));
         }
 
-        public bool HasConflicts => Violations.Count > 0;
+        public bool HasConflicts => Violations.Any();
 
         public ReassignmentResult ApplyReassignment(int shiftId)
         {

@@ -87,19 +87,36 @@ namespace DevCoreHospital.Tests.ViewModels
             auditServiceMock.Verify(auditService => auditService.RunAutoAudit(It.IsAny<DateTime>()), Times.Once);
         }
 
-        [Fact]
-        public void RunAutoAudit_PopulatesViolations_WhenServiceReturnsViolations()
+        private FatigueShiftAuditViewModel CreateViewModelWithSingleViolation()
         {
-            var violation = MakeViolation(shiftId: 1);
             auditServiceMock
                 .Setup(auditService => auditService.RunAutoAudit(It.IsAny<DateTime>()))
-                .Returns(ResultWithViolations(violation));
-            var viewModel = CreateViewModel();
+                .Returns(ResultWithViolations(MakeViolation(shiftId: 1)));
+            return CreateViewModel();
+        }
 
-            Assert.Single(viewModel.Violations);
-            Assert.Equal(1, viewModel.Violations[0].ShiftId);
-            Assert.Equal("Alice", viewModel.Violations[0].Staff);
-            Assert.Equal("MAX_60H_PER_WEEK", viewModel.Violations[0].Rule);
+        [Fact]
+        public void RunAutoAudit_WhenServiceReturnsViolations_PopulatesSingleViolation()
+        {
+            Assert.Single(CreateViewModelWithSingleViolation().Violations);
+        }
+
+        [Fact]
+        public void RunAutoAudit_WhenServiceReturnsViolations_MapsShiftId()
+        {
+            Assert.Equal(1, CreateViewModelWithSingleViolation().Violations[0].ShiftId);
+        }
+
+        [Fact]
+        public void RunAutoAudit_WhenServiceReturnsViolations_MapsStaffName()
+        {
+            Assert.Equal("Alice", CreateViewModelWithSingleViolation().Violations[0].Staff);
+        }
+
+        [Fact]
+        public void RunAutoAudit_WhenServiceReturnsViolations_MapsRule()
+        {
+            Assert.Equal("MAX_60H_PER_WEEK", CreateViewModelWithSingleViolation().Violations[0].Rule);
         }
 
         [Fact]
@@ -116,8 +133,7 @@ namespace DevCoreHospital.Tests.ViewModels
             Assert.Empty(viewModel.Violations);
         }
 
-        [Fact]
-        public void RunAutoAudit_PopulatesSuggestions_WhenServiceReturnsSuggestions()
+        private FatigueShiftAuditViewModel CreateViewModelWithSingleSuggestion()
         {
             var violation = MakeViolation(shiftId: 5);
             var suggestion = MakeSuggestion(shiftId: 5, suggestedStaffId: 99);
@@ -126,11 +142,25 @@ namespace DevCoreHospital.Tests.ViewModels
                 .Returns(ResultWithViolationsAndSuggestions(
                     new[] { violation },
                     new[] { suggestion }));
-            var viewModel = CreateViewModel();
+            return CreateViewModel();
+        }
 
-            Assert.Single(viewModel.Suggestions);
-            Assert.Equal(5, viewModel.Suggestions[0].ShiftId);
-            Assert.Equal(99, viewModel.Suggestions[0].SuggestedStaffId);
+        [Fact]
+        public void RunAutoAudit_WhenServiceReturnsSuggestions_PopulatesSingleSuggestion()
+        {
+            Assert.Single(CreateViewModelWithSingleSuggestion().Suggestions);
+        }
+
+        [Fact]
+        public void RunAutoAudit_WhenServiceReturnsSuggestions_MapsShiftId()
+        {
+            Assert.Equal(5, CreateViewModelWithSingleSuggestion().Suggestions[0].ShiftId);
+        }
+
+        [Fact]
+        public void RunAutoAudit_WhenServiceReturnsSuggestions_MapsSuggestedStaffId()
+        {
+            Assert.Equal(99, CreateViewModelWithSingleSuggestion().Suggestions[0].SuggestedStaffId);
         }
 
         [Fact]
@@ -282,8 +312,7 @@ namespace DevCoreHospital.Tests.ViewModels
             auditServiceMock.Verify(auditService => auditService.ReassignShift(It.IsAny<int>(), It.IsAny<int>()), Times.Never);
         }
 
-        [Fact]
-        public void ApplyReassignment_ReturnsSuccess_WhenReassignmentSucceeds()
+        private FatigueShiftAuditViewModel.ReassignmentResult ApplyReassignmentForSuccessfulFlow()
         {
             var violation = MakeViolation(shiftId: 3);
             var suggestion = MakeSuggestion(shiftId: 3, suggestedStaffId: 50, suggestedName: "Bob");
@@ -293,13 +322,25 @@ namespace DevCoreHospital.Tests.ViewModels
                     new[] { violation },
                     new[] { suggestion }));
             auditServiceMock.Setup(auditService => auditService.ReassignShift(3, 50)).Returns(true);
-            var viewModel = CreateViewModel();
+            return CreateViewModel().ApplyReassignment(shiftId: 3);
+        }
 
-            var result = viewModel.ApplyReassignment(shiftId: 3);
+        [Fact]
+        public void ApplyReassignment_WhenReassignmentSucceeds_ReturnsSuccessFlag()
+        {
+            Assert.True(ApplyReassignmentForSuccessfulFlow().isSuccess);
+        }
 
-            Assert.True(result.isSuccess);
-            Assert.Equal("Reassignment Applied", result.title);
-            Assert.Contains("Bob", result.message);
+        [Fact]
+        public void ApplyReassignment_WhenReassignmentSucceeds_ReturnsAppliedTitle()
+        {
+            Assert.Equal("Reassignment Applied", ApplyReassignmentForSuccessfulFlow().title);
+        }
+
+        [Fact]
+        public void ApplyReassignment_WhenReassignmentSucceeds_MessageContainsCandidateName()
+        {
+            Assert.Contains("Bob", ApplyReassignmentForSuccessfulFlow().message);
         }
 
         [Fact]

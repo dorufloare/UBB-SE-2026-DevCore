@@ -1,11 +1,17 @@
-using System.Globalization;
 using System;
+using System.Globalization;
 using DevCoreHospital.Models;
 
 namespace DevCoreHospital.ViewModels.Pharmacy;
 
 public sealed class PharmacyShiftItemViewModel
 {
+    private const string EnglishCultureCode = "en-US";
+    private const string TimeFormat = "HH:mm";
+    private const string DayLabelFormat = "ddd, dd MMM yyyy";
+
+    private static readonly CultureInfo EnglishCulture = CultureInfo.GetCultureInfo(EnglishCultureCode);
+
     public PharmacyShiftItemViewModel(Shift shift)
     {
         RotationAssignment = shift.Location;
@@ -14,15 +20,13 @@ public sealed class PharmacyShiftItemViewModel
         Status = shift.Status;
     }
 
-    private static readonly CultureInfo EnglishCulture = CultureInfo.GetCultureInfo("en-US");
-
     public string RotationAssignment { get; }
     public DateTime ShiftStartTime { get; }
     public DateTime? ShiftEndTime { get; }
 
-    public string ShiftStartTimeText => ShiftStartTime.ToString("HH:mm");
-    public string ShiftEndTimeText => ShiftEndTime.HasValue ? ShiftEndTime.Value.ToString("HH:mm") : "—";
-    public string DayLabel => ShiftStartTime.ToString("ddd, dd MMM yyyy", EnglishCulture);
+    public string ShiftStartTimeText => ShiftStartTime.ToString(TimeFormat);
+    public string ShiftEndTimeText => ShiftEndTime.HasValue ? ShiftEndTime.Value.ToString(TimeFormat) : "—";
+    public string DayLabel => ShiftStartTime.ToString(DayLabelFormat, EnglishCulture);
 
     public string TimeRangeDetail =>
         $"Shift start: {ShiftStartTimeText}  ·  Shift end: {ShiftEndTimeText}  ·  Duration: {DurationText}";
@@ -56,7 +60,7 @@ public sealed class PharmacyShiftItemViewModel
                 ShiftStatus.ACTIVE => "Active",
                 ShiftStatus.COMPLETED => "Completed",
                 ShiftStatus.CANCELLED => "Cancelled",
-                _ => Status.ToString()
+                _ => Status.ToString(),
             };
         }
     }

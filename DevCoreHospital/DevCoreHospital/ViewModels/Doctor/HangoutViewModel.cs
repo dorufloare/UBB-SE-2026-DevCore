@@ -18,6 +18,8 @@ namespace DevCoreHospital.ViewModels.Doctor
         private readonly IHangoutService hangoutService;
         private readonly IDoctorAppointmentService? doctorService;
 
+        public ObservableCollection<int> MaxParticipantsOptions { get; } = new ObservableCollection<int> { 2, 3, 4, 5, 10, 15, 20 };
+
         public ObservableCollection<Hangout> Hangouts { get; } = new ObservableCollection<Hangout>();
         public ObservableCollection<DoctorScheduleViewModel.DoctorOption> Doctors { get; } = new ObservableCollection<DoctorScheduleViewModel.DoctorOption>();
 
@@ -75,8 +77,6 @@ namespace DevCoreHospital.ViewModels.Doctor
                 CreateCommand.RaiseCanExecuteChanged();
             }
         }
-
-        public ObservableCollection<int> MaxParticipantsOptions { get; } = new ObservableCollection<int> { 2, 3, 4, 5, 10, 15, 20 };
 
         private string errorMessage = string.Empty;
         public string ErrorMessage

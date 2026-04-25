@@ -6,14 +6,27 @@ using System.Threading.Tasks;
 using DevCoreHospital.Models;
 using DevCoreHospital.Services;
 using DevCoreHospital.ViewModels.Base;
+using DevCoreHospital.Views.Shell;
 
 namespace DevCoreHospital.ViewModels.Doctor
 {
     public class DoctorScheduleViewModel : ObservableObject
     {
+        private const string EnglishCultureCode = "en-US";
+        private const string DailyDateFormat = "dddd, dd MMM yyyy";
+        private const string WeeklyDateFormat = "dd MMM yyyy";
+        private const string AppointmentDateFormat = "yyyy-MM-dd";
+        private const string AppointmentTimeFormat = @"hh\:mm";
+        private const string DoctorRoleLabel = "Doctor";
+        private const string AdminRoleLabel = "Admin";
+        private const int DaysInWeek = 7;
+        private const int OneDay = 1;
+
+        private static readonly CultureInfo EnglishCulture = CultureInfo.GetCultureInfo(EnglishCultureCode);
+
         private readonly ICurrentUserService currentUser;
         private readonly IDoctorAppointmentService appointmentService;
-        private readonly IDialogService dialogService;
+        private readonly DialogPresenter dialogPresenter;
 
         private int loadVersion;
         private bool isInitializing;
@@ -105,19 +118,12 @@ namespace DevCoreHospital.ViewModels.Doctor
             }
         }
 
-        public string SelectedDateText
-        {
-            get
-            {
-                var englishCulture = CultureInfo.GetCultureInfo("en-US");
-                return IsDaily
-                    ? SelectedDate.ToString("dddd, dd MMM yyyy", englishCulture)
-                    : $"Week of {StartOfWeek(SelectedDate).ToString("dd MMM yyyy", englishCulture)}";
-            }
-        }
+        public string SelectedDateText => IsDaily
+            ? SelectedDate.ToString(DailyDateFormat, EnglishCulture)
+            : $"Week of {StartOfWeek(SelectedDate).ToString(WeeklyDateFormat, EnglishCulture)}";
 
-        public bool IsDoctor => string.Equals(currentUser.Role, "Doctor", StringComparison.OrdinalIgnoreCase) ||
-                                string.Equals(currentUser.Role, "Admin", StringComparison.OrdinalIgnoreCase);
+        public bool IsDoctor => string.Equals(currentUser.Role, DoctorRoleLabel, StringComparison.OrdinalIgnoreCase) ||
+                                string.Equals(currentUser.Role, AdminRoleLabel, StringComparison.OrdinalIgnoreCase);
         public bool IsAccessDenied => !IsDoctor;
         public bool IsEmpty => !IsLoading && string.IsNullOrWhiteSpace(ErrorMessage) && Appointments.Count == 0 && Shifts.Count == 0;
 
@@ -131,11 +137,11 @@ namespace DevCoreHospital.ViewModels.Doctor
         public DoctorScheduleViewModel(
             ICurrentUserService currentUser,
             IDoctorAppointmentService appointmentService,
-            IDialogService dialogService)
+            DialogPresenter dialogPresenter)
         {
             this.currentUser = currentUser;
             this.appointmentService = appointmentService;
-            this.dialogService = dialogService;
+            this.dialogPresenter = dialogPresenter;
 
             bool CanExecuteAsDoctor() => IsDoctor;
             RefreshCommand = new AsyncRelayCommand(LoadAsync, CanExecuteAsDoctor);
@@ -143,10 +149,10 @@ namespace DevCoreHospital.ViewModels.Doctor
             void SetToday() => SelectedDate = DateTime.Today;
             TodayCommand = new RelayCommand(SetToday, CanExecuteAsDoctor);
 
-            void GoToNextDay() => SelectedDate = IsWeekly ? SelectedDate.AddDays(7) : SelectedDate.AddDays(1);
+            void GoToNextDay() => SelectedDate = IsWeekly ? SelectedDate.AddDays(DaysInWeek) : SelectedDate.AddDays(OneDay);
             NextDayCommand = new RelayCommand(GoToNextDay, CanExecuteAsDoctor);
 
-            void GoToPreviousDay() => SelectedDate = IsWeekly ? SelectedDate.AddDays(-7) : SelectedDate.AddDays(-1);
+            void GoToPreviousDay() => SelectedDate = IsWeekly ? SelectedDate.AddDays(-DaysInWeek) : SelectedDate.AddDays(-OneDay);
             PreviousDayCommand = new RelayCommand(GoToPreviousDay, CanExecuteAsDoctor);
 
             void SetDailyMode() => ViewMode = ScheduleViewMode.Daily;
@@ -182,21 +188,12 @@ namespace DevCoreHospital.ViewModels.Doctor
 
         private async Task LoadDoctorsAsync()
         {
-            Doctors.Clear();
+            const int FirstDoctorIndex = 0;
 
             try
             {
                 var allDoctors = await appointmentService.GetAllDoctorsAsync();
-
-                string GetDoctorName((int DoctorId, string DoctorName) doctor) => doctor.DoctorName;
-                foreach (var doctor in allDoctors.OrderBy(GetDoctorName))
-                {
-                    Doctors.Add(new DoctorOption
-                    {
-                        DoctorId = doctor.DoctorId,
-                        DoctorName = doctor.DoctorName
-                    });
-                }
+                Doctors.ReplaceWith(allDoctors.Select(DoctorOption.From));
 
                 if (Doctors.Count == 0)
                 {
@@ -206,7 +203,7 @@ namespace DevCoreHospital.ViewModels.Doctor
                 }
 
                 bool IsCurrentUserDoctor(DoctorOption doctor) => doctor.DoctorId == currentUser.UserId;
-                SelectedDoctor = Doctors.FirstOrDefault(IsCurrentUserDoctor) ?? Doctors.First();
+                SelectedDoctor = Doctors.FirstOrDefault(IsCurrentUserDoctor) ?? Doctors.FirstOrDefault();
             }
             catch (Exception exception)
             {
@@ -247,7 +244,7 @@ namespace DevCoreHospital.ViewModels.Doctor
 
                 var doctorId = SelectedDoctor.DoctorId;
                 DateTime from = IsDaily ? SelectedDate.Date : StartOfWeek(SelectedDate);
-                DateTime to = IsDaily ? from.AddDays(1) : from.AddDays(7);
+                DateTime to = IsDaily ? from.AddDays(OneDay) : from.AddDays(DaysInWeek);
 
                 var filteredAppointments = await appointmentService.GetAppointmentsInRangeAsync(doctorId, from, to);
                 var filteredShifts = await appointmentService.GetShiftsForStaffInRangeAsync(doctorId, from, to);
@@ -257,17 +254,11 @@ namespace DevCoreHospital.ViewModels.Doctor
                     return;
                 }
 
-                Appointments.Clear();
-                foreach (var appointment in filteredAppointments)
-                {
-                    Appointments.Add(new AppointmentItemViewModel(appointment));
-                }
+                AppointmentItemViewModel ToAppointmentItem(Appointment appointment) => new AppointmentItemViewModel(appointment);
+                DoctorShiftItemViewModel ToShiftItem(Shift shift) => new DoctorShiftItemViewModel(shift);
 
-                Shifts.Clear();
-                foreach (var shift in filteredShifts)
-                {
-                    Shifts.Add(new DoctorShiftItemViewModel(shift));
-                }
+                Appointments.ReplaceWith(filteredAppointments.Select(ToAppointmentItem));
+                Shifts.ReplaceWith(filteredShifts.Select(ToShiftItem));
             }
             catch (Exception exception)
             {
@@ -299,64 +290,83 @@ namespace DevCoreHospital.ViewModels.Doctor
                 var appointmentDetails = await appointmentService.GetAppointmentDetailsAsync(item.Id);
                 if (appointmentDetails is null)
                 {
-                    await dialogService.ShowMessageAsync("Details", "Appointment not found.");
+                    await dialogPresenter.ShowMessageAsync("Details", "Appointment not found.");
                     return;
                 }
 
-                var text =
-                    $"Patient: {(string.IsNullOrWhiteSpace(item.PatientName) ? "Patient hidden/unknown" : item.PatientName)}\n" +
-                    $"Type: {(string.IsNullOrWhiteSpace(appointmentDetails.Type) ? "N/A" : appointmentDetails.Type)}\n" +
-                    $"Location: {(string.IsNullOrWhiteSpace(appointmentDetails.Location) ? "Location TBD" : appointmentDetails.Location)}\n" +
-                    $"Time: {appointmentDetails.Date:yyyy-MM-dd} {appointmentDetails.StartTime:hh\\:mm}-{appointmentDetails.EndTime:hh\\:mm}\n" +
-                    $"Status: {(string.IsNullOrWhiteSpace(appointmentDetails.Status) ? "Unknown" : appointmentDetails.Status)}";
+                var patientLine = string.IsNullOrWhiteSpace(item.PatientName) ? "Patient hidden/unknown" : item.PatientName;
+                var typeLine = string.IsNullOrWhiteSpace(appointmentDetails.Type) ? "N/A" : appointmentDetails.Type;
+                var locationLine = string.IsNullOrWhiteSpace(appointmentDetails.Location) ? "Location TBD" : appointmentDetails.Location;
+                var statusLine = string.IsNullOrWhiteSpace(appointmentDetails.Status) ? "Unknown" : appointmentDetails.Status;
+                var formattedDate = appointmentDetails.Date.ToString(AppointmentDateFormat);
+                var formattedStartTime = appointmentDetails.StartTime.ToString(AppointmentTimeFormat);
+                var formattedEndTime = appointmentDetails.EndTime.ToString(AppointmentTimeFormat);
 
-                await dialogService.ShowMessageAsync("Appointment Details", text);
+                var text =
+                    $"Patient: {patientLine}\n" +
+                    $"Type: {typeLine}\n" +
+                    $"Location: {locationLine}\n" +
+                    $"Time: {formattedDate} {formattedStartTime}-{formattedEndTime}\n" +
+                    $"Status: {statusLine}";
+
+                await dialogPresenter.ShowMessageAsync("Appointment Details", text);
             }
             catch (Exception exception)
             {
-                await dialogService.ShowMessageAsync("Details", $"Failed to load details: {exception.Message}");
+                await dialogPresenter.ShowMessageAsync("Details", $"Failed to load details: {exception.Message}");
             }
         }
 
         private static DateTime StartOfWeek(DateTime date)
         {
-            const int daysInWeek = 7;
-            var daysFromMonday = (daysInWeek + (date.DayOfWeek - DayOfWeek.Monday)) % daysInWeek;
-            return date.Date.AddDays(-1 * daysFromMonday);
+            var daysFromMonday = (DaysInWeek + (date.DayOfWeek - DayOfWeek.Monday)) % DaysInWeek;
+            return date.Date.AddDays(-daysFromMonday);
         }
 
         public sealed class DoctorOption
         {
+            private const char NameSeparator = ' ';
+
             public int DoctorId { get; set; }
             public string DoctorName { get; set; } = string.Empty;
             public string FirstName { get; set; } = string.Empty;
             public string LastName { get; set; } = string.Empty;
+
+            public static DoctorOption From((int DoctorId, string DoctorName) doctor) =>
+                new DoctorOption
+                {
+                    DoctorId = doctor.DoctorId,
+                    DoctorName = doctor.DoctorName,
+                };
 
             public string DisplayName
             {
                 get
                 {
                     bool IsNonEmpty(string? namePart) => !string.IsNullOrWhiteSpace(namePart);
-                    return string.Join(" ", new[] { FirstName?.Trim(), LastName?.Trim() }.Where(IsNonEmpty));
+                    return string.Join(NameSeparator, new[] { FirstName?.Trim(), LastName?.Trim() }.Where(IsNonEmpty));
                 }
             }
 
             public static (string FirstName, string LastName) SplitFirstLast(string? fullName)
             {
+                const int SingleNamePartCount = 1;
+                const int FirstNamePartIndex = 0;
+
                 if (string.IsNullOrWhiteSpace(fullName))
                 {
                     return (string.Empty, string.Empty);
                 }
 
                 var parts = fullName
-                    .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                    .Split(NameSeparator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-                if (parts.Length == 1)
+                if (parts.Length == SingleNamePartCount)
                 {
-                    return (parts[0], string.Empty);
+                    return (parts[FirstNamePartIndex], string.Empty);
                 }
 
-                return (parts[0], parts[^1]);
+                return (parts[FirstNamePartIndex], parts[^SingleNamePartCount]);
             }
         }
     }

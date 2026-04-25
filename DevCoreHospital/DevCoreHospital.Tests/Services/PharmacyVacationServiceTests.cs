@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using DevCoreHospital.Models;
 using DevCoreHospital.Repositories;
 using DevCoreHospital.Services;
@@ -151,7 +152,7 @@ namespace DevCoreHospital.Tests.Services
         }
 
         [Fact]
-        public void GetPharmacists_ReturnsPharmacistsOrderedByFirstNameThenLastName()
+        public void GetPharmacists_WhenUnordered_ReturnsThemSortedByFirstNameThenLastName()
         {
             var pharmacists = new List<Pharmacyst>
             {
@@ -161,14 +162,12 @@ namespace DevCoreHospital.Tests.Services
             };
             mockStaffRepository.Setup(pharmacyStaffRepository => pharmacyStaffRepository.GetPharmacists()).Returns(pharmacists);
 
-            var result = service.GetPharmacists();
+            string ToFullName(Pharmacyst pharmacist) => $"{pharmacist.FirstName} {pharmacist.LastName}";
+            var orderedNames = service.GetPharmacists()
+                .Select(ToFullName)
+                .ToArray();
 
-            Assert.Equal(3, result.Count);
-            Assert.Equal("Ana", result[0].FirstName);
-            Assert.Equal("Adams", result[0].LastName);
-            Assert.Equal("Ana", result[1].FirstName);
-            Assert.Equal("Brown", result[1].LastName);
-            Assert.Equal("Zoe", result[2].FirstName);
+            Assert.Equal(new[] { "Ana Adams", "Ana Brown", "Zoe Adams" }, orderedNames);
         }
 
         [Fact]

@@ -2,14 +2,18 @@ using System;
 using DevCoreHospital.Models;
 using DevCoreHospital.Services;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
-using Microsoft.UI.Xaml;
 
 namespace DevCoreHospital.Views
 {
     public sealed partial class AppointmentDetailsPage : Page
     {
+        private const string DateFormat = "yyyy-MM-dd";
+        private const string TimeFormat = @"hh\:mm";
+        private const string FinishedStatus = "Finished";
+
         private Appointment? currentAppointment;
         private readonly IDoctorAppointmentService service;
 
@@ -24,9 +28,9 @@ namespace DevCoreHospital.Views
         {
             base.OnNavigatedTo(eventArgs);
 
-            if (eventArgs.Parameter is Appointment appt)
+            if (eventArgs.Parameter is Appointment appointment)
             {
-                currentAppointment = appt;
+                currentAppointment = appointment;
                 PopulateData();
             }
         }
@@ -40,8 +44,8 @@ namespace DevCoreHospital.Views
 
             PatientNameText.Text = currentAppointment.PatientName;
             DoctorNameText.Text = currentAppointment.DoctorName;
-            DateText.Text = currentAppointment.Date.ToString("yyyy-MM-dd");
-            TimeText.Text = $"{currentAppointment.StartTime:hh\\:mm} - {currentAppointment.EndTime:hh\\:mm}";
+            DateText.Text = currentAppointment.Date.ToString(DateFormat);
+            TimeText.Text = $"{currentAppointment.StartTime.ToString(TimeFormat)} - {currentAppointment.EndTime.ToString(TimeFormat)}";
             StatusText.Text = currentAppointment.Status;
         }
 
@@ -56,7 +60,7 @@ namespace DevCoreHospital.Views
             {
                 await service.FinishAppointmentAsync(currentAppointment!);
 
-                currentAppointment!.Status = "Finished";
+                currentAppointment!.Status = FinishedStatus;
                 PopulateData();
                 ShowMessage("Appointment finished successfully! Doctor status updated.", InfoBarSeverity.Success);
             }

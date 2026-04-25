@@ -8,6 +8,7 @@ using DevCoreHospital.Services;
 using DevCoreHospital.ViewModels;
 using DevCoreHospital.ViewModels.Doctor;
 using DevCoreHospital.ViewModels.Pharmacy;
+using DevCoreHospital.Views.Shell;
 using Moq;
 
 namespace DevCoreHospital.Tests.Integration
@@ -137,16 +138,16 @@ namespace DevCoreHospital.Tests.Integration
             List<Shift>? shifts = null)
         {
             var dataSource = new InMemoryAppointmentDataSource();
-            var staffRepo = new InMemoryStaffRepository();
-            var shiftRepo = new InMemoryShiftRepository(shifts ?? new List<Shift>());
+            var staffRepository = new InMemoryStaffRepository();
+            var shiftRepository = new InMemoryShiftRepository(shifts ?? new List<Shift>());
             var mockUser = new Mock<ICurrentUserService>();
-            mockUser.Setup(u => u.Role).Returns("Doctor");
-            mockUser.Setup(u => u.UserId).Returns(1);
-            var service = new DoctorAppointmentService(dataSource, staffRepo, shiftRepo);
+            mockUser.Setup(currentUser => currentUser.Role).Returns("Doctor");
+            mockUser.Setup(currentUser => currentUser.UserId).Returns(1);
+            var service = new DoctorAppointmentService(dataSource, staffRepository, shiftRepository);
             var viewModel = new DoctorScheduleViewModel(
                 mockUser.Object,
                 service,
-                new Mock<IDialogService>().Object);
+                new DialogPresenter());
             return (viewModel, dataSource);
         }
 
@@ -155,8 +156,8 @@ namespace DevCoreHospital.Tests.Integration
         public async Task BookThenFinish_AppointmentStatusIsFinished()
         {
             var dataSource = new InMemoryAppointmentDataSource();
-            var staffRepo = new InMemoryStaffRepository();
-            var service = new DoctorAppointmentService(dataSource, staffRepo);
+            var staffRepository = new InMemoryStaffRepository();
+            var service = new DoctorAppointmentService(dataSource, staffRepository);
             var appointment = MakeAppointment();
 
             await service.BookAppointmentAsync(appointment);
@@ -169,22 +170,22 @@ namespace DevCoreHospital.Tests.Integration
         public async Task BookThenFinish_DoctorStatusIsAvailable_WhenLastActiveAppointmentDone()
         {
             var dataSource = new InMemoryAppointmentDataSource();
-            var staffRepo = new InMemoryStaffRepository();
-            var service = new DoctorAppointmentService(dataSource, staffRepo);
+            var staffRepository = new InMemoryStaffRepository();
+            var service = new DoctorAppointmentService(dataSource, staffRepository);
             var appointment = MakeAppointment();
 
             await service.BookAppointmentAsync(appointment);
             await service.FinishAppointmentAsync(appointment);
 
-            Assert.Equal("AVAILABLE", staffRepo.GetStatus(10));
+            Assert.Equal("AVAILABLE", staffRepository.GetStatus(10));
         }
 
         [Fact]
         public async Task BookThenFinish_DoctorRemainsInExamination_WhenSecondAppointmentStillActive()
         {
             var dataSource = new InMemoryAppointmentDataSource();
-            var staffRepo = new InMemoryStaffRepository();
-            var service = new DoctorAppointmentService(dataSource, staffRepo);
+            var staffRepository = new InMemoryStaffRepository();
+            var service = new DoctorAppointmentService(dataSource, staffRepository);
             var first = MakeAppointment();
             var second = new Appointment { Id = 2, DoctorId = 10, Status = "Scheduled" };
 
@@ -192,7 +193,7 @@ namespace DevCoreHospital.Tests.Integration
             await service.BookAppointmentAsync(second);
             await service.FinishAppointmentAsync(first);
 
-            Assert.Equal("IN_EXAMINATION", staffRepo.GetStatus(10));
+            Assert.Equal("IN_EXAMINATION", staffRepository.GetStatus(10));
         }
 
 
@@ -200,8 +201,8 @@ namespace DevCoreHospital.Tests.Integration
         public async Task BookThenCancel_AppointmentStatusIsCanceled()
         {
             var dataSource = new InMemoryAppointmentDataSource();
-            var staffRepo = new InMemoryStaffRepository();
-            var service = new DoctorAppointmentService(dataSource, staffRepo);
+            var staffRepository = new InMemoryStaffRepository();
+            var service = new DoctorAppointmentService(dataSource, staffRepository);
             var appointment = MakeAppointment();
 
             await service.BookAppointmentAsync(appointment);
@@ -214,8 +215,8 @@ namespace DevCoreHospital.Tests.Integration
         public async Task BookFinishThenCancel_ThrowsInvalidOperationException()
         {
             var dataSource = new InMemoryAppointmentDataSource();
-            var staffRepo = new InMemoryStaffRepository();
-            var service = new DoctorAppointmentService(dataSource, staffRepo);
+            var staffRepository = new InMemoryStaffRepository();
+            var service = new DoctorAppointmentService(dataSource, staffRepository);
             var appointment = MakeAppointment();
 
             await service.BookAppointmentAsync(appointment);
@@ -230,8 +231,8 @@ namespace DevCoreHospital.Tests.Integration
         public async Task AdminViewModel_AppointmentAppearsInList_AfterBookAndLoad()
         {
             var dataSource = new InMemoryAppointmentDataSource();
-            var staffRepo = new InMemoryStaffRepository();
-            var service = new DoctorAppointmentService(dataSource, staffRepo);
+            var staffRepository = new InMemoryStaffRepository();
+            var service = new DoctorAppointmentService(dataSource, staffRepository);
             var viewModel = new AdminAppointmentsViewModel(service);
 
             await viewModel.BookAppointmentAsync("PAT-1", 10, new DateTime(2025, 8, 1), new TimeSpan(9, 0, 0));
@@ -244,8 +245,8 @@ namespace DevCoreHospital.Tests.Integration
         public async Task AdminViewModel_AppointmentHasCanceledStatus_AfterCancelViaViewModelAndLoad()
         {
             var dataSource = new InMemoryAppointmentDataSource();
-            var staffRepo = new InMemoryStaffRepository();
-            var service = new DoctorAppointmentService(dataSource, staffRepo);
+            var staffRepository = new InMemoryStaffRepository();
+            var service = new DoctorAppointmentService(dataSource, staffRepository);
             var viewModel = new AdminAppointmentsViewModel(service);
 
             await service.BookAppointmentAsync(MakeAppointment());
@@ -259,8 +260,8 @@ namespace DevCoreHospital.Tests.Integration
         public async Task AdminViewModel_AppointmentHasFinishedStatus_AfterFinishViaViewModelAndLoad()
         {
             var dataSource = new InMemoryAppointmentDataSource();
-            var staffRepo = new InMemoryStaffRepository();
-            var service = new DoctorAppointmentService(dataSource, staffRepo);
+            var staffRepository = new InMemoryStaffRepository();
+            var service = new DoctorAppointmentService(dataSource, staffRepository);
             var viewModel = new AdminAppointmentsViewModel(service);
 
             await service.BookAppointmentAsync(MakeAppointment());
@@ -322,33 +323,33 @@ namespace DevCoreHospital.Tests.Integration
         [Fact]
         public void VacationService_AddsShift_WhenExactlyAtFourDayLimit()
         {
-            var staffRepo = new InMemoryPharmacyStaffRepository(new List<Pharmacyst> { TestPharmacist });
-            var shiftRepo = new InMemoryPharmacyShiftRepository();
-            var service = new PharmacyVacationService(staffRepo, shiftRepo);
+            var staffRepository = new InMemoryPharmacyStaffRepository(new List<Pharmacyst> { TestPharmacist });
+            var shiftRepository = new InMemoryPharmacyShiftRepository();
+            var service = new PharmacyVacationService(staffRepository, shiftRepository);
 
             service.RegisterVacation(TestPharmacist.StaffID, new DateTime(2025, 7, 1), new DateTime(2025, 7, 4));
 
-            Assert.Single(shiftRepo.GetAllShifts());
+            Assert.Single(shiftRepository.GetAllShifts());
         }
 
         [Fact]
         public void VacationService_ShiftHasVacationStatus_WhenAtFourDayLimit()
         {
-            var staffRepo = new InMemoryPharmacyStaffRepository(new List<Pharmacyst> { TestPharmacist });
-            var shiftRepo = new InMemoryPharmacyShiftRepository();
-            var service = new PharmacyVacationService(staffRepo, shiftRepo);
+            var staffRepository = new InMemoryPharmacyStaffRepository(new List<Pharmacyst> { TestPharmacist });
+            var shiftRepository = new InMemoryPharmacyShiftRepository();
+            var service = new PharmacyVacationService(staffRepository, shiftRepository);
 
             service.RegisterVacation(TestPharmacist.StaffID, new DateTime(2025, 7, 1), new DateTime(2025, 7, 4));
 
-            Assert.Equal(ShiftStatus.VACATION, shiftRepo.GetAllShifts()[0].Status);
+            Assert.Equal(ShiftStatus.VACATION, shiftRepository.GetAllShifts()[0].Status);
         }
 
         [Fact]
         public void VacationService_ThrowsInvalidOperationException_WhenFifthDayExceedsMonthlyLimit()
         {
-            var staffRepo = new InMemoryPharmacyStaffRepository(new List<Pharmacyst> { TestPharmacist });
-            var shiftRepo = new InMemoryPharmacyShiftRepository();
-            var service = new PharmacyVacationService(staffRepo, shiftRepo);
+            var staffRepository = new InMemoryPharmacyStaffRepository(new List<Pharmacyst> { TestPharmacist });
+            var shiftRepository = new InMemoryPharmacyShiftRepository();
+            var service = new PharmacyVacationService(staffRepository, shiftRepository);
             service.RegisterVacation(TestPharmacist.StaffID, new DateTime(2025, 7, 1), new DateTime(2025, 7, 4));
 
             Assert.Throws<InvalidOperationException>(() =>
@@ -359,9 +360,9 @@ namespace DevCoreHospital.Tests.Integration
         [Fact]
         public void PharmacistVacationViewModel_ReturnsSuccess_WhenExactlyAtFourDayLimit()
         {
-            var staffRepo = new InMemoryPharmacyStaffRepository(new List<Pharmacyst> { TestPharmacist });
-            var shiftRepo = new InMemoryPharmacyShiftRepository();
-            var service = new PharmacyVacationService(staffRepo, shiftRepo);
+            var staffRepository = new InMemoryPharmacyStaffRepository(new List<Pharmacyst> { TestPharmacist });
+            var shiftRepository = new InMemoryPharmacyShiftRepository();
+            var service = new PharmacyVacationService(staffRepository, shiftRepository);
             var viewModel = new PharmacistVacationViewModel(service);
             var choice = new PharmacistVacationViewModel.PharmacistChoice(TestPharmacist, "Ana Pop");
 
@@ -376,9 +377,9 @@ namespace DevCoreHospital.Tests.Integration
         [Fact]
         public void PharmacistVacationViewModel_ReturnsError_WhenExceedingFourDayLimit()
         {
-            var staffRepo = new InMemoryPharmacyStaffRepository(new List<Pharmacyst> { TestPharmacist });
-            var shiftRepo = new InMemoryPharmacyShiftRepository();
-            var service = new PharmacyVacationService(staffRepo, shiftRepo);
+            var staffRepository = new InMemoryPharmacyStaffRepository(new List<Pharmacyst> { TestPharmacist });
+            var shiftRepository = new InMemoryPharmacyShiftRepository();
+            var service = new PharmacyVacationService(staffRepository, shiftRepository);
             var viewModel = new PharmacistVacationViewModel(service);
             var choice = new PharmacistVacationViewModel.PharmacistChoice(TestPharmacist, "Ana Pop");
 

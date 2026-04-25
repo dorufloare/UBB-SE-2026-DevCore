@@ -115,18 +115,8 @@ namespace DevCoreHospital.ViewModels
 
         public async Task LoadOverrideCandidatesAsync(int requestId)
         {
-            OverrideCandidates.Clear();
             var candidates = await dispatchService.GetManualOverrideCandidatesAsync(requestId, NearEndMinutesThreshold);
-
-            foreach (var candidate in candidates)
-            {
-                OverrideCandidates.Add(new OverrideCandidateRow
-                {
-                    DoctorId = candidate.DoctorId,
-                    FullName = candidate.FullName,
-                    MinutesToEnd = candidate.MinutesToEnd
-                });
-            }
+            OverrideCandidates.ReplaceWith(candidates.Select(OverrideCandidateRow.From));
 
             ManualInterventionHint = OverrideCandidates.Count == 0
                 ? "No eligible override doctor found (need near-end IN_EXAMINATION doctor)."
@@ -237,6 +227,14 @@ namespace DevCoreHospital.ViewModels
             public string DisplayLabel => MinutesToEnd >= 0
                 ? $"{FullName} (ends in {MinutesToEnd} min)"
                 : FullName;
+
+            public static OverrideCandidateRow From(DoctorProfile candidate) =>
+                new OverrideCandidateRow
+                {
+                    DoctorId = candidate.DoctorId,
+                    FullName = candidate.FullName,
+                    MinutesToEnd = candidate.MinutesToEnd,
+                };
         }
     }
 }

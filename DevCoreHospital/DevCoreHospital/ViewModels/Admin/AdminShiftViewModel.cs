@@ -5,6 +5,7 @@ using System.Linq;
 using System;
 using DevCoreHospital.Models;
 using DevCoreHospital.Services;
+using DevCoreHospital.ViewModels.Base;
 
 namespace DevCoreHospital.ViewModels.Admin
 {
@@ -106,33 +107,20 @@ namespace DevCoreHospital.ViewModels.Admin
                 filtered = filtered.Where(IsShiftInSelectedDepartment);
             }
 
-            Shifts.Clear();
-            var orderedShifts = filtered.OrderBy(shift => shift.StartTime).ToList();
-            foreach (var shift in orderedShifts)
-            {
-                Shifts.Add(shift);
-            }
+            DateTime SortByStartTime(Shift shift) => shift.StartTime;
+            Shifts.ReplaceWith(filtered.OrderBy(SortByStartTime));
         }
 
         public void FilterSpecializationsAndCertificationsForLocation(string location)
         {
-            SpecializationsAndCertifications.Clear();
-            var list = staffAndShiftService.GetSpecializationsAndCertificationsForLocation(location);
-            foreach (var item in list)
-            {
-                SpecializationsAndCertifications.Add(item);
-            }
+            SpecializationsAndCertifications.ReplaceWith(
+                staffAndShiftService.GetSpecializationsAndCertificationsForLocation(location));
         }
 
         public void FilterStaffForShift(string location, string requiredSpecializationOrCertification)
         {
-            AvailableStaff.Clear();
-            var filtered = staffAndShiftService.GetFilteredStaff(location, requiredSpecializationOrCertification);
-
-            foreach (var staff in filtered)
-            {
-                AvailableStaff.Add(staff);
-            }
+            AvailableStaff.ReplaceWith(
+                staffAndShiftService.GetFilteredStaff(location, requiredSpecializationOrCertification));
         }
 
         public void CreateNewShift(IStaff staff, DateTime start, DateTime end, string location)

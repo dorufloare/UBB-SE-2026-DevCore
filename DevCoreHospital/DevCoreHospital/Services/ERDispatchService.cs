@@ -42,10 +42,13 @@ namespace DevCoreHospital.Services
             bool HasSpecializationAndLocation(DoctorProfile doctor) =>
                 !string.IsNullOrWhiteSpace(doctor.Specialization) && !string.IsNullOrWhiteSpace(doctor.Location);
 
+            (string Specialization, string Location) ToSpecializationLocationPair(DoctorProfile doctor) =>
+                (doctor.Specialization.Trim(), doctor.Location.Trim());
+
             var availableDoctors = GetAvailableDoctors(GetDoctorRosterForDispatch());
             var liveTemplates = availableDoctors
                 .Where(HasSpecializationAndLocation)
-                .Select(doctor => (Specialization: doctor.Specialization.Trim(), Location: doctor.Location.Trim()))
+                .Select(ToSpecializationLocationPair)
                 .Distinct()
                 .ToArray();
 
@@ -66,8 +69,10 @@ namespace DevCoreHospital.Services
 
         public Task<IReadOnlyList<int>> GetPendingRequestIdsAsync()
         {
+            int ToRequestId(ERRequest request) => request.Id;
+
             var pendingIds = GetPendingRequests()
-                .Select(request => request.Id)
+                .Select(ToRequestId)
                 .ToList();
             return Task.FromResult<IReadOnlyList<int>>(pendingIds);
         }
@@ -99,7 +104,9 @@ namespace DevCoreHospital.Services
             }
 
             requestRepository.UpdateRequestStatus(requestId, AssignedStatus, matchedDoctor.DoctorId, matchedDoctor.FullName);
-            Task.Run(() => staffRepository.UpdateStatusAsync(matchedDoctor.DoctorId, DoctorStatus.IN_EXAMINATION.ToString())).GetAwaiter().GetResult();
+            Task UpdateMatchedDoctorStatusAsync() =>
+                staffRepository.UpdateStatusAsync(matchedDoctor.DoctorId, DoctorStatus.IN_EXAMINATION.ToString());
+            Task.Run(UpdateMatchedDoctorStatusAsync).GetAwaiter().GetResult();
 
             return Task.FromResult(new ERDispatchResult
             {
@@ -132,14 +139,19 @@ namespace DevCoreHospital.Services
             bool MatchesRequestSpecialization(DoctorProfile doctor) =>
                 IsSameValue(doctor.Specialization, request.Specialization);
 
+            int ByDoctorId(DoctorProfile doctor) => doctor.DoctorId;
+            DoctorProfile FirstInGroup(IGrouping<int, DoctorProfile> doctorGroup) => doctorGroup.First();
+            DateTime ByScheduleEndOrMax(DoctorProfile doctor) => doctor.ScheduleEnd ?? DateTime.MaxValue;
+            string ByFullName(DoctorProfile doctor) => doctor.FullName;
+
             var candidates = inExaminationDoctors
                 .Where(HasScheduleEnd)
                 .Where(IsNearEnd)
                 .Where(MatchesRequestSpecialization)
-                .GroupBy(doctor => doctor.DoctorId)
-                .Select(doctorGroup => doctorGroup.First())
-                .OrderBy(doctor => doctor.ScheduleEnd ?? DateTime.MaxValue)
-                .ThenBy(doctor => doctor.FullName)
+                .GroupBy(ByDoctorId)
+                .Select(FirstInGroup)
+                .OrderBy(ByScheduleEndOrMax)
+                .ThenBy(ByFullName)
                 .ToList();
 
             return Task.FromResult<IReadOnlyList<DoctorProfile>>(candidates);
@@ -195,9 +207,11 @@ namespace DevCoreHospital.Services
                 && doctor.Status == DoctorStatus.AVAILABLE
                 && IsSameValue(doctor.Location, request.Location);
 
+            string ByFullName(DoctorProfile doctor) => doctor.FullName;
+
             return availableDoctors
                 .Where(IsMatchingAvailableDoctor)
-                .OrderBy(doctor => doctor.FullName)
+                .OrderBy(ByFullName)
                 .FirstOrDefault();
         }
 
@@ -214,10 +228,16 @@ namespace DevCoreHospital.Services
                 && shift.Status != ShiftStatus.COMPLETED
                 && shift.Status != ShiftStatus.VACATION;
 
+            int ByAppointedStaffId(Shift shift) => shift.AppointedStaff.StaffID;
+            int GroupKey(IGrouping<int, Shift> shiftGroup) => shiftGroup.Key;
+            DateTime ByShiftEndTime(Shift shift) => shift.EndTime;
+            Shift EarliestEndingShiftInGroup(IGrouping<int, Shift> shiftGroup) =>
+                shiftGroup.OrderBy(ByShiftEndTime).First();
+
             var currentShiftsByStaffId = allShifts
                 .Where(IsCurrentNonCancelledShift)
-                .GroupBy(shift => shift.AppointedStaff.StaffID)
-                .ToDictionary(shiftGroup => shiftGroup.Key, shiftGroup => shiftGroup.OrderBy(shift => shift.EndTime).First());
+                .GroupBy(ByAppointedStaffId)
+                .ToDictionary(GroupKey, EarliestEndingShiftInGroup);
 
             var roster = new List<DoctorProfile>();
             foreach (var staffMember in allStaff.OfType<Doctor>())
@@ -243,17 +263,27 @@ namespace DevCoreHospital.Services
 
         private IReadOnlyList<ERRequest> GetPendingRequests()
         {
+            bool IsPending(ERRequest request) =>
+                string.Equals((request.Status ?? string.Empty).Trim(), PendingStatus, StringComparison.OrdinalIgnoreCase);
+            DateTime ByCreatedAt(ERRequest request) => request.CreatedAt;
+
             return requestRepository.GetAllRequests()
-                .Where(request => string.Equals((request.Status ?? string.Empty).Trim(), PendingStatus, StringComparison.OrdinalIgnoreCase))
-                .OrderBy(request => request.CreatedAt)
+                .Where(IsPending)
+                .OrderBy(ByCreatedAt)
                 .ToList();
         }
 
-        private static IReadOnlyList<DoctorProfile> GetAvailableDoctors(IEnumerable<DoctorProfile> roster) =>
-            roster.Where(doctor => doctor.Status == DoctorStatus.AVAILABLE).ToList();
+        private static IReadOnlyList<DoctorProfile> GetAvailableDoctors(IEnumerable<DoctorProfile> roster)
+        {
+            bool IsAvailable(DoctorProfile doctor) => doctor.Status == DoctorStatus.AVAILABLE;
+            return roster.Where(IsAvailable).ToList();
+        }
 
-        private static IReadOnlyList<DoctorProfile> GetDoctorsInExamination(IEnumerable<DoctorProfile> roster) =>
-            roster.Where(doctor => doctor.Status == DoctorStatus.IN_EXAMINATION).ToList();
+        private static IReadOnlyList<DoctorProfile> GetDoctorsInExamination(IEnumerable<DoctorProfile> roster)
+        {
+            bool IsInExamination(DoctorProfile doctor) => doctor.Status == DoctorStatus.IN_EXAMINATION;
+            return roster.Where(IsInExamination).ToList();
+        }
 
         private static bool IsSameValue(string left, string right) =>
             string.Equals((left ?? string.Empty).Trim(), (right ?? string.Empty).Trim(), StringComparison.OrdinalIgnoreCase);
