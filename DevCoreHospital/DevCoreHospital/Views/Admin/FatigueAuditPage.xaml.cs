@@ -17,7 +17,7 @@ namespace DevCoreHospital.Views.Admin
             viewModel = App.Services.GetRequiredService<FatigueShiftAuditViewModel>();
             DataContext = viewModel;
 
-            WeekStartPicker.Date = new System.DateTimeOffset(System.DateTime.Today);
+            WeekStartPicker.Date = new DateTimeOffset(DateTime.Today);
         }
 
         private void WeekStartPicker_DateChanged(CalendarDatePicker sender, CalendarDatePickerDateChangedEventArgs eventArgs)
@@ -34,7 +34,7 @@ namespace DevCoreHospital.Views.Admin
             {
                 viewModel.RunAutoAudit();
             }
-            catch (System.Exception exception)
+            catch (Exception exception)
             {
                 viewModel.StatusMessage = $"Error during audit: {exception.Message}";
             }

@@ -188,8 +188,6 @@ namespace DevCoreHospital.ViewModels.Doctor
 
         private async Task LoadDoctorsAsync()
         {
-            const int FirstDoctorIndex = 0;
-
             try
             {
                 var allDoctors = await appointmentService.GetAllDoctorsAsync();

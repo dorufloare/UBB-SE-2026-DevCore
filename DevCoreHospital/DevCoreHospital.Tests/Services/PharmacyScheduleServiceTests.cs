@@ -40,10 +40,10 @@ namespace DevCoreHospital.Tests.Services
                 .Setup(shiftRepository => shiftRepository.GetAllShifts())
                 .Returns(expected);
 
-            var result = await service.GetShiftsAsync(1, rangeStart, rangeEnd);
+            var shifts = await service.GetShiftsAsync(1, rangeStart, rangeEnd);
 
-            Assert.Equal(expected.Count, result.Count);
-            Assert.Equal(expected[0].Id, result[0].Id);
+            Assert.Equal(expected.Count, shifts.Count);
+            Assert.Equal(expected[0].Id, shifts[0].Id);
         }
 
         [Fact]
@@ -55,9 +55,9 @@ namespace DevCoreHospital.Tests.Services
                 .Setup(shiftRepository => shiftRepository.GetAllShifts())
                 .Returns(new List<Shift>());
 
-            var result = await service.GetShiftsAsync(99, rangeStart, rangeEnd);
+            var shifts = await service.GetShiftsAsync(99, rangeStart, rangeEnd);
 
-            Assert.Empty(result);
+            Assert.Empty(shifts);
         }
 
         [Fact]
@@ -105,9 +105,9 @@ namespace DevCoreHospital.Tests.Services
                 .Setup(shiftRepository => shiftRepository.GetAllShifts())
                 .Returns(shifts);
 
-            var result = await service.GetShiftsAsync(1, rangeStart, rangeEnd);
+            var shiftsResult = await service.GetShiftsAsync(1, rangeStart, rangeEnd);
 
-            Assert.Equal(3, result.Count);
+            Assert.Equal(3, shiftsResult.Count);
         }
 
         [Fact]
@@ -116,10 +116,10 @@ namespace DevCoreHospital.Tests.Services
             var pharmacist = new Pharmacyst(1, "Ana", "Pop", string.Empty, true, "General", 2);
             staffRepositoryMock.Setup(staffRepository => staffRepository.GetPharmacists()).Returns(new List<Pharmacyst> { pharmacist });
 
-            var result = service.GetPharmacists();
+            var pharmacysts = service.GetPharmacists();
 
-            Assert.Single(result);
-            Assert.Equal(1, result[0].StaffID);
+            Assert.Single(pharmacysts);
+            Assert.Equal(1, pharmacysts[0].StaffID);
         }
 
         [Fact]
@@ -127,9 +127,9 @@ namespace DevCoreHospital.Tests.Services
         {
             staffRepositoryMock.Setup(staffRepository => staffRepository.GetPharmacists()).Returns(new List<Pharmacyst>());
 
-            var result = service.GetPharmacists();
+            var pharmacysts = service.GetPharmacists();
 
-            Assert.Empty(result);
+            Assert.Empty(pharmacysts);
         }
     }
 }

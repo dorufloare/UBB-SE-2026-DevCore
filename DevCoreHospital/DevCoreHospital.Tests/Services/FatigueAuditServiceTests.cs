@@ -33,12 +33,12 @@ namespace DevCoreHospital.Tests.Services
         [Fact]
         public void RunAutoAudit_ReturnsNoViolations_WhenRosterIsEmpty()
         {
-            var result = CreateService().RunAutoAudit(WeekStart);
+            var roster = CreateService().RunAutoAudit(WeekStart);
 
-            Assert.False(result.HasConflicts);
-            Assert.True(result.CanPublish);
-            Assert.Empty(result.Violations);
-            Assert.Empty(result.Suggestions);
+            Assert.False(roster.HasConflicts);
+            Assert.True(roster.CanPublish);
+            Assert.Empty(roster.Violations);
+            Assert.Empty(roster.Suggestions);
         }
 
         [Fact]
@@ -46,9 +46,9 @@ namespace DevCoreHospital.Tests.Services
         {
             var wednesday = new DateTime(2025, 4, 16);
 
-            var result = CreateService().RunAutoAudit(wednesday);
+            var audit = CreateService().RunAutoAudit(wednesday);
 
-            Assert.Equal(new DateTime(2025, 4, 14), result.WeekStart);
+            Assert.Equal(new DateTime(2025, 4, 14), audit.WeekStart);
         }
 
         [Fact]
@@ -63,11 +63,11 @@ namespace DevCoreHospital.Tests.Services
             shiftRepository.Setup(repository => repository.GetAllShifts()).Returns(allShifts);
             staffRepository.Setup(repository => repository.LoadAllStaff()).Returns(new List<IStaff> { doctor });
 
-            var result = CreateService().RunAutoAudit(WeekStart);
+            var audit = CreateService().RunAutoAudit(WeekStart);
 
-            Assert.True(result.HasConflicts);
+            Assert.True(audit.HasConflicts);
             bool IsMaxWeeklyHoursViolation(AuditViolation violation) => violation.Rule == "MAX_60H_PER_WEEK";
-            Assert.Contains(result.Violations, IsMaxWeeklyHoursViolation);
+            Assert.Contains(audit.Violations, IsMaxWeeklyHoursViolation);
         }
 
         [Fact]
@@ -79,11 +79,11 @@ namespace DevCoreHospital.Tests.Services
             shiftRepository.Setup(repository => repository.GetAllShifts()).Returns(new List<Shift> { firstShift, tooSoonAfter });
             staffRepository.Setup(repository => repository.LoadAllStaff()).Returns(new List<IStaff> { doctor });
 
-            var result = CreateService().RunAutoAudit(WeekStart);
+            var audit = CreateService().RunAutoAudit(WeekStart);
 
-            Assert.True(result.HasConflicts);
+            Assert.True(audit.HasConflicts);
             bool IsMinRestViolation(AuditViolation violation) => violation.Rule == "MIN_12H_REST";
-            Assert.Contains(result.Violations, IsMinRestViolation);
+            Assert.Contains(audit.Violations, IsMinRestViolation);
         }
 
         [Fact]
@@ -94,9 +94,9 @@ namespace DevCoreHospital.Tests.Services
             shiftRepository.Setup(repository => repository.GetAllShifts()).Returns(new List<Shift> { cancelled });
             staffRepository.Setup(repository => repository.LoadAllStaff()).Returns(new List<IStaff> { doctor });
 
-            var result = CreateService().RunAutoAudit(WeekStart);
+            var audit = CreateService().RunAutoAudit(WeekStart);
 
-            Assert.False(result.HasConflicts);
+            Assert.False(audit.HasConflicts);
         }
 
         [Fact]
@@ -104,9 +104,9 @@ namespace DevCoreHospital.Tests.Services
         {
             var service = CreateService();
 
-            var success = service.ReassignShift(7, 42);
+            var isSuccessful = service.ReassignShift(7, 42);
 
-            Assert.True(success);
+            Assert.True(isSuccessful);
             shiftRepository.Verify(repository => repository.UpdateShiftStaffId(7, 42), Times.Once);
         }
 

@@ -11,6 +11,7 @@ namespace DevCoreHospital.ViewModels
     {
         private const string EnglishCultureCode = "en-US";
         private const string WeeklyDateFormat = "dd MMM yyyy";
+        private const string ShiftTimeFormat = "ddd HH:mm";
 
         private static readonly CultureInfo EnglishCulture = CultureInfo.GetCultureInfo(EnglishCultureCode);
 
@@ -76,18 +77,17 @@ namespace DevCoreHospital.ViewModels
 
         public void RunAutoAudit()
         {
-            var result = auditService.RunAutoAudit(SelectedWeekStart.Date);
-            var englishCulture = CultureInfo.GetCultureInfo("en-US");
+            var auditResult = auditService.RunAutoAudit(SelectedWeekStart.Date);
 
             Violations.Clear();
             DateTime GetViolationShiftStart(Models.AuditViolation violation) => violation.ShiftStart;
-            foreach (var violation in result.Violations.OrderBy(GetViolationShiftStart))
+            foreach (var violation in auditResult.Violations.OrderBy(GetViolationShiftStart))
             {
                 Violations.Add(new AuditViolationRow
                 {
                     ShiftId = violation.ShiftId,
                     Staff = violation.StaffName,
-                    Window = $"{violation.ShiftStart.ToString("ddd HH:mm", englishCulture)} - {violation.ShiftEnd.ToString("ddd HH:mm", englishCulture)}",
+                    Window = $"{violation.ShiftStart.ToString(ShiftTimeFormat, EnglishCulture)} - {violation.ShiftEnd.ToString(ShiftTimeFormat, EnglishCulture)}",
                     Rule = violation.Rule,
                     Message = violation.Message
                 });
@@ -95,12 +95,12 @@ namespace DevCoreHospital.ViewModels
 
             Suggestions.Clear();
             int GetSuggestionShiftId(Models.AutoSuggestRecommendation suggestion) => suggestion.ShiftId;
-            foreach (var suggestion in result.Suggestions.OrderBy(GetSuggestionShiftId))
+            foreach (var suggestion in auditResult.Suggestions.OrderBy(GetSuggestionShiftId))
             {
                 Suggestions.Add(new AutoSuggestRow
                 {
                     ShiftId = suggestion.ShiftId,
-                    ReassignText = suggestion.SuggestedStaffId.HasValue
+                    ReassignmentLabel = suggestion.SuggestedStaffId.HasValue
                         ? $"Shift #{suggestion.ShiftId}: {suggestion.OriginalStaffName} -> {suggestion.SuggestedStaffName}"
                         : $"Shift #{suggestion.ShiftId}: no replacement candidate",
                     Reason = suggestion.Reason,
@@ -109,8 +109,8 @@ namespace DevCoreHospital.ViewModels
                 });
             }
 
-            CanPublish = result.CanPublish;
-            StatusMessage = result.Summary;
+            CanPublish = auditResult.CanPublish;
+            StatusMessage = auditResult.Summary;
             RaisePropertyChanged(nameof(HasConflicts));
         }
 
@@ -119,8 +119,8 @@ namespace DevCoreHospital.ViewModels
         public ReassignmentResult ApplyReassignment(int shiftId)
         {
             bool IsMatchingShift(AutoSuggestRow auditSuggestion) => auditSuggestion.ShiftId == shiftId;
-            var suggestion = Suggestions.FirstOrDefault(IsMatchingShift);
-            if (suggestion == null || !suggestion.SuggestedStaffId.HasValue)
+            var matchedSuggestion = Suggestions.FirstOrDefault(IsMatchingShift);
+            if (matchedSuggestion == null || !matchedSuggestion.SuggestedStaffId.HasValue)
             {
                 return new ReassignmentResult(
                     false,
@@ -128,8 +128,8 @@ namespace DevCoreHospital.ViewModels
                     "No valid reassignment candidate found for this shift.");
             }
 
-            bool isSuccess = auditService.ReassignShift(shiftId, suggestion.SuggestedStaffId.Value);
-            if (!isSuccess)
+            bool reassignmentSucceeded = auditService.ReassignShift(shiftId, matchedSuggestion.SuggestedStaffId.Value);
+            if (!reassignmentSucceeded)
             {
                 return new ReassignmentResult(
                     false,
@@ -142,7 +142,7 @@ namespace DevCoreHospital.ViewModels
             return new ReassignmentResult(
                 true,
                 "Reassignment Applied",
-                $"Shift #{shiftId} has been reassigned to {suggestion.SuggestedStaffName}.\n\nAudit was re-run to verify changes.");
+                $"Shift #{shiftId} has been reassigned to {matchedSuggestion.SuggestedStaffName}.\n\nAudit was re-run to verify changes.");
         }
 
         public sealed record ReassignmentResult(bool isSuccess, string title, string message);
@@ -166,7 +166,7 @@ namespace DevCoreHospital.ViewModels
         public sealed class AutoSuggestRow
         {
             public int ShiftId { get; set; }
-            public string ReassignText { get; set; } = string.Empty;
+            public string ReassignmentLabel { get; set; } = string.Empty;
             public string Reason { get; set; } = string.Empty;
             public int? SuggestedStaffId { get; set; }
             public string SuggestedStaffName { get; set; } = string.Empty;

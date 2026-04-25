@@ -108,10 +108,10 @@ namespace DevCoreHospital.Tests.Integration
             shiftRepository.Shifts.Add(new Shift(2, doctor, "Ward A",
                 WeekStart.AddHours(22), WeekStart.AddDays(1).AddHours(2), ShiftStatus.SCHEDULED));
 
-            var result = service.RunAutoAudit(WeekStart);
+            var autoAuditResult = service.RunAutoAudit(WeekStart);
 
             bool IsMinRestViolation(AuditViolation violation) => violation.Rule == MinRestRule;
-            Assert.Contains(result.Violations, IsMinRestViolation);
+            Assert.Contains(autoAuditResult.Violations, IsMinRestViolation);
         }
 
         [Fact]
@@ -130,10 +130,10 @@ namespace DevCoreHospital.Tests.Integration
                     ShiftStatus.SCHEDULED));
             }
 
-            var result = service.RunAutoAudit(WeekStart);
+            var autoAuditResult = service.RunAutoAudit(WeekStart);
 
             bool SuggestsSpecialist(AutoSuggestRecommendation suggestion) => suggestion.SuggestedStaffId == spareSpecialist.StaffID;
-            Assert.Contains(result.Suggestions, SuggestsSpecialist);
+            Assert.Contains(autoAuditResult.Suggestions, SuggestsSpecialist);
         }
 
         [Fact]
@@ -145,9 +145,9 @@ namespace DevCoreHospital.Tests.Integration
             shiftRepository.Shifts.Add(new Shift(1, doctor, "Ward A",
                 WeekStart.AddHours(8), WeekStart.AddHours(20), ShiftStatus.CANCELLED));
 
-            var result = service.RunAutoAudit(WeekStart);
+            var autoAuditResult = service.RunAutoAudit(WeekStart);
 
-            Assert.False(result.HasConflicts);
+            Assert.False(autoAuditResult.HasConflicts);
         }
 
         [Fact]

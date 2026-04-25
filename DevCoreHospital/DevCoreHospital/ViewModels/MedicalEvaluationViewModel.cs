@@ -20,12 +20,12 @@ namespace DevCoreHospital.ViewModels
 
         public ObservableCollection<MedicalEvaluation> PastEvaluations { get; } = new ObservableCollection<MedicalEvaluation>();
         public ObservableCollection<Appointment> AvailableAppointments { get; } = new ObservableCollection<Appointment>();
-        public ObservableCollection<DevCoreHospital.Models.Doctor> AllDoctors { get; } = new ObservableCollection<DevCoreHospital.Models.Doctor>();
+        public ObservableCollection<Models.Doctor> AllDoctors { get; } = new ObservableCollection<Models.Doctor>();
 
         #region Properties
 
-        private DevCoreHospital.Models.Doctor? selectedDoctor;
-        public DevCoreHospital.Models.Doctor? SelectedDoctor
+        private Models.Doctor? selectedDoctor;
+        public Models.Doctor? SelectedDoctor
         {
             get => selectedDoctor;
             set
@@ -267,7 +267,7 @@ namespace DevCoreHospital.ViewModels
         {
             AllDoctors.ReplaceWith(evaluationService.GetAllDoctors());
 
-            bool IsCurrentUser(DevCoreHospital.Models.Doctor doctor) => doctor.StaffID == currentUserService.UserId;
+            bool IsCurrentUser(Models.Doctor doctor) => doctor.StaffID == currentUserService.UserId;
             selectedDoctor = AllDoctors.FirstOrDefault(IsCurrentUser);
             if (selectedDoctor != null)
             {
@@ -344,7 +344,7 @@ namespace DevCoreHospital.ViewModels
                     MedicationsList = this.MedicationsList,
                     Notes = this.DoctorNotes,
                     EvaluationDate = DateTime.Now,
-                    Evaluator = new DevCoreHospital.Models.Doctor(
+                    Evaluator = new Models.Doctor(
                         currentUserService.UserId,
                         string.Empty, string.Empty, string.Empty,
                         true, string.Empty, "Available", DoctorStatus.AVAILABLE, 0),
@@ -415,7 +415,8 @@ namespace DevCoreHospital.ViewModels
         {
             IsLoading = true;
             PastEvaluations.Clear();
-            await Task.Delay(500);
+            const int SimulatedLoadingDelayMs = 500;
+            await Task.Delay(SimulatedLoadingDelayMs);
 
             allRecords = evaluationService.GetEvaluationsByDoctor(currentUserService.UserId.ToString());
 

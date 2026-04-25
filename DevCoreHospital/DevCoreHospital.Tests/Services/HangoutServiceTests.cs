@@ -176,11 +176,11 @@ namespace DevCoreHospital.Tests.Services
                 .Returns(new List<(int HangoutId, int StaffId)> { (1, 7) });
             staffRepository.Setup(repository => repository.LoadAllStaff()).Returns(new List<IStaff> { staffMember });
 
-            var result = CreateService().GetAllHangouts();
+            var hangouts = CreateService().GetAllHangouts();
 
-            Assert.Single(result);
-            Assert.Single(result[0].ParticipantList);
-            Assert.Equal(7, result[0].ParticipantList[0].StaffID);
+            Assert.Single(hangouts);
+            Assert.Single(hangouts[0].ParticipantList);
+            Assert.Equal(7, hangouts[0].ParticipantList[0].StaffID);
         }
 
         private static Doctor BuildDoctor(int staffId) =>

@@ -235,13 +235,13 @@ namespace DevCoreHospital.Tests.ViewModels
         [Fact]
         public void MaxParticipants_DefaultIsFive()
         {
-            Assert.Equal(5, viewModel.MaxParticipants);
+            Assert.Equal(5, viewModel.MaximumParticipants);
         }
 
         [Fact]
         public void MaxParticipantsOptions_ContainsExpectedValues()
         {
-            Assert.Equal(new[] { 2, 3, 4, 5, 10, 15, 20 }, viewModel.MaxParticipantsOptions);
+            Assert.Equal(new[] { 2, 3, 4, 5, 10, 15, 20 }, viewModel.MaximumParticipantsOptions);
         }
 
         [Fact]

@@ -285,7 +285,7 @@ namespace DevCoreHospital.Services
             return roster.Where(IsInExamination).ToList();
         }
 
-        private static bool IsSameValue(string left, string right) =>
-            string.Equals((left ?? string.Empty).Trim(), (right ?? string.Empty).Trim(), StringComparison.OrdinalIgnoreCase);
+        private static bool IsSameValue(string leftOperator, string rightOperator) =>
+            string.Equals((leftOperator ?? string.Empty).Trim(), (rightOperator ?? string.Empty).Trim(), StringComparison.OrdinalIgnoreCase);
     }
 }

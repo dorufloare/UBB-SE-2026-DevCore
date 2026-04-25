@@ -18,7 +18,7 @@ namespace DevCoreHospital.ViewModels.Doctor
         private readonly IHangoutService hangoutService;
         private readonly IDoctorAppointmentService? doctorService;
 
-        public ObservableCollection<int> MaxParticipantsOptions { get; } = new ObservableCollection<int> { 2, 3, 4, 5, 10, 15, 20 };
+        public ObservableCollection<int> MaximumParticipantsOptions { get; } = new ObservableCollection<int> { 2, 3, 4, 5, 10, 15, 20 };
 
         public ObservableCollection<Hangout> Hangouts { get; } = new ObservableCollection<Hangout>();
         public ObservableCollection<DoctorScheduleViewModel.DoctorOption> Doctors { get; } = new ObservableCollection<DoctorScheduleViewModel.DoctorOption>();
@@ -67,13 +67,13 @@ namespace DevCoreHospital.ViewModels.Doctor
             }
         }
 
-        private int maxParticipants = 5;
-        public int MaxParticipants
+        private int maximumParticipants = 5;
+        public int MaximumParticipants
         {
-            get => maxParticipants;
+            get => maximumParticipants;
             set
             {
-                SetProperty(ref maxParticipants, value);
+                SetProperty(ref maximumParticipants, value);
                 CreateCommand.RaiseCanExecuteChanged();
             }
         }
@@ -174,7 +174,7 @@ namespace DevCoreHospital.ViewModels.Doctor
                     LastName = SelectedDoctor.LastName,
                 };
 
-                hangoutService.CreateHangout(Title, Description, SelectedDate.DateTime, MaxParticipants, currentDoctor);
+                hangoutService.CreateHangout(Title, Description, SelectedDate.DateTime, MaximumParticipants, currentDoctor);
                 SuccessMessage = "Hangout created successfully!";
                 LoadHangouts();
 

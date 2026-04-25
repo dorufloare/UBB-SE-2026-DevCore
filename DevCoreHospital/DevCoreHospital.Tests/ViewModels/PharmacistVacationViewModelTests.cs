@@ -35,66 +35,66 @@ namespace DevCoreHospital.Tests.ViewModels
         [Fact]
         public void TryRegisterVacation_ReturnsWarningStatus_WhenPharmacistIsNull()
         {
-            var result = viewModel.TryRegisterVacation(null, StartDate, EndDate);
+            var vacation = viewModel.TryRegisterVacation(null, StartDate, EndDate);
 
-            Assert.Equal(VacationRegistrationStatus.Warning, result.status);
+            Assert.Equal(VacationRegistrationStatus.Warning, vacation.status);
         }
 
         [Fact]
         public void TryRegisterVacation_ReturnsSelectPharmacistMessage_WhenPharmacistIsNull()
         {
-            var result = viewModel.TryRegisterVacation(null, StartDate, EndDate);
+            var vacation = viewModel.TryRegisterVacation(null, StartDate, EndDate);
 
-            Assert.Equal("Select a pharmacist first.", result.message);
+            Assert.Equal("Select a pharmacist first.", vacation.message);
         }
 
         [Fact]
         public void TryRegisterVacation_ReturnsWarningStatus_WhenStartDateIsNull()
         {
-            var result = viewModel.TryRegisterVacation(TestChoice, null, EndDate);
+            var vacation = viewModel.TryRegisterVacation(TestChoice, null, EndDate);
 
-            Assert.Equal(VacationRegistrationStatus.Warning, result.status);
+            Assert.Equal(VacationRegistrationStatus.Warning, vacation.status);
         }
 
         [Fact]
         public void TryRegisterVacation_ReturnsWarningStatus_WhenEndDateIsNull()
         {
-            var result = viewModel.TryRegisterVacation(TestChoice, StartDate, null);
+            var vacation = viewModel.TryRegisterVacation(TestChoice, StartDate, null);
 
-            Assert.Equal(VacationRegistrationStatus.Warning, result.status);
+            Assert.Equal(VacationRegistrationStatus.Warning, vacation.status);
         }
 
         [Fact]
         public void TryRegisterVacation_ReturnsSelectDatesMessage_WhenStartDateIsNull()
         {
-            var result = viewModel.TryRegisterVacation(TestChoice, null, EndDate);
+            var vacation = viewModel.TryRegisterVacation(TestChoice, null, EndDate);
 
-            Assert.Equal("Select both start and end dates.", result.message);
+            Assert.Equal("Select both start and end dates.", vacation.message);
         }
 
         [Fact]
         public void TryRegisterVacation_ReturnsSelectDatesMessage_WhenEndDateIsNull()
         {
-            var result = viewModel.TryRegisterVacation(TestChoice, StartDate, null);
+            var vacation = viewModel.TryRegisterVacation(TestChoice, StartDate, null);
 
-            Assert.Equal("Select both start and end dates.", result.message);
+            Assert.Equal("Select both start and end dates.", vacation.message);
         }
 
 
         [Fact]
         public void TryRegisterVacation_ReturnsSuccessStatus_WhenServiceCallSucceeds()
         {
-            var result = viewModel.TryRegisterVacation(TestChoice, StartDate, EndDate);
+            var vacation = viewModel.TryRegisterVacation(TestChoice, StartDate, EndDate);
 
-            Assert.Equal(VacationRegistrationStatus.Success, result.status);
+            Assert.Equal(VacationRegistrationStatus.Success, vacation.status);
         }
 
         [Fact]
         public void TryRegisterVacation_ReturnsSuccessMessage_WhenServiceCallSucceeds()
         {
-            var result = viewModel.TryRegisterVacation(TestChoice, StartDate, EndDate);
+            var vacation = viewModel.TryRegisterVacation(TestChoice, StartDate, EndDate);
 
-            Assert.Equal("Vacation shift added to repository.", result.message);
+            Assert.Equal("Vacation shift added to repository.", vacation.message);
         }
 
         [Fact]
@@ -119,9 +119,9 @@ namespace DevCoreHospital.Tests.ViewModels
                 .Setup(vacationService => vacationService.RegisterVacation(It.IsAny<int>(), It.IsAny<DateTime>(), It.IsAny<DateTime>()))
                 .Throws(new ArgumentException("End date must be on or after start date."));
 
-            var result = viewModel.TryRegisterVacation(TestChoice, StartDate, EndDate);
+            var vacation = viewModel.TryRegisterVacation(TestChoice, StartDate, EndDate);
 
-            Assert.Equal(VacationRegistrationStatus.Error, result.status);
+            Assert.Equal(VacationRegistrationStatus.Error, vacation.status);
         }
 
         [Fact]
@@ -132,9 +132,9 @@ namespace DevCoreHospital.Tests.ViewModels
                 .Setup(vacationService => vacationService.RegisterVacation(It.IsAny<int>(), It.IsAny<DateTime>(), It.IsAny<DateTime>()))
                 .Throws(new ArgumentException(exceptionMessage));
 
-            var result = viewModel.TryRegisterVacation(TestChoice, StartDate, EndDate);
+            var vacation = viewModel.TryRegisterVacation(TestChoice, StartDate, EndDate);
 
-            Assert.Equal(exceptionMessage, result.message);
+            Assert.Equal(exceptionMessage, vacation.message);
         }
 
 
@@ -145,9 +145,9 @@ namespace DevCoreHospital.Tests.ViewModels
                 .Setup(vacationService => vacationService.RegisterVacation(It.IsAny<int>(), It.IsAny<DateTime>(), It.IsAny<DateTime>()))
                 .Throws(new InvalidOperationException("Cannot add vacation: this period overlaps an existing shift."));
 
-            var result = viewModel.TryRegisterVacation(TestChoice, StartDate, EndDate);
+            var vacation = viewModel.TryRegisterVacation(TestChoice, StartDate, EndDate);
 
-            Assert.Equal(VacationRegistrationStatus.Error, result.status);
+            Assert.Equal(VacationRegistrationStatus.Error, vacation.status);
         }
 
         [Fact]
@@ -158,9 +158,9 @@ namespace DevCoreHospital.Tests.ViewModels
                 .Setup(vacationService => vacationService.RegisterVacation(It.IsAny<int>(), It.IsAny<DateTime>(), It.IsAny<DateTime>()))
                 .Throws(new InvalidOperationException(exceptionMessage));
 
-            var result = viewModel.TryRegisterVacation(TestChoice, StartDate, EndDate);
+            var vacation = viewModel.TryRegisterVacation(TestChoice, StartDate, EndDate);
 
-            Assert.Equal(exceptionMessage, result.message);
+            Assert.Equal(exceptionMessage, vacation.message);
         }
 
 

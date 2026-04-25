@@ -29,7 +29,7 @@
 
             <CalendarDatePicker Header="Date" Date="{x:Bind ViewModel.SelectedDate, Mode=TwoWay}" HorizontalAlignment="Stretch"/>
 
-            <ComboBox Header="Max Participants" ItemsSource="{x:Bind ViewModel.MaxParticipantsOptions}" SelectedItem="{x:Bind ViewModel.MaxParticipants, Mode=TwoWay}" HorizontalAlignment="Stretch"/>
+            <ComboBox Header="Max Participants" ItemsSource="{x:Bind ViewModel.MaximumParticipantsOptions}" SelectedItem="{x:Bind ViewModel.MaximumParticipants, Mode=TwoWay}" HorizontalAlignment="Stretch"/>
 
             <Button Content="Create Hangout" Command="{x:Bind ViewModel.CreateCommand}" Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Stretch"/>
 

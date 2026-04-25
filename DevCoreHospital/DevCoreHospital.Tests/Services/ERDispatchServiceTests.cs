@@ -41,9 +41,9 @@ namespace DevCoreHospital.Tests.Services
                 new ERRequest { Id = 3, Status = "PENDING", CreatedAt = DateTime.Now.AddMinutes(-1) },
             });
 
-            var result = await CreateService().GetPendingRequestIdsAsync();
+            var pendingRequestsIds = await CreateService().GetPendingRequestIdsAsync();
 
-            Assert.Equal(new[] { 1, 3 }, result.ToArray());
+            Assert.Equal(new[] { 1, 3 }, pendingRequestsIds.ToArray());
         }
 
         [Fact]
@@ -51,10 +51,10 @@ namespace DevCoreHospital.Tests.Services
         {
             requestRepository.Setup(repository => repository.GetAllRequests()).Returns(new List<ERRequest>());
 
-            var result = await CreateService().DispatchERRequestAsync(99);
+            var erRequestResult = await CreateService().DispatchERRequestAsync(99);
 
-            Assert.False(result.IsSuccess);
-            Assert.Contains("not found", result.Message);
+            Assert.False(erRequestResult.IsSuccess);
+            Assert.Contains("not found", erRequestResult.Message);
         }
 
         [Fact]
@@ -66,10 +66,10 @@ namespace DevCoreHospital.Tests.Services
             staffRepository.Setup(repository => repository.LoadAllStaff()).Returns(new List<IStaff> { matchingDoctor });
             shiftRepository.Setup(repository => repository.GetAllShifts()).Returns(new List<Shift> { MakeCurrentShift(1, matchingDoctor, "ER1") });
 
-            var result = await CreateService().DispatchERRequestAsync(1);
+            var erRequestResult = await CreateService().DispatchERRequestAsync(1);
 
-            Assert.True(result.IsSuccess);
-            Assert.Equal(7, result.MatchedDoctorId);
+            Assert.True(erRequestResult.IsSuccess);
+            Assert.Equal(7, erRequestResult.MatchedDoctorId);
             requestRepository.Verify(repository => repository.UpdateRequestStatus(1, "ASSIGNED", 7, It.IsAny<string>()), Times.Once);
             staffRepository.Verify(repository => repository.UpdateStatusAsync(7, DoctorStatus.IN_EXAMINATION.ToString()), Times.Once);
         }
@@ -83,9 +83,9 @@ namespace DevCoreHospital.Tests.Services
             staffRepository.Setup(repository => repository.LoadAllStaff()).Returns(new List<IStaff> { unavailable });
             shiftRepository.Setup(repository => repository.GetAllShifts()).Returns(new List<Shift> { MakeCurrentShift(1, unavailable, "ER1") });
 
-            var result = await CreateService().DispatchERRequestAsync(1);
+            var erRequestResult = await CreateService().DispatchERRequestAsync(1);
 
-            Assert.False(result.IsSuccess);
+            Assert.False(erRequestResult.IsSuccess);
             requestRepository.Verify(repository => repository.UpdateRequestStatus(1, "UNMATCHED", null, null), Times.Once);
         }
 
@@ -94,9 +94,9 @@ namespace DevCoreHospital.Tests.Services
         {
             requestRepository.Setup(repository => repository.AddRequest(It.IsAny<string>(), It.IsAny<string>(), "PENDING")).Returns(1);
 
-            var result = await CreateService().SimulateIncomingRequestsAsync(3);
+            var incomingRequests = await CreateService().SimulateIncomingRequestsAsync(3);
 
-            Assert.Equal(3, result.Count);
+            Assert.Equal(3, incomingRequests.Count);
             requestRepository.Verify(repository => repository.AddRequest(It.IsAny<string>(), It.IsAny<string>(), "PENDING"), Times.Exactly(3));
         }
 
@@ -105,9 +105,9 @@ namespace DevCoreHospital.Tests.Services
         {
             requestRepository.Setup(repository => repository.GetRequestById(42)).Returns((ERRequest?)null);
 
-            var result = await CreateService().GetManualOverrideCandidatesAsync(42, 30);
+            var candidates = await CreateService().GetManualOverrideCandidatesAsync(42, 30);
 
-            Assert.Empty(result);
+            Assert.Empty(candidates);
         }
     }
 }

@@ -151,9 +151,9 @@ namespace DevCoreHospital.Tests.Services
             };
             mockStaffRepository.Setup(staffRepository => staffRepository.GetAllDoctorsAsync()).ReturnsAsync(raw);
 
-            var result = await service.GetAllDoctorsAsync();
+            var allDoctors = await service.GetAllDoctorsAsync();
 
-            Assert.Equal(new[] { (2, "Dr. Jones"), (1, "Dr. Smith") }, result);
+            Assert.Equal(new[] { (2, "Dr. Jones"), (1, "Dr. Smith") }, allDoctors);
         }
 
         [Fact]
@@ -163,11 +163,11 @@ namespace DevCoreHospital.Tests.Services
             mockDataSource.Setup(appointmentRepository => appointmentRepository.GetAllAppointmentsAsync())
                 .ReturnsAsync(new List<Appointment> { stored });
 
-            var result = await service.GetAppointmentDetailsAsync(42);
+            var appointmentDetails = await service.GetAppointmentDetailsAsync(42);
 
-            Assert.NotNull(result);
-            Assert.Equal(42, result!.Id);
-            Assert.Equal(5, result.DoctorId);
+            Assert.NotNull(appointmentDetails);
+            Assert.Equal(42, appointmentDetails!.Id);
+            Assert.Equal(5, appointmentDetails.DoctorId);
         }
 
         [Fact]
@@ -176,9 +176,9 @@ namespace DevCoreHospital.Tests.Services
             mockDataSource.Setup(appointmentRepository => appointmentRepository.GetAllAppointmentsAsync())
                 .ReturnsAsync(new List<Appointment>());
 
-            var result = await service.GetAppointmentDetailsAsync(99);
+            var appointmentDetails = await service.GetAppointmentDetailsAsync(99);
 
-            Assert.Null(result);
+            Assert.Null(appointmentDetails);
         }
 
 
@@ -255,9 +255,9 @@ namespace DevCoreHospital.Tests.Services
                 .Setup(appointmentRepository => appointmentRepository.GetAllAppointmentsAsync())
                 .ReturnsAsync(new List<Appointment> { appointment });
 
-            var result = await service.GetAppointmentsInRangeAsync(1, from, to);
+            var appointments = await service.GetAppointmentsInRangeAsync(1, from, to);
 
-            Assert.Empty(result);
+            Assert.Empty(appointments);
         }
 
         [Fact]
@@ -276,9 +276,9 @@ namespace DevCoreHospital.Tests.Services
                 .Setup(appointmentRepository => appointmentRepository.GetAllAppointmentsAsync())
                 .ReturnsAsync(new List<Appointment> { appointment });
 
-            var result = await service.GetAppointmentsInRangeAsync(1, from, to);
+            var appointments = await service.GetAppointmentsInRangeAsync(1, from, to);
 
-            Assert.Empty(result);
+            Assert.Empty(appointments);
         }
 
         [Fact]
@@ -297,9 +297,9 @@ namespace DevCoreHospital.Tests.Services
                 .Setup(appointmentRepository => appointmentRepository.GetAllAppointmentsAsync())
                 .ReturnsAsync(new List<Appointment> { appointment });
 
-            var result = await service.GetAppointmentsInRangeAsync(1, from, to);
+            var appointments = await service.GetAppointmentsInRangeAsync(1, from, to);
 
-            Assert.Single(result);
+            Assert.Single(appointments);
         }
 
         [Fact]
@@ -318,9 +318,9 @@ namespace DevCoreHospital.Tests.Services
                 .Setup(appointmentRepository => appointmentRepository.GetAllAppointmentsAsync())
                 .ReturnsAsync(new List<Appointment> { appointment });
 
-            var result = await service.GetAppointmentsInRangeAsync(1, from, to);
+            var appointments = await service.GetAppointmentsInRangeAsync(1, from, to);
 
-            Assert.Empty(result);
+            Assert.Empty(appointments);
         }
 
 
@@ -337,10 +337,10 @@ namespace DevCoreHospital.Tests.Services
                 .Setup(shiftRepository => shiftRepository.GetAllShifts())
                 .Returns(new List<Shift> { scheduled, cancelled });
 
-            var result = await service.GetShiftsForStaffInRangeAsync(1, from, to);
+            var shiftsForStaff = await service.GetShiftsForStaffInRangeAsync(1, from, to);
 
-            Assert.Single(result);
-            Assert.Equal(1, result[0].Id);
+            Assert.Single(shiftsForStaff);
+            Assert.Equal(1, shiftsForStaff[0].Id);
         }
 
         [Fact]
@@ -356,10 +356,10 @@ namespace DevCoreHospital.Tests.Services
                 .Setup(shiftRepository => shiftRepository.GetAllShifts())
                 .Returns(new List<Shift> { later, earlier });
 
-            var result = await service.GetShiftsForStaffInRangeAsync(1, from, to);
+            var shiftsForStaff = await service.GetShiftsForStaffInRangeAsync(1, from, to);
 
-            Assert.Equal(2, result[0].Id);
-            Assert.Equal(1, result[1].Id);
+            Assert.Equal(2, shiftsForStaff[0].Id);
+            Assert.Equal(1, shiftsForStaff[1].Id);
         }
 
         [Fact]
@@ -372,9 +372,9 @@ namespace DevCoreHospital.Tests.Services
                 .Setup(shiftRepository => shiftRepository.GetAllShifts())
                 .Returns(new List<Shift>());
 
-            var result = await service.GetShiftsForStaffInRangeAsync(1, from, to);
+            var shiftsForStaff = await service.GetShiftsForStaffInRangeAsync(1, from, to);
 
-            Assert.Empty(result);
+            Assert.Empty(shiftsForStaff);
         }
 
         [Fact]
@@ -391,10 +391,10 @@ namespace DevCoreHospital.Tests.Services
                 .Setup(shiftRepository => shiftRepository.GetAllShifts())
                 .Returns(new List<Shift> { ownShift, otherShift });
 
-            var result = await service.GetShiftsForStaffInRangeAsync(7, from, to);
+            var shiftsForStaff = await service.GetShiftsForStaffInRangeAsync(7, from, to);
 
-            Assert.Single(result);
-            Assert.Equal(1, result[0].Id);
+            Assert.Single(shiftsForStaff);
+            Assert.Equal(1, shiftsForStaff[0].Id);
         }
     }
 }

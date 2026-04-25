@@ -71,9 +71,9 @@ public class MyScheduleViewModelTests
         viewModel.SelectedColleague = null;
         viewModel.SelectedShift = viewModel.FutureShifts[0];
 
-        var result = ((RelayCommand)viewModel.RequestSwapCommand).CanExecute(null!);
+        var isExecuted = ((RelayCommand)viewModel.RequestSwapCommand).CanExecute(null!);
 
-        Assert.False(result);
+        Assert.False(isExecuted);
     }
 
     [Fact]
@@ -165,9 +165,9 @@ public class MyScheduleViewModelTests
         viewModel.SelectedColleague = new StaffOptionViewModel { StaffId = 2, DisplayName = "B" };
         viewModel.SelectedShift = null;
 
-        var result = ((RelayCommand)viewModel.RequestSwapCommand).CanExecute(null!);
+        var isExecuted = ((RelayCommand)viewModel.RequestSwapCommand).CanExecute(null!);
 
-        Assert.False(result);
+        Assert.False(isExecuted);
     }
 
     [Fact]

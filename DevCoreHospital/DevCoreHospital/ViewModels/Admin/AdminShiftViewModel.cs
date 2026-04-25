@@ -12,7 +12,7 @@ namespace DevCoreHospital.ViewModels.Admin
     public class AdminShiftViewModel : INotifyPropertyChanged
     {
         private readonly IShiftManagementService staffAndShiftService;
-
+        private const int DAYS_IN_WEEK = 7;
         public ObservableCollection<Shift> Shifts { get; set; } = new ObservableCollection<Shift>();
         public ObservableCollection<IStaff> AvailableStaff { get; set; } = new ObservableCollection<IStaff>();
         public ObservableCollection<string> SpecializationsAndCertifications { get; set; } = new ObservableCollection<string>();
@@ -90,8 +90,8 @@ namespace DevCoreHospital.ViewModels.Admin
 
             if (IsWeeklyView)
             {
-                int diff = (7 + (SelectedDate.DayOfWeek - DayOfWeek.Monday)) % 7;
-                DateTime startOfWeek = SelectedDate.Date.AddDays(-1 * diff);
+                int diff = (DAYS_IN_WEEK + (SelectedDate.DayOfWeek - DayOfWeek.Monday)) % DAYS_IN_WEEK;
+                DateTime startOfWeek = SelectedDate.Date.AddDays(-diff);
                 ScheduleTitle = $"Weekly Roster (Week of {startOfWeek.ToString("dd MMM yyyy", englishCulture)})";
             }
             else
@@ -125,8 +125,8 @@ namespace DevCoreHospital.ViewModels.Admin
 
         public void CreateNewShift(IStaff staff, DateTime start, DateTime end, string location)
         {
-            bool added = staffAndShiftService.TryAddShift(staff, start, end, location);
-            if (added)
+            bool isAdded = staffAndShiftService.TryAddShift(staff, start, end, location);
+            if (isAdded)
             {
                 LoadAndFilterShifts();
             }
@@ -140,8 +140,8 @@ namespace DevCoreHospital.ViewModels.Admin
 
         public void ReassignShift(Shift shift, IStaff newStaff)
         {
-            bool success = staffAndShiftService.ReassignShift(shift, newStaff);
-            if (success)
+            bool isSuccessful = staffAndShiftService.ReassignShift(shift, newStaff);
+            if (isSuccessful)
             {
                 LoadAndFilterShifts();
             }

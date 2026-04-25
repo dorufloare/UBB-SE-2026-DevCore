@@ -9,8 +9,8 @@ namespace DevCoreHospital.Converters
     {
         public object Convert(object value, Type targetType, object parameter, string language)
         {
-            bool canPublish = value is bool flag && flag;
-            return new SolidColorBrush(canPublish ? Colors.Green : Colors.Red);
+            bool isPublishable = value is bool isPublished && isPublished;
+            return new SolidColorBrush(isPublishable ? Colors.Green : Colors.Red);
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, string language) =>

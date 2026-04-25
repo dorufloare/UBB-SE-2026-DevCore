@@ -81,9 +81,9 @@ namespace DevCoreHospital.Tests.ViewModels
         {
             var viewModel = new AppointmentItemViewModel(BuildAppointment(id: 42));
 
-            var result = viewModel.ToAppointment();
+            var appointment = viewModel.ToAppointment();
 
-            Assert.Equal(42, result.Id);
+            Assert.Equal(42, appointment.Id);
         }
 
         private static Appointment BuildFullAppointment() => BuildAppointment(
@@ -97,64 +97,64 @@ namespace DevCoreHospital.Tests.ViewModels
         [Fact]
         public void ToAppointment_WhenBuilt_PreservesPatientName()
         {
-            var result = new AppointmentItemViewModel(BuildFullAppointment()).ToAppointment();
-            Assert.Equal("Alice", result.PatientName);
+            var appointment = new AppointmentItemViewModel(BuildFullAppointment()).ToAppointment();
+            Assert.Equal("Alice", appointment.PatientName);
         }
 
         [Fact]
         public void ToAppointment_WhenBuilt_PreservesDoctorName()
         {
-            var result = new AppointmentItemViewModel(BuildFullAppointment()).ToAppointment();
-            Assert.Equal("Dr. Brown", result.DoctorName);
+            var appointment = new AppointmentItemViewModel(BuildFullAppointment()).ToAppointment();
+            Assert.Equal("Dr. Brown", appointment.DoctorName);
         }
 
         [Fact]
         public void ToAppointment_WhenBuilt_PreservesLocation()
         {
-            var result = new AppointmentItemViewModel(BuildFullAppointment()).ToAppointment();
-            Assert.Equal("Ward B", result.Location);
+            var appointment = new AppointmentItemViewModel(BuildFullAppointment()).ToAppointment();
+            Assert.Equal("Ward B", appointment.Location);
         }
 
         [Fact]
         public void ToAppointment_WhenBuilt_PreservesStatus()
         {
-            var result = new AppointmentItemViewModel(BuildFullAppointment()).ToAppointment();
-            Assert.Equal("Scheduled", result.Status);
+            var appointment = new AppointmentItemViewModel(BuildFullAppointment()).ToAppointment();
+            Assert.Equal("Scheduled", appointment.Status);
         }
 
         [Fact]
         public void ToAppointment_WhenBuilt_PreservesType()
         {
-            var result = new AppointmentItemViewModel(BuildFullAppointment()).ToAppointment();
-            Assert.Equal("Follow-up", result.Type);
+            var appointment = new AppointmentItemViewModel(BuildFullAppointment()).ToAppointment();
+            Assert.Equal("Follow-up", appointment.Type);
         }
 
         [Fact]
         public void ToAppointment_WhenBuilt_PreservesNotes()
         {
-            var result = new AppointmentItemViewModel(BuildFullAppointment()).ToAppointment();
-            Assert.Equal("Bring X-ray", result.Notes);
+            var appointment = new AppointmentItemViewModel(BuildFullAppointment()).ToAppointment();
+            Assert.Equal("Bring X-ray", appointment.Notes);
         }
 
         [Fact]
         public void ToAppointment_WhenBuilt_PreservesDate()
         {
-            var result = new AppointmentItemViewModel(BuildFullAppointment()).ToAppointment();
-            Assert.Equal(new DateTime(2025, 7, 10), result.Date);
+            var appointment = new AppointmentItemViewModel(BuildFullAppointment()).ToAppointment();
+            Assert.Equal(new DateTime(2025, 7, 10), appointment.Date);
         }
 
         [Fact]
         public void ToAppointment_WhenBuilt_PreservesStartTime()
         {
-            var result = new AppointmentItemViewModel(BuildFullAppointment()).ToAppointment();
-            Assert.Equal(new TimeSpan(9, 0, 0), result.StartTime);
+            var appointment = new AppointmentItemViewModel(BuildFullAppointment()).ToAppointment();
+            Assert.Equal(new TimeSpan(9, 0, 0), appointment.StartTime);
         }
 
         [Fact]
         public void ToAppointment_WhenBuilt_PreservesEndTime()
         {
-            var result = new AppointmentItemViewModel(BuildFullAppointment()).ToAppointment();
-            Assert.Equal(new TimeSpan(11, 30, 0), result.EndTime);
+            var appointment = new AppointmentItemViewModel(BuildFullAppointment()).ToAppointment();
+            Assert.Equal(new TimeSpan(11, 30, 0), appointment.EndTime);
         }
 
         private static Appointment BuildAllNullStringsAppointment() => new Appointment

@@ -43,10 +43,10 @@ namespace DevCoreHospital.Tests.Services
             var pharmacist = new Pharmacyst(2, "Test", "Staff", string.Empty, true, "General", 1);
             staffRepository.Setup(repository => repository.LoadAllStaff()).Returns(new List<IStaff> { doctor, pharmacist });
 
-            var result = CreateService().GetAllDoctors();
+            var doctors = CreateService().GetAllDoctors();
 
-            Assert.Single(result);
-            Assert.Equal(1, result[0].StaffID);
+            Assert.Single(doctors);
+            Assert.Equal(1, doctors[0].StaffID);
         }
 
         [Fact]
@@ -58,10 +58,10 @@ namespace DevCoreHospital.Tests.Services
             appointmentRepository.Setup(repository => repository.GetAllAppointmentsAsync())
                 .ReturnsAsync(new List<Appointment> { matching, otherDoctor, notConfirmed });
 
-            var result = CreateService().GetAppointmentsByDoctor(10);
+            var appointments = CreateService().GetAppointmentsByDoctor(10);
 
-            Assert.Single(result);
-            Assert.Equal(5, result[0].Id);
+            Assert.Single(appointments);
+            Assert.Equal(5, appointments[0].Id);
         }
 
         [Fact]
@@ -72,10 +72,10 @@ namespace DevCoreHospital.Tests.Services
             evaluationsRepository.Setup(repository => repository.GetAllEvaluations())
                 .Returns(new List<MedicalEvaluation> { matching, notMatching });
 
-            var result = CreateService().GetEvaluationsByDoctor("10");
+            var evaluations = CreateService().GetEvaluationsByDoctor("10");
 
-            Assert.Single(result);
-            Assert.Equal(1, result[0].EvaluationID);
+            Assert.Single(evaluations);
+            Assert.Equal(1, evaluations[0].EvaluationID);
         }
 
         [Fact]
@@ -117,9 +117,9 @@ namespace DevCoreHospital.Tests.Services
             var recentShift = new Shift(1, staff, "Ward A", DateTime.Now.AddHours(-15), DateTime.Now.AddHours(-2), ShiftStatus.SCHEDULED);
             shiftRepository.Setup(repository => repository.GetAllShifts()).Returns(new List<Shift> { recentShift });
 
-            var result = CreateService().IsDoctorFatigued("5");
+            var isFatigued = CreateService().IsDoctorFatigued("5");
 
-            Assert.True(result);
+            Assert.True(isFatigued);
         }
 
         [Fact]
@@ -129,9 +129,9 @@ namespace DevCoreHospital.Tests.Services
             var recentShift = new Shift(1, staff, "Ward A", DateTime.Now.AddHours(-3), DateTime.Now.AddHours(-1), ShiftStatus.SCHEDULED);
             shiftRepository.Setup(repository => repository.GetAllShifts()).Returns(new List<Shift> { recentShift });
 
-            var result = CreateService().IsDoctorFatigued("3");
+            var isFatigued = CreateService().IsDoctorFatigued("3");
 
-            Assert.False(result);
+            Assert.False(isFatigued);
         }
 
         [Fact]
@@ -140,17 +140,17 @@ namespace DevCoreHospital.Tests.Services
             highRiskMedicineRepository.Setup(repository => repository.GetAllHighRiskMedicines())
                 .Returns(new List<(string MedicineName, string WarningMessage)> { ("Aspirin", "Risk: bleeding") });
 
-            var result = CreateService().CheckMedicineConflict("P1", "Aspirin");
+            var medicineConflict = CreateService().CheckMedicineConflict("P1", "Aspirin");
 
-            Assert.Equal("Risk: bleeding", result);
+            Assert.Equal("Risk: bleeding", medicineConflict);
         }
 
         [Fact]
         public void CheckMedicineConflict_ReturnsNull_WhenNoConflict()
         {
-            var result = CreateService().CheckMedicineConflict("P2", "Ibuprofen");
+            var medicineConflict = CreateService().CheckMedicineConflict("P2", "Ibuprofen");
 
-            Assert.Null(result);
+            Assert.Null(medicineConflict);
         }
 
         [Fact]
@@ -165,9 +165,9 @@ namespace DevCoreHospital.Tests.Services
             evaluationsRepository.Setup(repository => repository.GetAllEvaluations())
                 .Returns(new List<MedicalEvaluation> { pastEvaluation });
 
-            var result = CreateService().CheckMedicineConflict("P1", "Penicillin");
+            var medicineConflict = CreateService().CheckMedicineConflict("P1", "Penicillin");
 
-            Assert.Contains("HISTORY ALERT", result ?? string.Empty);
+            Assert.Contains("HISTORY ALERT", medicineConflict ?? string.Empty);
         }
     }
 }

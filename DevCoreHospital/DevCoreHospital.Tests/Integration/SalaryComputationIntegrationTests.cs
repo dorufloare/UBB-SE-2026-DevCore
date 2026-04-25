@@ -12,6 +12,9 @@ namespace DevCoreHospital.Tests.Integration
         private const double DoctorBaseHourlyRate = 85.0;
         private const double PharmacistBaseHourlyRate = 45.0;
         private const double HangoutBonusMultiplier = 1.05;
+        private const double MedicineSalesBonusRate = 0.05;
+        private const double ShiftDurationHours = 8.0;
+        private const int HandoverCountTriggeringBonus = 50;
 
         private sealed class InMemoryPharmacyHandoverRepository : IPharmacyHandoverRepository
         {
@@ -64,7 +67,7 @@ namespace DevCoreHospital.Tests.Integration
 
             double salary = await service.ComputeSalaryDoctorAsync(doctor, new List<Shift> { shift }, 5, 2026);
 
-            Assert.Equal(8 * DoctorBaseHourlyRate, salary, 2);
+            Assert.Equal(ShiftDurationHours * DoctorBaseHourlyRate, salary, 2);
         }
 
         [Fact]
@@ -78,7 +81,7 @@ namespace DevCoreHospital.Tests.Integration
 
             double salary = await service.ComputeSalaryDoctorAsync(doctor, new List<Shift> { shift }, 5, 2026);
 
-            Assert.Equal(8 * DoctorBaseHourlyRate * HangoutBonusMultiplier, salary, 2);
+            Assert.Equal(ShiftDurationHours * DoctorBaseHourlyRate * HangoutBonusMultiplier, salary, 2);
         }
 
         [Fact]
@@ -87,15 +90,15 @@ namespace DevCoreHospital.Tests.Integration
             var (service, handoverRepository, _, _) = BuildStack();
             var pharmacist = new Pharmacyst { StaffID = 5, YearsOfExperience = 0 };
             var shift = MakeShift(11, pharmacist, new DateTime(2026, 5, 4, 8, 0, 0), new DateTime(2026, 5, 4, 16, 0, 0));
-            for (int handoverIndex = 0; handoverIndex < 50; handoverIndex++)
+            for (int handoverIndex = 0; handoverIndex < HandoverCountTriggeringBonus; handoverIndex++)
             {
                 handoverRepository.Handovers.Add(new PharmacyHandover { PharmacistId = 5, HandoverDate = new DateTime(2026, 5, 1) });
             }
 
             double salary = await service.ComputeSalaryPharmacistAsync(pharmacist, new List<Shift> { shift }, 5, 2026);
 
-            double baseSalary = 8 * PharmacistBaseHourlyRate;
-            Assert.Equal(baseSalary + baseSalary * 0.05, salary, 2);
+            double baseSalary = ShiftDurationHours * PharmacistBaseHourlyRate;
+            Assert.Equal(baseSalary + baseSalary * MedicineSalesBonusRate, salary, 2);
         }
 
         [Fact]
@@ -107,7 +110,7 @@ namespace DevCoreHospital.Tests.Integration
 
             double salary = await service.ComputeSalaryPharmacistAsync(pharmacist, new List<Shift> { shift }, 5, 2026);
 
-            Assert.Equal(8 * PharmacistBaseHourlyRate, salary, 2);
+            Assert.Equal(ShiftDurationHours * PharmacistBaseHourlyRate, salary, 2);
         }
     }
 }

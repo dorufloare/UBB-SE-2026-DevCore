@@ -56,10 +56,10 @@ public class ShiftSwapServiceTests
         shiftSwapRepository.Setup(repository => repository.GetAllShiftSwapRequests())
             .Returns(new List<ShiftSwapRequest> { pending, accepted, pendingForOther });
 
-        var result = CreateService().GetIncomingSwapRequests(9);
+        var incomingSwapRequests = CreateService().GetIncomingSwapRequests(9);
 
-        Assert.Single(result);
-        Assert.Equal(5, result[0].SwapId);
+        Assert.Single(incomingSwapRequests);
+        Assert.Equal(5, incomingSwapRequests[0].SwapId);
     }
 
     [Fact]
@@ -81,9 +81,9 @@ public class ShiftSwapServiceTests
         shiftSwapRepository.Setup(repository => repository.GetShiftSwapRequestById(1)).Returns(swapRequest);
         shiftRepository.Setup(repository => repository.GetAllShifts()).Returns(new List<Shift> { targetShift });
 
-        var accepted = CreateService().AcceptSwapRequest(1, 2, out var message);
+        var isAccepted = CreateService().AcceptSwapRequest(1, 2, out var message);
 
-        Assert.True(accepted);
+        Assert.True(isAccepted);
         Assert.Equal("Swap accepted.", message);
         shiftRepository.Verify(repository => repository.UpdateShiftStaffId(4, 2), Times.Once);
         shiftSwapRepository.Verify(repository => repository.UpdateShiftSwapRequestStatus(1, "ACCEPTED"), Times.Once);
@@ -96,9 +96,9 @@ public class ShiftSwapServiceTests
         var pending = new ShiftSwapRequest { SwapId = 1, ColleagueId = 2, RequesterId = 3, ShiftId = 4, Status = ShiftSwapRequestStatus.PENDING };
         shiftSwapRepository.Setup(repository => repository.GetShiftSwapRequestById(1)).Returns(pending);
 
-        var rejected = CreateService().RejectSwapRequest(1, 2, out var message);
+        var isRejected = CreateService().RejectSwapRequest(1, 2, out var message);
 
-        Assert.True(rejected);
+        Assert.True(isRejected);
         Assert.Equal("Swap rejected.", message);
         shiftSwapRepository.Verify(repository => repository.UpdateShiftSwapRequestStatus(1, "REJECTED"), Times.Once);
         notificationRepository.Verify(repository => repository.AddNotification(3, It.IsAny<string>(), It.IsAny<string>()), Times.Once);
