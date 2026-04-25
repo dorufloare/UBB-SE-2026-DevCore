@@ -64,12 +64,12 @@ namespace DevCoreHospital.Repositories
             using var connection = GetConnection();
             await connection.OpenAsync();
             using var command = new SqlCommand(
-                "INSERT INTO Appointments (patient_id, doctor_id, start_time, end_time, status) VALUES (@PatId, @DocId, @Start, @End, @Status);",
+                "INSERT INTO Appointments (patient_id, doctor_id, start_time, end_time, status) VALUES (@PatientId, @DoctorId, @StartTime, @EndTime, @Status);",
                 connection);
-            AddParameter(command, "@PatId", patientId);
-            AddParameter(command, "@DocId", doctorId);
-            AddParameter(command, "@Start", startTime);
-            AddParameter(command, "@End", endTime);
+            AddParameter(command, "@PatientId", patientId);
+            AddParameter(command, "@DoctorId", doctorId);
+            AddParameter(command, "@StartTime", startTime);
+            AddParameter(command, "@EndTime", endTime);
             AddParameter(command, "@Status", status);
             await command.ExecuteNonQueryAsync();
         }

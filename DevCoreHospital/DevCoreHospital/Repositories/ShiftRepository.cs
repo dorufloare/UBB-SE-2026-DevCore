@@ -43,8 +43,8 @@ namespace DevCoreHospital.Repositories
                 string statusLabel = reader.IsDBNull(statusOrdinal) ? DefaultShiftStatusLabel : reader.GetString(statusOrdinal);
                 Enum.TryParse<ShiftStatus>(statusLabel, true, out ShiftStatus shiftStatus);
 
-                IStaff staffStub = new Doctor { StaffID = staffId };
-                shifts.Add(new Shift(reader.GetInt32(shiftIdOrdinal), staffStub, location, startTime, endTime, shiftStatus));
+                IStaff appointedStaff = new Doctor { StaffID = staffId };
+                shifts.Add(new Shift(reader.GetInt32(shiftIdOrdinal), appointedStaff, location, startTime, endTime, shiftStatus));
             }
             return shifts;
         }

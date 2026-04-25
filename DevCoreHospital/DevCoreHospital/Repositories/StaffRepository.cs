@@ -138,7 +138,7 @@ namespace DevCoreHospital.Repositories
                 UPDATE Staff SET
                     first_name = @FirstName, last_name = @LastName,
                     contact_info = @ContactInfo, is_available = @IsAvailable,
-                    license_number = @License, specialization = @Specialization,
+                    license_number = @LicenseNumber, specialization = @Specialization,
                     status = @Status, certification = @Certification
                 WHERE staff_id = @StaffId;", connection);
             AddParameter(command, "@FirstName", staff.FirstName);
@@ -149,21 +149,21 @@ namespace DevCoreHospital.Repositories
 
             if (staff is Doctor doctor)
             {
-                AddParameter(command, "@License", doctor.LicenseNumber);
+                AddParameter(command, "@LicenseNumber", doctor.LicenseNumber);
                 AddParameter(command, "@Specialization", doctor.Specialization);
                 AddParameter(command, "@Status", doctor.DoctorStatus.ToString());
                 AddParameter(command, "@Certification", DBNull.Value);
             }
             else if (staff is Pharmacyst pharmacist)
             {
-                AddParameter(command, "@License", DBNull.Value);
+                AddParameter(command, "@LicenseNumber", DBNull.Value);
                 AddParameter(command, "@Specialization", DBNull.Value);
                 AddParameter(command, "@Status", DBNull.Value);
                 AddParameter(command, "@Certification", pharmacist.Certification);
             }
             else
             {
-                AddParameter(command, "@License", DBNull.Value);
+                AddParameter(command, "@LicenseNumber", DBNull.Value);
                 AddParameter(command, "@Specialization", DBNull.Value);
                 AddParameter(command, "@Status", DBNull.Value);
                 AddParameter(command, "@Certification", DBNull.Value);
